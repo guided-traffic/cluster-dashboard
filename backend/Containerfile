@@ -1,0 +1,51 @@
+# The backend image (docs/adr/0001 D3): the static Go binary on distroless static, pinned by
+# digest — no shell, no package manager, no libc. Built from backend/ as its context.
+#
+# The build stage runs on the builder's platform and cross-compiles for the target's, so an arm64
+# image is a platform in build.yml, not a slower emulated build.
+FROM --platform=$BUILDPLATFORM golang:1.27.3-alpine AS build
+
+ARG BUILD_NUMBER
+ARG GIT_COMMIT
+ARG BUILD_TIME
+ARG TARGETOS
+ARG TARGETARCH
+
+WORKDIR /src
+
+# The module download is its own layer, cached until go.mod or go.sum change.
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} \
+    go build -trimpath \
+    -ldflags="-w -s -X main.version=${BUILD_NUMBER:-dev} -X main.commit=${GIT_COMMIT:-unknown} -X main.buildTime=${BUILD_TIME:-unknown}" \
+    -o /out/dash ./cmd/dash
+
+# gcr.io/distroless/static-debian13:nonroot, the image index's digest (verified 2026-10-26);
+# Renovate moves the digest (renovate.json, :automergeDigest).
+FROM gcr.io/distroless/static-debian13:nonroot@sha256:18f4cc26c9ffa7f20a359298be7deadac5c607c8e03a02b8119f1a5fc2f82c99
+
+ARG BUILD_NUMBER
+ARG GIT_COMMIT
+
+LABEL org.opencontainers.image.title="dash-backend" \
+      org.opencontainers.image.description="Dash backend - the API of the Kubernetes start page" \
+      org.opencontainers.image.vendor="Guided Traffic" \
+      org.opencontainers.image.licenses="Apache-2.0" \
+      org.opencontainers.image.documentation="https://github.com/guided-traffic/dash" \
+      org.opencontainers.image.source="https://github.com/guided-traffic/dash" \
+      org.opencontainers.image.version="${BUILD_NUMBER:-dev}" \
+      org.opencontainers.image.revision="${GIT_COMMIT:-unknown}"
+
+COPY --from=build /out/dash /dash
+
+# The nonroot user of distroless, by number, so the kubelet can check runAsNonRoot.
+USER 65532:65532
+
+# HTTP: the API and the health endpoints.
+EXPOSE 8080
+
+ENTRYPOINT ["/dash"]
+CMD ["serve"]

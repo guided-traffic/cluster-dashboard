@@ -1,0 +1,12 @@
+# What the backend image's build does not read: tests' output, the linter's
+# configuration, editor files.
+bin/
+coverage/
+*.out
+*.test
+.golangci.yml
+Containerfile
+.dockerignore
+.idea/
+.vscode/
+.DS_Store

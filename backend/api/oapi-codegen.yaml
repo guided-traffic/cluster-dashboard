@@ -1,0 +1,12 @@
+# oapi-codegen reads the bundled document (make generate) and writes the Go server interface —
+# strict, on net/http's ServeMux — and the models (docs/adr/0001 D5). No client: nothing in Go
+# calls this API.
+package: apigen
+output: internal/api/apigen/api.gen.go
+generate:
+  std-http-server: true
+  strict-server: true
+  models: true
+compatibility:
+  # Every enum constant carries its type's name, so adding a value elsewhere never renames one.
+  always-prefix-enum-values: true

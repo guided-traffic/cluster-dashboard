@@ -1,0 +1,47 @@
+# Meta: what the backend is.
+version:
+  get:
+    operationId: getVersion
+    tags: [meta]
+    summary: The backend build
+    description: The version, the commit and the build time the binary was built with; the UI's top bar shows the version.
+    responses:
+      '200':
+        description: The build
+        content:
+          application/json:
+            schema:
+              $ref: './components/schemas.yaml#/Version'
+      default:
+        $ref: './components/responses.yaml#/Problem'
+document:
+  get:
+    operationId: getOpenAPI
+    tags: [meta]
+    summary: This document
+    description: The bundled OpenAPI document the backend validates every request against; `info.version` is the backend version.
+    responses:
+      '200':
+        description: The OpenAPI document
+        content:
+          application/json:
+            schema:
+              type: object
+            examples:
+              document:
+                summary: The document, cut after its first path
+                value:
+                  openapi: 3.1.0
+                  info:
+                    title: Dash
+                    version: 0.1.0
+                  servers:
+                    - url: /
+                  paths:
+                    /api/v1/version:
+                      get:
+                        operationId: getVersion
+                        tags: [meta]
+                        summary: The backend build
+      default:
+        $ref: './components/responses.yaml#/Problem'

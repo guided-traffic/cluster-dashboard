@@ -1,0 +1,36 @@
+Problem:
+  description: |
+    An RFC 9457 problem details body with a stable `code`, the `request_id` and, for a request the
+    document refuses, `errors[]`.
+  headers:
+    X-Request-Id:
+      description: The request's id, also in the body and in the log line
+      schema: {type: string}
+  content:
+    application/problem+json:
+      schema:
+        $ref: './schemas.yaml#/Problem'
+      examples:
+        notFound:
+          summary: No such route
+          value:
+            type: https://dash.gtrfc.com/problems/not-found
+            title: Not found
+            status: 404
+            detail: no route GET /api/v1/nothing
+            instance: /api/v1/nothing
+            code: not_found
+            request_id: 019a2b3c-4d5e-7f60-8a9b-0c1d2e3f4a5b
+        validationFailed:
+          summary: A query parameter the document does not know; errors[] names it
+          value:
+            type: https://dash.gtrfc.com/problems/validation-failed
+            title: Validation failed
+            status: 400
+            detail: the request has parameters this route does not know
+            instance: /api/v1/version
+            code: validation_failed
+            request_id: 019a2b3c-4d5e-7f60-8a9b-0c1d2e3f4a5c
+            errors:
+              - pointer: query:verbose
+                message: unknown parameter

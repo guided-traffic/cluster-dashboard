@@ -1,0 +1,34 @@
+# Tools installed by the Makefile under versioned names, and their stamps
+bin/
+
+# Downloads and clusters of the test harnesses: envtest binaries, the kind
+# cluster's kubeconfig, Helm's isolated home
+.cache/
+
+# Coverage profiles and reports
+coverage/
+*.out
+*.coverprofile
+
+# Test binaries (go test -c)
+*.test
+
+# Node.js dependencies (root: semantic-release; frontend/: Angular)
+node_modules/
+
+# Build output
+dist/
+
+# The end-to-end suite's results
+frontend/e2e/test-results/
+frontend/e2e/playwright-report/
+
+# Go workspace files: each module stands alone
+go.work
+go.work.sum
+
+# OS and editors
+.DS_Store
+.idea/
+.vscode/
+*.swp

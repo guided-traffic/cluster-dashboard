@@ -1,0 +1,256 @@
+{
+  "components": {
+    "responses": {
+      "Problem": {
+        "content": {
+          "application/problem+json": {
+            "examples": {
+              "notFound": {
+                "summary": "No such route",
+                "value": {
+                  "code": "not_found",
+                  "detail": "no route GET /api/v1/nothing",
+                  "instance": "/api/v1/nothing",
+                  "request_id": "019a2b3c-4d5e-7f60-8a9b-0c1d2e3f4a5b",
+                  "status": 404,
+                  "title": "Not found",
+                  "type": "https://dash.gtrfc.com/problems/not-found"
+                }
+              },
+              "validationFailed": {
+                "summary": "A query parameter the document does not know; errors[] names it",
+                "value": {
+                  "code": "validation_failed",
+                  "detail": "the request has parameters this route does not know",
+                  "errors": [
+                    {
+                      "message": "unknown parameter",
+                      "pointer": "query:verbose"
+                    }
+                  ],
+                  "instance": "/api/v1/version",
+                  "request_id": "019a2b3c-4d5e-7f60-8a9b-0c1d2e3f4a5c",
+                  "status": 400,
+                  "title": "Validation failed",
+                  "type": "https://dash.gtrfc.com/problems/validation-failed"
+                }
+              }
+            },
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        },
+        "description": "An RFC 9457 problem details body with a stable `code`, the `request_id` and, for a request the\ndocument refuses, `errors[]`.\n",
+        "headers": {
+          "X-Request-Id": {
+            "description": "The request's id, also in the body and in the log line",
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "FieldError": {
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "pointer": {
+            "description": "A JSON pointer into the body, or query:\u003cname\u003e for a query parameter",
+            "type": "string"
+          }
+        },
+        "required": [
+          "pointer",
+          "message"
+        ],
+        "type": "object"
+      },
+      "Problem": {
+        "description": "An RFC 9457 problem details body (backend/internal/problem)",
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/ProblemCode"
+          },
+          "detail": {
+            "description": "For a person; never a secret, a stack trace or an internal address",
+            "type": "string"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/FieldError"
+            },
+            "type": "array"
+          },
+          "instance": {
+            "description": "The request path, without its query",
+            "type": "string"
+          },
+          "request_id": {
+            "description": "The id of the request, also in X-Request-Id and in the request log",
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "description": "The code as a URI, https://dash.gtrfc.com/problems/\u003ccode\u003e; an identifier, not a link",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code"
+        ],
+        "type": "object"
+      },
+      "ProblemCode": {
+        "description": "The stable code of a problem",
+        "enum": [
+          "validation_failed",
+          "not_found",
+          "method_not_allowed",
+          "internal",
+          "not_ready"
+        ],
+        "type": "string"
+      },
+      "Version": {
+        "example": {
+          "build_time": "1793000000",
+          "commit": "6c4adc7",
+          "version": "0.1.0"
+        },
+        "properties": {
+          "build_time": {
+            "description": "When it was built, in seconds since the epoch",
+            "type": "string"
+          },
+          "commit": {
+            "description": "The commit the binary was built from",
+            "type": "string"
+          },
+          "version": {
+            "description": "The release, such as 0.1.0; dev for a build outside the release pipeline",
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "commit",
+          "build_time"
+        ],
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "The API of Dash, a start page of the apps a Kubernetes cluster serves.\n\nThere is no login: whoever reaches the dashboard's host reaches this API, and protection is\nthe Ingress controller's (docs/security/exposure.md). The browser reaches it on the same\norigin as the UI: the Ingress `\u003cfullname\u003e-backend` routes `/api/` here. Errors are RFC 9457\nproblem details with a stable `code`.\n",
+    "license": {
+      "name": "Apache-2.0",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0"
+    },
+    "title": "Dash",
+    "version": "0.0.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/openapi.json": {
+      "get": {
+        "description": "The bundled OpenAPI document the backend validates every request against; `info.version` is the backend version.",
+        "operationId": "getOpenAPI",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "document": {
+                    "summary": "The document, cut after its first path",
+                    "value": {
+                      "info": {
+                        "title": "Dash",
+                        "version": "0.1.0"
+                      },
+                      "openapi": "3.1.0",
+                      "paths": {
+                        "/api/v1/version": {
+                          "get": {
+                            "operationId": "getVersion",
+                            "summary": "The backend build",
+                            "tags": [
+                              "meta"
+                            ]
+                          }
+                        }
+                      },
+                      "servers": [
+                        {
+                          "url": "/"
+                        }
+                      ]
+                    }
+                  }
+                },
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The OpenAPI document"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "summary": "This document",
+        "tags": [
+          "meta"
+        ]
+      }
+    },
+    "/api/v1/version": {
+      "get": {
+        "description": "The version, the commit and the build time the binary was built with; the UI's top bar shows the version.",
+        "operationId": "getVersion",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Version"
+                }
+              }
+            },
+            "description": "The build"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "summary": "The backend build",
+        "tags": [
+          "meta"
+        ]
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "tags": [
+    {
+      "description": "What the backend is",
+      "name": "meta"
+    }
+  ]
+}

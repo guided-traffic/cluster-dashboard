@@ -1,0 +1,36 @@
+Problem:
+  type: object
+  description: An RFC 9457 problem details body (backend/internal/problem)
+  required: [type, title, status, code]
+  properties:
+    type: {type: string, description: 'The code as a URI, https://dash.gtrfc.com/problems/<code>; an identifier, not a link'}
+    title: {type: string}
+    status: {type: integer}
+    detail: {type: string, description: 'For a person; never a secret, a stack trace or an internal address'}
+    instance: {type: string, description: 'The request path, without its query'}
+    code:
+      $ref: './problem-codes.yaml#/ProblemCode'
+    request_id: {type: string, description: 'The id of the request, also in X-Request-Id and in the request log'}
+    errors:
+      type: array
+      items:
+        $ref: '#/FieldError'
+FieldError:
+  type: object
+  required: [pointer, message]
+  properties:
+    pointer:
+      type: string
+      description: A JSON pointer into the body, or query:<name> for a query parameter
+    message: {type: string}
+Version:
+  type: object
+  required: [version, commit, build_time]
+  properties:
+    version: {type: string, description: 'The release, such as 0.1.0; dev for a build outside the release pipeline'}
+    commit: {type: string, description: The commit the binary was built from}
+    build_time: {type: string, description: 'When it was built, in seconds since the epoch'}
+  example:
+    version: 0.1.0
+    commit: 6c4adc7
+    build_time: '1793000000'

@@ -1,0 +1,29 @@
+# The Dash API (docs/adr/0001 D5): this document is the source. A change to the API
+# is a change here first; `make generate` bundles it into openapi.gen.json, which the backend
+# embeds, serves at /api/v1/openapi.json and validates every request against, and from which
+# oapi-codegen writes the Go server interface and ng-openapi-gen the Angular client
+# (`make frontend-generate`). One file per path family; components/ holds what they share.
+openapi: 3.1.0
+info:
+  title: Dash
+  version: 0.0.0 # replaced by the backend version when served
+  description: |
+    The API of Dash, a start page of the apps a Kubernetes cluster serves.
+
+    There is no login: whoever reaches the dashboard's host reaches this API, and protection is
+    the Ingress controller's (docs/security/exposure.md). The browser reaches it on the same
+    origin as the UI: the Ingress `<fullname>-backend` routes `/api/` here. Errors are RFC 9457
+    problem details with a stable `code`.
+  license:
+    name: Apache-2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+servers:
+  - url: /
+tags:
+  - name: meta
+    description: What the backend is
+paths:
+  /api/v1/version:
+    $ref: './meta.yaml#/version'
+  /api/v1/openapi.json:
+    $ref: './meta.yaml#/document'
