@@ -291,6 +291,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      # The runner image has no make; make coverage-report runs hack/coverage.py.
+      - name: Install build tools
+        run: sudo apt-get update && sudo apt-get install -y make jq python3
+
       - name: Download unit test coverage
         uses: actions/download-artifact@v8
         with:
