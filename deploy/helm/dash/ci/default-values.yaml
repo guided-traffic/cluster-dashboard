@@ -1,0 +1,2 @@
+# The chart with its defaults: no Ingress, the ServiceAccount created.
+{}

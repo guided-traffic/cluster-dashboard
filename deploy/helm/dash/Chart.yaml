@@ -1,0 +1,18 @@
+apiVersion: v2
+name: dash
+description: Dash, a start page for a Kubernetes cluster that finds its apps through their Ingresses
+type: application
+# The release workflow sets both to the release's version (build.yml).
+version: 0.1.0
+appVersion: "0.1.0"
+maintainers:
+  - name: Guided Traffic
+    url: https://github.com/guided-traffic
+keywords:
+  - dashboard
+  - start-page
+  - ingress
+  - discovery
+home: https://github.com/guided-traffic/dash
+sources:
+  - https://github.com/guided-traffic/dash

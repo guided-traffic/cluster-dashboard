@@ -1,0 +1,76 @@
+# Dash's Helm values. Every key is in values.schema.json, which refuses an unknown key or a wrong
+# type at install. The reference with every key is the README's "Full reference".
+
+# -- Overrides the chart name in resource names.
+nameOverride: ""
+# -- Overrides the full name the resources are named after: <fullname>-backend, <fullname>-frontend.
+fullnameOverride: ""
+# -- Pull secrets for both images, as [{name: regcred}].
+imagePullSecrets: []
+
+backend:
+  image:
+    repository: guidedtraffic/dash-backend
+    # -- Empty: the chart's appVersion.
+    tag: ""
+    pullPolicy: IfNotPresent
+  replicas: 1
+  # -- debug, info, warn or error.
+  logLevel: info
+  resources:
+    requests:
+      cpu: 10m
+      memory: 64Mi
+    limits:
+      memory: 256Mi
+  # -- Labels on the backend's pods, e.g. the ones a cluster's network policies select by.
+  podLabels: {}
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+frontend:
+  image:
+    repository: guidedtraffic/dash-frontend
+    # -- Empty: the chart's appVersion.
+    tag: ""
+    pullPolicy: IfNotPresent
+  replicas: 1
+  resources:
+    requests:
+      cpu: 5m
+      memory: 16Mi
+    limits:
+      memory: 64Mi
+  podLabels: {}
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# The backend's ServiceAccount: its token is how the backend reaches the Kubernetes API.
+serviceAccount:
+  create: true
+  # -- Empty: <fullname>-backend when created, "default" when not.
+  name: ""
+  annotations: {}
+
+# Two Ingress objects on the same hosts: <fullname>-frontend takes "/", <fullname>-backend takes
+# "/api/". Both carry hosts, tls, className and annotations; each adds its own annotations.
+ingress:
+  enabled: false
+  className: ""
+  # -- Host names, e.g. [dash.example.com]; empty: one rule without a host.
+  hosts: []
+  # -- TLS blocks for both objects, e.g. [{secretName: dash-tls, hosts: [dash.example.com]}].
+  tls: []
+  # -- On both objects. Authentication annotations (forward auth, basic auth, allowlists) belong
+  # here: on the frontend's object alone they would leave /api/ open.
+  annotations: {}
+  frontend:
+    # -- On <fullname>-frontend only, e.g. cert-manager's issuer annotation.
+    annotations: {}
+  backend:
+    # -- On <fullname>-backend only, e.g. a longer timeout for the API.
+    annotations: {}

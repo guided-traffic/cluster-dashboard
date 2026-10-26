@@ -1,0 +1,19 @@
+# Both Ingress objects with TLS, a class, shared annotations and one object's own: cert-manager's
+# issuer annotation on the frontend's object only, both naming the same secret.
+ingress:
+  enabled: true
+  className: haproxy
+  hosts:
+    - dash.example.com
+  tls:
+    - secretName: dash-tls
+      hosts:
+        - dash.example.com
+  annotations:
+    haproxy-ingress.github.io/allowlist-source-range: 10.0.0.0/8
+  frontend:
+    annotations:
+      cert-manager.io/cluster-issuer: selfsigned
+  backend:
+    annotations:
+      haproxy-ingress.github.io/timeout-server: 60s

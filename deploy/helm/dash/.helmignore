@@ -1,0 +1,4 @@
+# The chart's own test material stays out of the package.
+ci/
+tests/
+.DS_Store

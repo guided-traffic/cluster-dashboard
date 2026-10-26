@@ -1,0 +1,49 @@
+{{- if .Values.ingress.enabled -}}
+{{/*
+Two Ingress objects on the same hosts (docs/adr/0001 D2): the frontend's takes "/", the backend's
+"/api/". The controller is the one hop; nothing proxies between frontend and backend. The paths are
+the chart's, not values.
+*/}}
+{{- $objects := list
+  (dict "fullname" (include "dash.frontend.fullname" .) "component" "frontend" "path" "/" "own" .Values.ingress.frontend.annotations)
+  (dict "fullname" (include "dash.backend.fullname" .) "component" "backend" "path" "/api/" "own" .Values.ingress.backend.annotations) }}
+{{- range $i, $object := $objects }}
+{{- if $i }}
+---
+{{- end }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $object.fullname }}
+  labels:
+    {{- include "dash.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $object.component }}
+  annotations:
+    {{- include "dash.ingressAnnotations" (dict "root" $ "own" $object.own) | nindent 4 }}
+spec:
+  {{- with $.Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- with $.Values.ingress.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    {{- $hosts := $.Values.ingress.hosts }}
+    {{- if not $hosts }}
+    {{- $hosts = list "" }}
+    {{- end }}
+    {{- range $hosts }}
+    - {{- if . }} host: {{ . | quote }}{{ end }}
+      http:
+        paths:
+          - path: {{ $object.path }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $object.fullname }}
+                port:
+                  name: http
+    {{- end }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,157 @@
+suite: the backend and frontend Deployments
+templates:
+  - templates/backend-deployment.yaml
+  - templates/frontend-deployment.yaml
+  - templates/configmap.yaml
+chart:
+  appVersion: 0.4.2
+release:
+  name: dash
+tests:
+  - it: runs both images at the chart's appVersion by default
+    template: templates/backend-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: guidedtraffic/dash-backend:0.4.2
+
+  - it: runs the frontend image at the chart's appVersion by default
+    template: templates/frontend-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: guidedtraffic/dash-frontend:0.4.2
+
+  - it: takes an image tag and repository from the values
+    template: templates/backend-deployment.yaml
+    set:
+      backend.image.repository: registry.example.com/dash-backend
+      backend.image.tag: "1.0.0"
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: registry.example.com/dash-backend:1.0.0
+
+  - it: hands the backend its three variables and the Go memory limit
+    template: templates/backend-deployment.yaml
+    set:
+      backend.logLevel: debug
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DASH_CONFIG
+            value: /etc/dash/config.yaml
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DASH_LISTEN_ADDR
+            value: ":8080"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DASH_LOG_LEVEL
+            value: debug
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GOMEMLIMIT
+            valueFrom:
+              resourceFieldRef:
+                containerName: backend
+                resource: limits.memory
+
+  - it: mounts the configuration read-only and rolls the pods when it changes
+    template: templates/backend-deployment.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: config
+            mountPath: /etc/dash
+            readOnly: true
+      - equal:
+          path: spec.template.spec.volumes[0].configMap.name
+          value: dash-config
+      - matchRegex:
+          path: spec.template.metadata.annotations["checksum/config"]
+          pattern: ^[0-9a-f]{64}$
+
+  - it: hardens the backend pod
+    template: templates/backend-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext
+          value:
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
+            seccompProfile:
+              type: RuntimeDefault
+      - equal:
+          path: spec.template.spec.containers[0].securityContext
+          value:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+
+  - it: hardens the frontend pod and gives it no ServiceAccount token
+    template: templates/frontend-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.automountServiceAccountToken
+          value: false
+      - notExists:
+          path: spec.template.spec.volumes
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.readOnlyRootFilesystem
+          value: true
+      - equal:
+          path: spec.template.spec.securityContext.runAsUser
+          value: 65532
+
+  - it: runs the backend as the chart's ServiceAccount with its token
+    template: templates/backend-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.serviceAccountName
+          value: dash-backend
+      - equal:
+          path: spec.template.spec.automountServiceAccountToken
+          value: true
+
+  - it: runs the backend as a named ServiceAccount when the chart creates none
+    template: templates/backend-deployment.yaml
+    set:
+      serviceAccount.create: false
+      serviceAccount.name: dash-reader
+    asserts:
+      - equal:
+          path: spec.template.spec.serviceAccountName
+          value: dash-reader
+
+  - it: adds pod labels without touching the selector
+    template: templates/backend-deployment.yaml
+    set:
+      backend.podLabels:
+        gnp/k8s-api-access: ""
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels["gnp/k8s-api-access"]
+          value: ""
+      - notExists:
+          path: spec.selector.matchLabels["gnp/k8s-api-access"]
+      - equal:
+          path: spec.selector.matchLabels["app.kubernetes.io/component"]
+          value: backend
+
+  - it: probes the backend's health and readiness
+    template: templates/backend-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet.path
+          value: /healthz
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.httpGet.path
+          value: /readyz

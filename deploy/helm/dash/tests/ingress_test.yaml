@@ -1,0 +1,146 @@
+suite: the two Ingress objects
+templates:
+  - templates/ingress.yaml
+release:
+  name: dash
+tests:
+  - it: renders no Ingress by default
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders the frontend object on / and the backend object on /api/
+    set:
+      ingress.enabled: true
+      ingress.hosts: [dash.example.com]
+    asserts:
+      - hasDocuments:
+          count: 2
+      - documentIndex: 0
+        equal:
+          path: metadata.name
+          value: dash-frontend
+      - documentIndex: 0
+        equal:
+          path: spec.rules[0]
+          value:
+            host: dash.example.com
+            http:
+              paths:
+                - path: /
+                  pathType: Prefix
+                  backend:
+                    service:
+                      name: dash-frontend
+                      port:
+                        name: http
+      - documentIndex: 1
+        equal:
+          path: metadata.name
+          value: dash-backend
+      - documentIndex: 1
+        equal:
+          path: spec.rules[0]
+          value:
+            host: dash.example.com
+            http:
+              paths:
+                - path: /api/
+                  pathType: Prefix
+                  backend:
+                    service:
+                      name: dash-backend
+                      port:
+                        name: http
+
+  - it: gives both objects every host, the class and the TLS block
+    set:
+      ingress.enabled: true
+      ingress.className: haproxy
+      ingress.hosts: [a.example.com, b.example.com]
+      ingress.tls:
+        - secretName: dash-tls
+          hosts: [a.example.com, b.example.com]
+    asserts:
+      - equal:
+          path: spec.ingressClassName
+          value: haproxy
+      - lengthEqual:
+          path: spec.rules
+          count: 2
+      - equal:
+          path: spec.rules[1].host
+          value: b.example.com
+      - equal:
+          path: spec.tls
+          value:
+            - secretName: dash-tls
+              hosts: [a.example.com, b.example.com]
+
+  - it: renders a rule without a host when no host is set
+    set:
+      ingress.enabled: true
+    asserts:
+      - notExists:
+          path: spec.rules[0].host
+      - lengthEqual:
+          path: spec.rules
+          count: 1
+
+  - it: keeps Dash off its own list on both objects
+    set:
+      ingress.enabled: true
+    asserts:
+      - equal:
+          path: metadata.annotations["dash.gtrfc.com/enable"]
+          value: "false"
+
+  - it: puts the shared annotations on both objects and each own set on its object only
+    set:
+      ingress.enabled: true
+      ingress.annotations:
+        example.com/auth-url: https://auth.example.com
+      ingress.frontend.annotations:
+        cert-manager.io/cluster-issuer: selfsigned
+      ingress.backend.annotations:
+        example.com/timeout: 60s
+    asserts:
+      - equal:
+          path: metadata.annotations["example.com/auth-url"]
+          value: https://auth.example.com
+      - documentIndex: 0
+        equal:
+          path: metadata.annotations["cert-manager.io/cluster-issuer"]
+          value: selfsigned
+      - documentIndex: 0
+        notExists:
+          path: metadata.annotations["example.com/timeout"]
+      - documentIndex: 1
+        equal:
+          path: metadata.annotations["example.com/timeout"]
+          value: 60s
+      - documentIndex: 1
+        notExists:
+          path: metadata.annotations["cert-manager.io/cluster-issuer"]
+
+  - it: lets an object's own annotation win over the shared one and over the opt-out
+    set:
+      ingress.enabled: true
+      ingress.annotations:
+        example.com/timeout: 30s
+      ingress.backend.annotations:
+        example.com/timeout: 60s
+        dash.gtrfc.com/enable: "true"
+    asserts:
+      - documentIndex: 1
+        equal:
+          path: metadata.annotations["example.com/timeout"]
+          value: 60s
+      - documentIndex: 1
+        equal:
+          path: metadata.annotations["dash.gtrfc.com/enable"]
+          value: "true"
+      - documentIndex: 0
+        equal:
+          path: metadata.annotations["example.com/timeout"]
+          value: 30s

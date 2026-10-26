@@ -1,0 +1,49 @@
+# Every per-pod value set, an existing ServiceAccount, a host-less Ingress rule.
+imagePullSecrets:
+  - name: regcred
+backend:
+  image:
+    repository: registry.example.com/dash-backend
+    tag: "0.1.0"
+    pullPolicy: Always
+  replicas: 2
+  logLevel: debug
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 512Mi
+  podLabels:
+    gnp/k8s-api-access: ""
+  podAnnotations:
+    example.com/scrape: "false"
+  nodeSelector:
+    kubernetes.io/os: linux
+  tolerations:
+    - key: dedicated
+      operator: Equal
+      value: tools
+      effect: NoSchedule
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            topologyKey: kubernetes.io/hostname
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/component: backend
+frontend:
+  image:
+    repository: registry.example.com/dash-frontend
+    tag: "0.1.0"
+    pullPolicy: Always
+  replicas: 2
+  podLabels:
+    gnp/internal-backend: ""
+serviceAccount:
+  create: false
+  name: dash-reader
+ingress:
+  enabled: true

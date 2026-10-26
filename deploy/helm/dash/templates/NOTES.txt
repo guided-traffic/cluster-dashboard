@@ -1,0 +1,20 @@
+Dash {{ .Chart.AppVersion }} is installed as {{ include "dash.fullname" . }}.
+{{- if .Values.ingress.enabled }}
+
+Two Ingress objects serve it on one origin:
+  {{ include "dash.frontend.fullname" . }}  path /       → the UI
+  {{ include "dash.backend.fullname" . }}   path /api/   → the API
+{{- range .Values.ingress.hosts }}
+  {{ if $.Values.ingress.tls }}https{{ else }}http{{ end }}://{{ . }}/
+{{- end }}
+
+Authentication annotations (forward auth, basic auth, allowlists) belong under ingress.annotations,
+which both objects carry: under ingress.frontend.annotations alone they protect the UI while /api/
+stays open.
+{{- else }}
+
+No Ingress is rendered (ingress.enabled is false). The browser needs one origin for the UI and the
+API; a port-forward to the frontend alone serves the UI without its API:
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "dash.frontend.fullname" . }} 8080:8080
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "dash.backend.fullname" . }} 8081:8080   # the API alone
+{{- end }}

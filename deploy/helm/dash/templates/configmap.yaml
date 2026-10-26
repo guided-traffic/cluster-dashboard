@@ -1,0 +1,13 @@
+# The backend's configuration file (docs/adr/0004), read from DASH_CONFIG. It holds no key yet:
+# the dashboard's settings arrive with phase 2 of docs/planning/project-plan.md. The backend's pods
+# carry its checksum, so a changed file rolls them.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "dash.config.fullname" . }}
+  labels:
+    {{- include "dash.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+data:
+  config.yaml: |
+    {}
