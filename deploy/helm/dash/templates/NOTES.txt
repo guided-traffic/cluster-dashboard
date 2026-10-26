@@ -10,11 +10,43 @@ Two Ingress objects serve it on one origin:
 
 Authentication annotations (forward auth, basic auth, allowlists) belong under ingress.annotations,
 which both objects carry: under ingress.frontend.annotations alone they protect the UI while /api/
-stays open.
+stays open — and /api/v1/dashboard lists every app it shows.
 {{- else }}
 
 No Ingress is rendered (ingress.enabled is false). The browser needs one origin for the UI and the
 API; a port-forward to the frontend alone serves the UI without its API:
   kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "dash.frontend.fullname" . }} 8080:8080
   kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "dash.backend.fullname" . }} 8081:8080   # the API alone
+{{- end }}
+{{- if .Values.discovery.enabled }}
+{{- $sel := .Values.discovery.namespaceSelector }}
+{{- $labels := $sel.labelSelector | default dict }}
+
+The discovery reads Ingresses
+{{- if $sel.any }} in every namespace
+{{- else if or $labels.matchLabels $labels.matchExpressions }} in every namespace, showing those of namespaces its label selector matches{{ with $sel.matchNames }} and of {{ join ", " . }}{{ end }}
+{{- else }} in {{ join ", " $sel.matchNames }}
+{{- end }}{{ with .Values.discovery.instanceName }}, for the instance {{ . }}{{ end }}.
+{{- if .Values.rbac.create }}
+The chart granted list and watch on Ingresses and EndpointSlices{{ if or $sel.any $labels.matchLabels $labels.matchExpressions }} cluster-wide{{ else }} in those namespaces{{ end }}{{ if .Values.badges.rules }}, and on IngressClasses for the badge rules{{ end }}.
+{{- else }}
+rbac.create is false: grant {{ include "dash.serviceAccountName" . }} in {{ .Release.Namespace }} list and watch on
+Ingresses and EndpointSlices{{ if .Values.badges.rules }} and IngressClasses{{ end }}, or the backend never turns ready.
+{{- end }}
+{{- if .Values.discovery.defaultEnable }}
+Every Ingress shows unless it says  dash.gtrfc.com/enable: "false".
+{{- else }}
+An Ingress shows once it says  dash.gtrfc.com/enable: "true"  (or set discovery.defaultEnable).
+{{- end }}
+Annotations are read under dash.gtrfc.com/ only: a manifest written for Hajimari migrates by
+replacing the prefix hajimari.io/.
+{{- if and .Values.icons.remote.enabled .Values.icons.remote.fromAnnotations }}
+
+Icon URLs in annotations are downloaded by the backend (icons.remote.fromAnnotations): whoever may
+annotate an Ingress in a watched namespace makes it send requests to public addresses.
+{{- end }}
+{{- else }}
+
+The discovery is off (discovery.enabled is false): the dashboard shows the configured apps and
+bookmarks only.
 {{- end }}

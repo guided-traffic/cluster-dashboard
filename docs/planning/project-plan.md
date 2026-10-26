@@ -862,7 +862,11 @@ server with RBAC authorisation for the impersonation test.
 - Step 6 (the page) built: the shell with title, greeting and date; the summary; groups of tiles with
   icons, badges and status; bookmarks; the horizon; polling with visibility; facts in ADR 0005 (D5,
   D6), `docs/developer/frontend.md`.
-- Steps 7 and 8 open.
+- Step 7 (the chart) built: most of it came with the steps that needed it — the RBAC modes and the
+  IngressClass role (step 2, 5), the icon ConfigMap (step 4), the values of every setting (step 1);
+  this step adds the notes after an install, which say what the discovery reads, what the chart
+  granted, how an Ingress opts in and what annotation URLs mean, tested by helm-unittest.
+- Step 8 open.
 
 **Goal:** the brief end to end — discovery, custom apps, bookmarks, every icon source, Cogpit's
 look, every setting through the chart.

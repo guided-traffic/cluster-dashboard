@@ -1,0 +1,60 @@
+suite: the notes after an install
+templates:
+  - templates/NOTES.txt
+release:
+  name: dash
+  namespace: web
+tests:
+  - it: names what the discovery reads, its grant and how an Ingress opts in
+    asserts:
+      - matchRegexRaw:
+          pattern: The discovery reads Ingresses in every namespace\.
+      - matchRegexRaw:
+          pattern: The chart granted list and watch on Ingresses and EndpointSlices cluster-wide\.
+      - matchRegexRaw:
+          pattern: 'An Ingress shows once it says  dash\.gtrfc\.com/enable: "true"'
+      - matchRegexRaw:
+          pattern: Icon URLs in annotations are downloaded by the backend
+
+  - it: names the namespaces, the instance, the opt-out and the IngressClass read
+    set:
+      discovery:
+        defaultEnable: true
+        instanceName: home
+        namespaceSelector: { any: false, matchNames: [media, tools] }
+      badges.definitions.home: { text: lan, label: lan }
+      badges.rules: [{ match: { ingressClassNames: [internal] }, badge: home }]
+      icons.remote.fromAnnotations: false
+    asserts:
+      - matchRegexRaw:
+          pattern: The discovery reads Ingresses in media, tools, for the instance home\.
+      - matchRegexRaw:
+          pattern: in those namespaces, and on IngressClasses for the badge rules\.
+      - matchRegexRaw:
+          pattern: 'Every Ingress shows unless it says  dash\.gtrfc\.com/enable: "false"'
+      - notMatchRegexRaw:
+          pattern: Icon URLs in annotations
+
+  - it: tells the administrator what to grant when the chart grants nothing
+    set:
+      rbac.create: false
+    asserts:
+      - matchRegexRaw:
+          pattern: 'rbac\.create is false: grant dash-backend in web list and watch'
+
+  - it: warns that the API stays open behind authentication on the frontend alone
+    set:
+      ingress.enabled: true
+      ingress.hosts: [dash.example.com]
+    asserts:
+      - matchRegexRaw:
+          pattern: http://dash\.example\.com/
+      - matchRegexRaw:
+          pattern: '/api/v1/dashboard lists every app it shows'
+
+  - it: says when the discovery is off
+    set:
+      discovery.enabled: false
+    asserts:
+      - matchRegexRaw:
+          pattern: The discovery is off
