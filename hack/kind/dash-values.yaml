@@ -24,13 +24,16 @@ ingress:
 # them, and the suite proves they stay off the dashboard.
 discovery:
   defaultEnable: true
+# The suite waits for changes: a poll every five seconds.
+ui:
+  refreshSeconds: 5
 # A custom app whose logo auto-match finds in the image's packs, and a bookmark whose icon is a key
 # of the chart's icon ConfigMap: the suite fetches both icons through the backend's Ingress.
 apps:
   - group: e2e
     apps:
-      - name: Grafana
-        url: https://grafana.example.com
+      - name: Headlamp
+        url: https://headlamp.example.com
 bookmarks:
   - group: e2e
     bookmarks:
@@ -40,19 +43,37 @@ bookmarks:
         badges:
           - text:cm@bottom-left
 icons:
+  # The seed's remote icon comes from the frontend's Service, inside the cluster, over plain http.
+  remote:
+    allowedHosts:
+      - dash-frontend.dash.svc.cluster.local
   configMap:
     files:
       e2e.svg: PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTAiIGZpbGw9IiM0YWE4ZmYiLz48L3N2Zz4=
-# A badge rule: the backend then watches IngressClasses, under the ClusterRole the chart adds — the
-# backend turns ready only if that grant works — and the custom app on example.com gets the globe.
+# Badge rules: the backend then watches IngressClasses, under the ClusterRole the chart adds — the
+# backend turns ready only if that grant works. The haproxy controller's apps get the house, the
+# class without a controller and the custom app on example.com the globe.
 badges:
   definitions:
     world:
       icon: material-symbols:public
       label: reachable worldwide
       tone: cyan
+    home:
+      icon: material-symbols:home
+      label: local network only
+    beta:
+      text: beta
+      label: beta release
+      tone: amber
   rules:
     - match:
         hosts: ["*.example.com"]
         kinds: [app]
       badge: world
+    - match:
+        ingressClassNames: [external]
+      badge: world
+    - match:
+        ingressControllers: [haproxy-ingress.github.io/controller]
+      badge: home

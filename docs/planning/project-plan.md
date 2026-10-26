@@ -866,7 +866,14 @@ server with RBAC authorisation for the impersonation test.
   IngressClass role (step 2, 5), the icon ConfigMap (step 4), the values of every setting (step 1);
   this step adds the notes after an install, which say what the discovery reads, what the chart
   granted, how an Ingress opts in and what annotation URLs mean, tested by helm-unittest.
-- Step 8 open.
+- Step 8 (end-to-end and pages) built, verified locally with `make e2e` (Chromium and WebKit, both
+  schemes, then the project `cluster` once): the seed `hack/kind/seed.yaml` against the golden list
+  `frontend/e2e/golden.json`, a degraded and a down app, a new Ingress on the next poll, axe without a
+  serious or critical violation, the README's screenshots; `docs/developer/adding-things.md`; the
+  README's screenshots and its move from Hajimari. The instance filter is covered by the unit tables,
+  not end to end: one release has one instance name. Axe found the tile's link named after its badge
+  first; the badges now follow the name. Phase 2 closes, and leaves this file, once the suite is
+  green on GitHub.
 
 **Goal:** the brief end to end — discovery, custom apps, bookmarks, every icon source, Cogpit's
 look, every setting through the chart.

@@ -34,6 +34,20 @@
     0 0 0 8.5px color-mix(in srgb, var(--glow) 6%, transparent);
 }
 
+/* The badges' layer: the icon's box, where the tile's padding puts the icon. */
+.badges {
+  position: absolute;
+  top: 14px;
+  left: 16px;
+  width: 40px;
+  height: 40px;
+  pointer-events: none;
+}
+
+.badges > * {
+  pointer-events: auto;
+}
+
 .icon {
   position: relative;
   flex: none;

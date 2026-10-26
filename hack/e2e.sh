@@ -65,18 +65,27 @@ up() {
 	node_kubectl -n dash wait certificate/dash-tls --for=condition=Ready --timeout=120s
 
 	log "waiting for both Ingress objects to answer on https://localhost:$E2E_PORT"
-	local i
+	local i answered=""
 	for i in $(seq 1 60); do
 		if curl -ksf -o /dev/null "https://localhost:$E2E_PORT/healthz" &&
 			curl -ksf -o /dev/null "https://localhost:$E2E_PORT/api/v1/version"; then
 			log "Dash answers through both Ingress objects"
-			return 0
+			answered=yes
+			break
 		fi
 		sleep 2
 	done
-	echo "Dash did not answer through the Ingress objects within two minutes" >&2
-	diagnose
-	return 1
+	if [ -z "$answered" ]; then
+		echo "Dash did not answer through the Ingress objects within two minutes" >&2
+		diagnose
+		return 1
+	fi
+
+	# The apps come after Dash, so that the seed's remote icon host, Dash's own frontend, answers
+	# when the discovery reads the Ingress that names it.
+	log "seeding the apps of hack/kind/seed.yaml"
+	sed "s#FRONTEND_IMAGE#$FRONTEND_IMG#" "$root/hack/kind/seed.yaml" | node_kubectl apply -f -
+	node_kubectl -n e2e-apps rollout status deploy/web deploy/jellyfin deploy/alerts-ok --timeout=120s
 }
 
 # The SHA-256 fingerprint of the certificate in dash-tls, which the suite compares with the one
@@ -91,7 +100,7 @@ suite() {
 	local fingerprint
 	fingerprint=$(secret_fingerprint)
 	log "running the suite against https://localhost:$E2E_PORT (dash-tls $fingerprint)"
-	(cd "$root/frontend" && E2E_BASE_URL="https://localhost:$E2E_PORT" E2E_TLS_FINGERPRINT="$fingerprint" \
+	(cd "$root/frontend" && E2E_BASE_URL="https://localhost:$E2E_PORT" E2E_TLS_FINGERPRINT="$fingerprint" E2E_NODE="$node" \
 		npx playwright test -c e2e/playwright.config.ts "$@")
 }
 

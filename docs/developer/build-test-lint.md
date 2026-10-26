@@ -30,6 +30,8 @@ kubeconform, helm-unittest and the Go linters come from the Makefile — never f
 - `make e2e-up` keeps the end-to-end cluster with Dash installed; Dash answers at
   `https://localhost:18443` (self-signed). `make e2e-test` runs the suite against it, `make e2e-down`
   deletes it.
+- `make screenshots` copies the pictures of the last end-to-end run into `docs/images/`, where the
+  README shows them; commit them when the page's look changed.
 - `make run` runs the backend from source on `:8080` against that cluster's kubeconfig
   (`RUN_KUBECONFIG=` for another); `make frontend-serve` runs the Angular dev server on `:4200`,
   proxying `/api` to it (`frontend/proxy.conf.mjs`).

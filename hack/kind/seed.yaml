@@ -1,0 +1,365 @@
+# The apps of the end-to-end cluster (hack/e2e.sh applies this after Dash answers; FRONTEND_IMAGE is
+# replaced by the frontend image already in the cluster — any small HTTP server will do). The
+# Ingresses copy the patterns of the owner's manifests with the prefix replaced — defaultEnable with
+# opt-outs, bare MDI names, appName, one url — and add one of each icon source and badge rule;
+# frontend/e2e/golden.json is what the dashboard must show for them.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: e2e-apps
+---
+# A class whose controller is not installed: an Ingress of it is still listed, and the rule on its
+# name puts the globe on it.
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  name: external
+spec:
+  controller: example.com/not-installed
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  namespace: e2e-apps
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: web }
+  template:
+    metadata:
+      labels: { app: web }
+    spec:
+      securityContext: { runAsNonRoot: true, runAsUser: 65532, seccompProfile: { type: RuntimeDefault } }
+      containers:
+        - name: web
+          image: FRONTEND_IMAGE
+          imagePullPolicy: Never
+          ports: [{ name: http, containerPort: 8080 }]
+          readinessProbe: { httpGet: { path: /healthz, port: http }, periodSeconds: 2 }
+          securityContext: { allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: { drop: [ALL] } }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+  namespace: e2e-apps
+  labels: { app.kubernetes.io/name: web }
+spec:
+  selector: { app: web }
+  ports: [{ name: http, port: 80, targetPort: http }]
+---
+# The app the suite scales to zero and back.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jellyfin
+  namespace: e2e-apps
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: jellyfin }
+  template:
+    metadata:
+      labels: { app: jellyfin }
+    spec:
+      securityContext: { runAsNonRoot: true, runAsUser: 65532, seccompProfile: { type: RuntimeDefault } }
+      containers:
+        - name: web
+          image: FRONTEND_IMAGE
+          imagePullPolicy: Never
+          ports: [{ name: http, containerPort: 8080 }]
+          readinessProbe: { httpGet: { path: /healthz, port: http }, periodSeconds: 2 }
+          securityContext: { allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: { drop: [ALL] } }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jellyfin
+  namespace: e2e-apps
+spec:
+  selector: { app: jellyfin }
+  ports: [{ name: http, port: 80, targetPort: http }]
+---
+# The owner's patterns: appName and group; auto-match finds the logo.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: grafana
+  namespace: e2e-apps
+  annotations:
+    dash.gtrfc.com/appName: Grafana
+    dash.gtrfc.com/group: monitoring
+    dash.gtrfc.com/info: Dashboards and alerts
+spec:
+  ingressClassName: haproxy
+  rules:
+    - host: grafana.e2e.test
+      http: { paths: [{ path: /, pathType: Prefix, backend: { service: { name: web, port: { name: http } } } }] }
+---
+# A bare MDI name, as Hajimari wrote it: it wins over the logo auto-match would find.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: home-assistant
+  namespace: e2e-apps
+  annotations:
+    dash.gtrfc.com/appName: Home Assistant
+    dash.gtrfc.com/group: home
+    dash.gtrfc.com/icon: home-automation
+spec:
+  ingressClassName: haproxy
+  rules:
+    - host: ha.e2e.test
+      http: { paths: [{ path: /, pathType: Prefix, backend: { service: { name: web, port: { name: http } } } }] }
+---
+# The url key, and a bare name again.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: wiki
+  namespace: e2e-apps
+  annotations:
+    dash.gtrfc.com/appName: Wiki
+    dash.gtrfc.com/group: home
+    dash.gtrfc.com/icon: web
+    dash.gtrfc.com/url: https://wiki.e2e.test/en/home
+spec:
+  ingressClassName: haproxy
+  rules:
+    - host: wiki.e2e.test
+      http: { paths: [{ path: /, pathType: Prefix, backend: { service: { name: web, port: { name: http } } } }] }
+---
+# An opt-out, as fifteen of the owner's manifests carry it.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hidden
+  namespace: e2e-apps
+  annotations:
+    dash.gtrfc.com/enable: "false"
+spec:
+  ingressClassName: haproxy
+  rules:
+    - host: hidden.e2e.test
+      http: { paths: [{ path: /, pathType: Prefix, backend: { service: { name: web, port: { name: http } } } }] }
+---
+# Hajimari's keys alone: Dash reads none of them, so this one shows under its own name.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: legacy
+  namespace: e2e-apps
+  annotations:
+    hajimari.io/enable: "false"
+    hajimari.io/appName: Legacy Name
+    hajimari.io/icon: pail
+spec:
+  ingressClassName: haproxy
+  rules:
+    - host: legacy.e2e.test
+      http: { paths: [{ path: /, pathType: Prefix, backend: { service: { name: web, port: { name: http } } } }] }
+---
+# A catalogue glyph, a logo with a dark variant, a ConfigMap image.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: router
+  namespace: e2e-apps
+  annotations:
+    dash.gtrfc.com/appName: Router
+    dash.gtrfc.com/group: network
+    dash.gtrfc.com/icon: material-symbols:router
+spec:
+  ingressClassName: haproxy
+  rules:
+    - host: router.e2e.test
+      http: { paths: [{ path: /, pathType: Prefix, backend: { service: { name: web, port: { name: http } } } }] }
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: code
+  namespace: e2e-apps
+  annotations:
+    dash.gtrfc.com/appName: Code
+    dash.gtrfc.com/group: network
+    dash.gtrfc.com/icon: sh:github
+spec:
+  ingressClassName: haproxy
+  rules:
+    - host: code.e2e.test
+      http: { paths: [{ path: /, pathType: Prefix, backend: { service: { name: web, port: { name: http } } } }] }
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: brand
+  namespace: e2e-apps
+  annotations:
+    dash.gtrfc.com/appName: Brand
+    dash.gtrfc.com/group: network
+    dash.gtrfc.com/icon: configmap:e2e.svg
+spec:
+  ingressClassName: haproxy
+  rules:
+    - host: brand.e2e.test
+      http: { paths: [{ path: /, pathType: Prefix, backend: { service: { name: web, port: { name: http } } } }] }
+---
+# A remote icon from a host icons.remote.allowedHosts admits — over plain http, inside the cluster —
+# and one at a private address the rules refuse: it falls back to the default.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: remote
+  namespace: e2e-apps
+  annotations:
+    dash.gtrfc.com/appName: Remote
+    dash.gtrfc.com/group: network
+    dash.gtrfc.com/icon: http://dash-frontend.dash.svc.cluster.local:8080/favicon.svg
+spec:
+  ingressClassName: haproxy
+  rules:
+    - host: remote.e2e.test
+      http: { paths: [{ path: /, pathType: Prefix, backend: { service: { name: web, port: { name: http } } } }] }
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: refused
+  namespace: e2e-apps
+  annotations:
+    dash.gtrfc.com/appName: Refused
+    dash.gtrfc.com/group: network
+    dash.gtrfc.com/icon: https://10.96.0.1/logo.png
+spec:
+  ingressClassName: haproxy
+  rules:
+    - host: refused.e2e.test
+      http: { paths: [{ path: /, pathType: Prefix, backend: { service: { name: web, port: { name: http } } } }] }
+---
+# The class whose controller is not installed, and an Ingress's own badge.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: public
+  namespace: e2e-apps
+  annotations:
+    dash.gtrfc.com/appName: Public site
+    dash.gtrfc.com/group: web
+    dash.gtrfc.com/badges: beta@bottom-left
+spec:
+  ingressClassName: external
+  rules:
+    - host: www.e2e.test
+      http: { paths: [{ path: /, pathType: Prefix, backend: { service: { name: web, port: { name: http } } } }] }
+---
+# The app the suite scales to zero: its tile turns down.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: jellyfin
+  namespace: e2e-apps
+  annotations:
+    dash.gtrfc.com/appName: Jellyfin
+    dash.gtrfc.com/group: media
+spec:
+  ingressClassName: haproxy
+  rules:
+    - host: jellyfin.e2e.test
+      http: { paths: [{ path: /, pathType: Prefix, backend: { service: { name: jellyfin, port: { name: http } } } }] }
+---
+# No appName and an Ingress name no catalogue knows: auto-match finds the logo by the
+# app.kubernetes.io/name of the Service, which its EndpointSlices carry.
+apiVersion: v1
+kind: Service
+metadata:
+  name: metrics
+  namespace: e2e-apps
+  labels: { app.kubernetes.io/name: prometheus }
+spec:
+  selector: { app: web }
+  ports: [{ name: http, port: 80, targetPort: http }]
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: metrics
+  namespace: e2e-apps
+  annotations:
+    dash.gtrfc.com/group: monitoring
+spec:
+  ingressClassName: haproxy
+  rules:
+    - host: metrics.e2e.test
+      http: { paths: [{ path: /, pathType: Prefix, backend: { service: { name: metrics, port: { name: http } } } }] }
+---
+# Half ready for good: two Deployments behind one Service, one of them never ready — the tile
+# shows "1 of 2 ready".
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alerts-ok
+  namespace: e2e-apps
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: alerts, variant: ok }
+  template:
+    metadata:
+      labels: { app: alerts, variant: ok }
+    spec:
+      securityContext: { runAsNonRoot: true, runAsUser: 65532, seccompProfile: { type: RuntimeDefault } }
+      containers:
+        - name: web
+          image: FRONTEND_IMAGE
+          imagePullPolicy: Never
+          ports: [{ name: http, containerPort: 8080 }]
+          readinessProbe: { httpGet: { path: /healthz, port: http }, periodSeconds: 2 }
+          securityContext: { allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: { drop: [ALL] } }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alerts-stuck
+  namespace: e2e-apps
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: alerts, variant: stuck }
+  template:
+    metadata:
+      labels: { app: alerts, variant: stuck }
+    spec:
+      securityContext: { runAsNonRoot: true, runAsUser: 65532, seccompProfile: { type: RuntimeDefault } }
+      containers:
+        - name: web
+          image: FRONTEND_IMAGE
+          imagePullPolicy: Never
+          ports: [{ name: http, containerPort: 8080 }]
+          # The file server answers an /api/ path 404: never ready.
+          readinessProbe: { httpGet: { path: /api/never, port: http }, periodSeconds: 2 }
+          securityContext: { allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: { drop: [ALL] } }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: alerts
+  namespace: e2e-apps
+spec:
+  selector: { app: alerts }
+  ports: [{ name: http, port: 80, targetPort: http }]
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: alerts
+  namespace: e2e-apps
+  annotations:
+    dash.gtrfc.com/appName: Alertmanager
+    dash.gtrfc.com/group: monitoring
+spec:
+  ingressClassName: haproxy
+  rules:
+    - host: alerts.e2e.test
+      http: { paths: [{ path: /, pathType: Prefix, backend: { service: { name: alerts, port: { name: http } } } }] }

@@ -44,16 +44,18 @@ test('icons come from the image packs and the icon ConfigMap, immutable and iner
   request,
 }) => {
   const body = await dashboard(request);
-  const grafana = body.groups.flatMap((group) => group.apps).find((app) => app.name === 'Grafana');
-  // Auto-match: a custom app named Grafana gets the selfh.st logo the image carries.
-  expect(grafana?.icon.src).toMatch(/^\/api\/v1\/icons\/sh@[0-9a-f]{12}\/grafana\.svg$/);
-  expect(grafana?.icon.tint).toBe(false);
+  const headlamp = body.groups
+    .flatMap((group) => group.apps)
+    .find((app) => app.name === 'Headlamp');
+  // Auto-match: a custom app named Headlamp gets the selfh.st logo the image carries.
+  expect(headlamp?.icon.src).toMatch(/^\/api\/v1\/icons\/sh@[0-9a-f]{12}\/headlamp\.svg$/);
+  expect(headlamp?.icon.tint).toBe(false);
   const bookmark = body.bookmarks
     .flatMap((group) => group.bookmarks)
     .find((b) => b.name === 'ConfigMap icon');
   expect(bookmark?.icon.src).toMatch(/^\/api\/v1\/icons\/blob\/[0-9a-f]{64}\.svg$/);
 
-  for (const src of [grafana!.icon.src, bookmark!.icon.src]) {
+  for (const src of [headlamp!.icon.src, bookmark!.icon.src]) {
     const response = await request.get(src);
     expect(response.status(), src).toBe(200);
     expect(response.headers()['content-type']).toBe('image/svg+xml');
@@ -68,15 +70,17 @@ test('icons come from the image packs and the icon ConfigMap, immutable and iner
 
 test('badges come from a rule and from an item of its own', async ({ request }) => {
   const body = await dashboard(request);
-  const grafana = body.groups.flatMap((group) => group.apps).find((app) => app.name === 'Grafana');
-  expect(grafana?.badges).toHaveLength(1);
-  expect(grafana?.badges[0]).toMatchObject({
+  const headlamp = body.groups
+    .flatMap((group) => group.apps)
+    .find((app) => app.name === 'Headlamp');
+  expect(headlamp?.badges).toHaveLength(1);
+  expect(headlamp?.badges[0]).toMatchObject({
     corner: 'top-right',
     label: 'reachable worldwide',
     tone: 'cyan',
   });
-  expect(grafana?.badges[0].icon?.tint).toBe(true);
-  const glyph = await request.get(grafana!.badges[0].icon!.src);
+  expect(headlamp?.badges[0].icon?.tint).toBe(true);
+  const glyph = await request.get(headlamp!.badges[0].icon!.src);
   expect(glyph.status()).toBe(200);
 
   const bookmark = body.bookmarks

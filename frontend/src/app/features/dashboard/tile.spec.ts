@@ -64,9 +64,12 @@ describe('Tile', () => {
         ],
       }),
     );
-    const badges = host.querySelectorAll('.icon app-badge');
+    const badges = host.querySelectorAll('.badges app-badge');
     expect(badges.length).toBe(2);
     expect(badges[1].getAttribute('aria-label')).toBe('beta release');
+    // The badges come after the text: the link's name begins with the app's.
+    expect(host.querySelector('a')!.lastElementChild!.classList.contains('badges')).toBe(true);
+    expect(host.querySelector('a')!.textContent!.trim().startsWith('Grafana')).toBe(true);
   });
 
   it('shows an address as host and path', () => {

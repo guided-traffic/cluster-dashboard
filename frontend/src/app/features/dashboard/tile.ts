@@ -47,9 +47,6 @@ export function statusWord(app: App): string | undefined {
     >
       <span class="icon">
         <app-item-icon [icon]="app().icon" [size]="40" />
-        @for (badge of app().badges; track badge.corner) {
-          <app-badge [badge]="badge" />
-        }
       </span>
       <span class="text">
         <span class="name">{{ app().name }}</span>
@@ -63,6 +60,14 @@ export function statusWord(app: App): string | undefined {
           <span class="pill"><span class="dot" aria-hidden="true"></span>{{ word }}</span>
         }
       </span>
+      <!-- Over the icon, but after the text: the link's name begins with the app's. -->
+      @if (app().badges.length > 0) {
+        <span class="badges">
+          @for (badge of app().badges; track badge.corner) {
+            <app-badge [badge]="badge" />
+          }
+        </span>
+      }
     </a>
   `,
   styleUrl: './tile.css',

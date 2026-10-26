@@ -9,18 +9,21 @@
 [Cogpit](https://github.com/guided-traffic/cogpit): calm when every app is healthy, lit where one is
 not. Installed by one Helm chart, configured entirely through it, no login.
 
-> **Phase 2 of 3, in progress.** Built: both images, the chart with its two Ingress objects, the
-> pipeline, the shell with its colour scheme, the dashboard's complete configuration — validated by
-> the chart and the backend — the discovery, which watches the cluster's Ingresses under the chart's
-> RBAC, every icon source, the badges, and the page that draws them. Still to come in phase 2: the
-> rest of the chart's switches, the full end-to-end suite with screenshots, and the move from
-> Hajimari ([project plan](docs/planning/project-plan.md)).
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/dashboard_dark.png">
+  <img alt="The dashboard: apps in groups as tiles with their logos and badges, one degraded with an amber spine and the words 1 of 2 ready, one down in coral, a summary of a token per app above them, bookmarks below." src="docs/images/dashboard_light.png">
+</picture>
+
+> **Phase 2 of 3: built, verified locally.** The dashboard is complete — discovery, icons, badges,
+> the page — and replaces Hajimari in phase 3, the cut-over in the owner's clusters
+> ([project plan](docs/planning/project-plan.md)).
 
 ```mermaid
 flowchart LR
   b([Browser]) --> f["Ingress dash-frontend, path /"] --> fs["frontend: Go file server, distroless"]
   b --> a["Ingress dash-backend, path /api/"] --> be["backend: Go API, distroless"]
-  be --> k[(Kubernetes API)]
+  be -- "list/watch Ingresses, EndpointSlices" --> k[(Kubernetes API)]
+  be -- "icons named by URL, at start and when seen" --> n([Icon hosts])
 ```
 
 ## ✨ Key Features
@@ -75,8 +78,46 @@ helm install dash dash/dash --namespace dash --create-namespace \
   --set 'ingress.hosts[0]=dash.example.com'
 ```
 
-Verify: `https://dash.example.com/` shows the shell with the backend's version beside the title, and
-`https://dash.example.com/api/v1/version` answers with JSON.
+**Show an app** — annotate its Ingress (with `discovery.defaultEnable: true`, every Ingress shows unless
+it says `"false"`):
+
+```yaml
+metadata:
+  annotations:
+    dash.gtrfc.com/enable: "true"
+    dash.gtrfc.com/appName: Grafana        # default: the Ingress's name
+    dash.gtrfc.com/group: monitoring       # default: the namespace
+    # no icon: the logo of Grafana is found by its name
+```
+
+**Add your own apps and bookmarks** — in the values:
+
+```yaml
+apps:
+  - group: tools
+    apps:
+      - { name: Router, url: "https://192.168.1.1", icon: "material-symbols:router" }
+bookmarks:
+  - group: docs
+    bookmarks:
+      - { name: Kubernetes, url: "https://kubernetes.io/docs", icon: "si:kubernetes" }
+```
+
+**Tell external apps from internal ones** — a badge per IngressClass:
+
+```yaml
+badges:
+  definitions:
+    world: { icon: "material-symbols:public", label: reachable worldwide, tone: cyan }
+    home:  { icon: "material-symbols:home", label: local network only }
+  rules:
+    - { match: { ingressClassNames: [external] }, badge: world }
+    - { match: { ingressClassNames: [internal] }, badge: home }
+```
+
+Verify: `https://dash.example.com/` shows the app's tile; `https://dash.example.com/api/v1/dashboard`
+answers with JSON; `kubectl -n dash logs deploy/dash-backend` names every annotation it ignored and
+why.
 
 > **Protect it.** Dash has no login. Put it on an internal Ingress class, or set authentication
 > annotations under `ingress.annotations` — **not** under `ingress.frontend.annotations` alone, which
@@ -89,6 +130,45 @@ Verify: `https://dash.example.com/` shows the shell with the backend's version b
 helm repo update && helm upgrade dash dash/dash --namespace dash --reuse-values
 helm uninstall dash --namespace dash
 ```
+
+</details>
+
+## 🔁 Moving from Hajimari
+
+Dash reads Hajimari's annotation keys, under `dash.gtrfc.com/` instead of `hajimari.io/`, and nothing
+under `hajimari.io/` ([ADR 0010](docs/adr/0010-annotations-are-read-under-dash-gtrfc-com-only.md)).
+
+1. **Copy the keys with the prefix replaced**, beside the old ones while both dashboards run:
+   `hajimari.io/appName: X` → `dash.gtrfc.com/appName: X`, and so for `enable`, `group`, `icon`, `url`,
+   `info`, `targetBlank`, `instance`, `statusCheckEnabled`. In a manifest repository,
+   `perl -i.bak -pe 's#^(\s*)hajimari\.io/(.*)$#$&\n$1dash.gtrfc.com/$2#' $(grep -rl 'hajimari.io/' .)`
+   adds each `dash.gtrfc.com/` line under its `hajimari.io/` line, on macOS and Linux alike (check the
+   result before you commit; the `.bak` files are the originals).
+2. **Opt-out mode**: Hajimari's `defaultEnable: true` is `discovery.defaultEnable: true`; every
+   `hajimari.io/enable: "false"` needs its `dash.gtrfc.com/enable: "false"` — until then those
+   Ingresses show.
+3. **Icons**: a bare MDI name (`web`, `home-automation`) keeps working. A generic glyph that stood in
+   for a logo Hajimari did not have is better removed: without an icon, Dash finds the app's logo by
+   its name. Keep a glyph where it was chosen on purpose.
+4. **Values**: Hajimari's options map onto `discovery.*`, `ui.*`, `apps` (`customApps`) and
+   `bookmarks` (`globalBookmarks`); search, themes, start pages and modules have no counterpart.
+5. Install Dash beside Hajimari, opt its two Ingress objects out of Hajimari through
+   `ingress.annotations: { hajimari.io/enable: "false" }`, compare the two pages, then remove Hajimari
+   and the `hajimari.io/` keys.
+
+<details>
+<summary>Hajimari's options and Dash's values</summary>
+
+| Hajimari | Dash |
+|---|---|
+| `instanceName`, `defaultEnable`, `namespaceSelector` | `discovery.instanceName`, `discovery.defaultEnable`, `discovery.namespaceSelector` |
+| `title`, `name`, `showGreeting` | `ui.title`, `ui.greeting.name`, `ui.greeting.enabled` |
+| `showApps`, `showAppGroups`, `showAppUrls`, `showAppInfo`, `showAppStatus` | `ui.showApps`, `ui.showAppGroups`, `ui.showAppUrls`, `ui.showAppInfo`, `ui.showAppStatus` |
+| `showBookmarks`, `showBookmarkGroups`, `alwaysTargetBlank` | `ui.showBookmarks`, `ui.showBookmarkGroups`, `ui.alwaysTargetBlank` |
+| `defaultAppIcon` | `icons.defaultAppIcon` |
+| `customApps`, `globalBookmarks` | `apps`, `bookmarks` |
+| `lightTheme`, `darkTheme`, `customThemes` | `ui.defaultTheme` (the look is Cogpit's) |
+| `showSearch`, `searchProviders`, start pages, `modules`, the `Application` CRD | none |
 
 </details>
 

@@ -1,0 +1,106 @@
+[
+  {
+    "group": "e2e-apps",
+    "name": "legacy",
+    "url": "http://legacy.e2e.test/",
+    "icon": "glyph /api/v1/icons/material-symbols@*/apps.svg",
+    "badges": ["top-right local network only"],
+    "status": "healthy"
+  },
+  {
+    "group": "home",
+    "name": "Home Assistant",
+    "url": "http://ha.e2e.test/",
+    "icon": "glyph /api/v1/icons/mdi@*/home-automation.svg",
+    "badges": ["top-right local network only"],
+    "status": "healthy"
+  },
+  {
+    "group": "home",
+    "name": "Wiki",
+    "url": "https://wiki.e2e.test/en/home",
+    "icon": "glyph /api/v1/icons/mdi@*/web.svg",
+    "badges": ["top-right local network only"],
+    "status": "healthy"
+  },
+  {
+    "group": "media",
+    "name": "Jellyfin",
+    "url": "http://jellyfin.e2e.test/",
+    "icon": "logo /api/v1/icons/sh@*/jellyfin.svg",
+    "badges": ["top-right local network only"],
+    "status": "healthy"
+  },
+  {
+    "group": "monitoring",
+    "name": "Alertmanager",
+    "url": "http://alerts.e2e.test/",
+    "icon": "logo /api/v1/icons/di@*/alertmanager.svg",
+    "badges": ["top-right local network only"],
+    "status": "degraded"
+  },
+  {
+    "group": "monitoring",
+    "name": "Grafana",
+    "url": "http://grafana.e2e.test/",
+    "icon": "logo /api/v1/icons/sh@*/grafana.svg",
+    "badges": ["top-right local network only"],
+    "status": "healthy"
+  },
+  {
+    "group": "monitoring",
+    "name": "metrics",
+    "url": "http://metrics.e2e.test/",
+    "icon": "logo /api/v1/icons/sh@*/prometheus.svg",
+    "badges": ["top-right local network only"],
+    "status": "healthy"
+  },
+  {
+    "group": "network",
+    "name": "Brand",
+    "url": "http://brand.e2e.test/",
+    "icon": "logo /api/v1/icons/blob/*.svg",
+    "badges": ["top-right local network only"],
+    "status": "healthy"
+  },
+  {
+    "group": "network",
+    "name": "Code",
+    "url": "http://code.e2e.test/",
+    "icon": "logo /api/v1/icons/sh@*/github.svg +dark",
+    "badges": ["top-right local network only"],
+    "status": "healthy"
+  },
+  {
+    "group": "network",
+    "name": "Refused",
+    "url": "http://refused.e2e.test/",
+    "icon": "glyph /api/v1/icons/material-symbols@*/apps.svg",
+    "badges": ["top-right local network only"],
+    "status": "healthy"
+  },
+  {
+    "group": "network",
+    "name": "Remote",
+    "url": "http://remote.e2e.test/",
+    "icon": "logo /api/v1/icons/blob/*.svg",
+    "badges": ["top-right local network only"],
+    "status": "healthy"
+  },
+  {
+    "group": "network",
+    "name": "Router",
+    "url": "http://router.e2e.test/",
+    "icon": "glyph /api/v1/icons/material-symbols@*/router.svg",
+    "badges": ["top-right local network only"],
+    "status": "healthy"
+  },
+  {
+    "group": "web",
+    "name": "Public site",
+    "url": "http://www.e2e.test/",
+    "icon": "glyph /api/v1/icons/material-symbols@*/apps.svg",
+    "badges": ["top-right reachable worldwide", "bottom-left beta release"],
+    "status": "healthy"
+  }
+]

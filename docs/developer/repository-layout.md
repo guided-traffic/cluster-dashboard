@@ -41,7 +41,7 @@ dash/
 │   │   └── shared/               # item-icon, badge, bracket, theme-control
 │   ├── src/testing/              # fixtures of the dashboard answer, for the specs
 │   ├── public/                   # favicon.svg, theme-init.js
-│   ├── e2e/                      # Playwright: smoke, dashboard (API and icons), page
+│   ├── e2e/                      # Playwright: smoke, dashboard (API and icons), page, a11y; cluster + golden.json
 │   ├── server/                   # Go module …/frontend/server, standard library only: the image's file server
 │   ├── proxy.conf.mjs            # ng serve → backend for /api: the developer's stand-in for the Ingress
 │   └── Containerfile             # node:26-alpine → golang:1.27.3-alpine → distroless static nonroot
@@ -49,12 +49,12 @@ dash/
 │                                 #   ci/dashboard-values.yaml sets every key of the configuration
 ├── hack/
 │   ├── e2e.sh                    # the end-to-end tier: kind, cert-manager, haproxy-ingress, Dash, Playwright
-│   ├── kind/                     # the cluster, the controller's values, the issuer, Dash's e2e values
+│   ├── kind/                     # the cluster, the controller's values, the issuer, Dash's e2e values, the seeded apps
 │   ├── envtest/fetch.sh          # the envtest binaries, checksum verified (from Cogpit)
 │   ├── no-shell.sh               # proves an image holds no shell
 │   ├── coverage.py               # merges Go profiles of both modules and runs
 │   └── verify-release-tooling.mjs
-├── docs/                         # adr/, developer/, security/, planning/
+├── docs/                         # adr/, developer/, security/, planning/, images/ (the README's screenshots)
 ├── .github/                      # workflows/{release,build,renovate}.yml, release-template.hbs, badges/
 ├── Makefile, renovate.json, .releaserc.json, package.json (semantic-release)
 └── AGENTS.md, README.md, SECURITY.md, ATTRIBUTION.md, LICENSE

@@ -352,6 +352,12 @@ e2e-test: frontend-install ## Run the end-to-end suite against the cluster of ma
 e2e-down: $(KIND) ## Delete the end-to-end cluster and its kubeconfig file.
 	$(E2E_ENV) hack/e2e.sh down
 
+.PHONY: screenshots
+screenshots: ## Copy the README's pictures of the last end-to-end run (make e2e or e2e-test) into docs/images.
+	@test -d $(FRONTEND_DIR)/e2e/test-results/screenshots || { echo "no screenshots: run make e2e or make e2e-test first"; exit 1; }
+	@mkdir -p docs/images
+	cp $(FRONTEND_DIR)/e2e/test-results/screenshots/*.png docs/images/
+
 .PHONY: e2e-browsers
 e2e-browsers: frontend-install ## Install the browsers of the end-to-end suite, Chromium and WebKit; PLAYWRIGHT_INSTALL_FLAGS=--with-deps adds their system packages.
 	cd $(FRONTEND_DIR) && npx playwright install $(PLAYWRIGHT_INSTALL_FLAGS) chromium webkit
