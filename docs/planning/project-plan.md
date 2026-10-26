@@ -269,7 +269,7 @@ catalogues, so no browser request ever leaves the dashboard's origin:
 
 | Prefix | Catalogue | Entries | Kind | Licence | Why |
 |---|---|---|---|---|---|
-| `mdi` | Material Design Icons (`@iconify-json/mdi` 1.2.3) | 7,638 + 6,363 aliases | Monochrome glyph | Apache-2.0 | The glyphs the owner's manifests name today, all 27 present; bare names resolve here |
+| `mdi` | Material Design Icons (`@iconify-json/mdi` 1.2.3) | 7,638 + 6,363 aliases | Monochrome glyph | Apache-2.0 | The glyphs the owner's manifests name today, all 26 present; bare names resolve here |
 | `material-symbols` | Google Material Symbols (`@iconify-json/material-symbols` 1.2.96) | 16,458 + 8,153 aliases; outlined, rounded, sharp | Monochrome glyph | Apache-2.0 | Cogpit's glyph family — the successor of the Material Icons Fyne ships; the UI's own chrome |
 | `si` | Simple Icons 16.35.0 (`@iconify-json/simple-icons` 1.2.100) | 3,739 brands | Monochrome brand mark, with its brand colour | CC0-1.0 | Brands: `grafana`, `kubernetes`, `argo`, `prometheus`, `harbor` all present |
 | `sh` | [selfh.st icons](https://github.com/selfhst/icons) | 2,968 apps; 2,503 as SVG; about 2,400 with light and dark variants | Full-colour app logo | CC-BY-4.0 (credit required) | Self-hosted apps, lean: 13 MiB of SVG |
@@ -315,7 +315,8 @@ Vaultwarden, Mealie, Wiki.js, Flowise, Mailu, Stirling-PDF, SearXNG, TeddyCloud,
 others are mostly the owner's own sites and products (`hans-fischer.com`, `timesheet`,
 `Guided SSH`, …), plus Galaxy NG and S3 Browser; they keep a glyph or get their logo through a
 ConfigMap. selfh.st alone matches 18, Dashboard Icons alone 19; together they cover each other's
-gaps (TeddyCloud only in selfh.st, Alertmanager and AppDaemon only in Dashboard Icons).
+gaps (TeddyCloud only in selfh.st, Alertmanager and AppDaemon only in Dashboard Icons). The packs
+hold 18 of the 20: Mailu and AppDaemon exist as PNG only ([ADR 0008](../adr/0008-icons-come-from-bundled-packs-configmaps-and-urls.md) D5).
 
 Today those apps show generic glyphs (`web`, `home-automation`, `pail`), chosen because Hajimari had
 no logos. Auto-match fills only an empty icon: when the owner's manifests move to `dash.gtrfc.com/`,
@@ -370,7 +371,7 @@ The brief's rule: a URL is downloaded at start and served by Dash. Concretely:
 - **Two renderings.** A monochrome glyph (`tint: true`) is drawn as a CSS mask filled with the token
   colour, so it follows the scheme and lights up on hover; a full-colour logo is an `<img>`, and its
   dark variant (`srcDark`) is used in the dark scheme. Which file of each catalogue is "for dark
-  backgrounds" — their `-light` and `-dark` suffixes — is checked against the catalogues in phase 2.
+  backgrounds": `<name>-light` in both, used only for a logo that is dark itself (ADR 0008 D6).
 - **The UI's own chrome** (the theme control, the external-link mark, the status glyphs) is a handful
   of Material Symbols inlined in the frontend bundle: the shell draws even while the backend is down.
 
@@ -386,7 +387,7 @@ The brief's rule: a URL is downloaded at start and served by Dash. Concretely:
   packages (verified 2026-10-26), so each is pinned to a Git commit with the SHA-256 of the fetched
   tree, fetched by a sparse checkout of `svg/` and its index, and moved by a Renovate custom manager
   on a weekly schedule — both repositories push several times a week.
-- A test keeps the icon names known to be in use — the owner's 27 MDI names among them, copied once
+- A test keeps the icon names known to be in use — the owner's 26 MDI names among them, copied once
   into `testdata` — resolving across every catalogue update.
 
 ### 7.9 Badges
@@ -831,86 +832,6 @@ Helm 4 (fallback: Makefile assertions as in cowork); kind on the runner pool for
 server with RBAC authorisation for the impersonation test.
 
 **Effort:** M — most of it is cowork's pipeline ported; new are kind, envtest and the chart tests.
-
-### Phase 2 — The dashboard
-
-**Status 2026-10-26:** each step is one commit on `main` (the owner's choice), not a pull request.
-
-- Step 1 (configuration) on `main`: facts in ADR 0004 (D5, D6),
-  `docs/developer/configuration.md`, `docs/security/validation.md`, the README's reference.
-- Step 2 (discovery) built with the chart's RBAC, verified locally (`make lint cyclo gosec vuln
-  test-unit test-integration helm-* e2e`): facts in ADR 0007 (D4 amended, D6, D7), ADR 0010,
-  `docs/developer/discovery.md`, `docs/security/privilege-footprint.md` (H-4), the README's
-  annotation table. The RBAC objects are named `<release namespace>-<fullname>`, not `<fullname>`
-  as §9 had them, so that two releases of one name do not collide; the chart's RBAC moved from step
-  7 into this step, because the discovery needs it to turn ready.
-- Step 3 (API) built: `GET /api/v1/dashboard`, validated against the document in the tests, the
-  Angular client regenerated; facts in the README's endpoint table, `docs/security/exposure.md`,
-  `docs/developer/discovery.md`. `GET /api/v1/icons/…` moves to step 4: without the packs there is
-  nothing to serve.
-- Step 4 (icons) built: the pack builder and the five packs, the grammar, resolution with auto-match,
-  ConfigMap icons, the fetcher and its table, the serving; facts in ADRs 0004 (D1), 0008 (D4–D8), 0009
-  (D4), `docs/developer/icons.md`, `docs/security/{served-icons,remote-icons,supply-chain}.md`, the
-  README. `GET /api/v1/icons/…` came with it. Corrections of this plan's measurements: the owner's
-  manifests carry 26 distinct MDI names, not 27; auto-match finds 18 of the 20 apps §7.4 counts —
-  Mailu and AppDaemon exist in Dashboard Icons as PNG only, and the packs hold SVG (ADR 0008 D5). §7.7's
-  open question is answered: `-light` is the variant for dark backgrounds in both catalogues, used only
-  for a logo that is dark itself (ADR 0008 D6).
-- Step 5 (badges) built: definitions, rules, corners, the effective IngressClass with its informer and
-  its ClusterRole, the annotation; facts in ADR 0011 (D4, D5), `docs/developer/badges.md`,
-  `docs/security/{privilege-footprint,validation}.md`, the README.
-- Step 6 (the page) built: the shell with title, greeting and date; the summary; groups of tiles with
-  icons, badges and status; bookmarks; the horizon; polling with visibility; facts in ADR 0005 (D5,
-  D6), `docs/developer/frontend.md`.
-- Step 7 (the chart) built: most of it came with the steps that needed it — the RBAC modes and the
-  IngressClass role (step 2, 5), the icon ConfigMap (step 4), the values of every setting (step 1);
-  this step adds the notes after an install, which say what the discovery reads, what the chart
-  granted, how an Ingress opts in and what annotation URLs mean, tested by helm-unittest.
-- Step 8 (end-to-end and pages) built, verified locally with `make e2e` (Chromium and WebKit, both
-  schemes, then the project `cluster` once): the seed `hack/kind/seed.yaml` against the golden list
-  `frontend/e2e/golden.json`, a degraded and a down app, a new Ingress on the next poll, axe without a
-  serious or critical violation, the README's screenshots; `docs/developer/adding-things.md`; the
-  README's screenshots and its move from Hajimari. The instance filter is covered by the unit tables,
-  not end to end: one release has one instance name. Axe found the tile's link named after its badge
-  first; the badges now follow the name. Phase 2 closes, and leaves this file, once the suite is
-  green on GitHub.
-
-**Goal:** the brief end to end — discovery, custom apps, bookmarks, every icon source, Cogpit's
-look, every setting through the chart.
-
-**Needs:** nothing open — [Q1](#q1--which-annotation-keys-does-discovery-read) is decided.
-
-**Delivers**, one commit on `main` per step, each with its tests and its pages:
-
-1. **Configuration:** the values of [§9](#9-the-helm-chart) → `config.yaml` → `Config`; the schema
-   complete; the README's reference tables.
-2. **Discovery:** informers, the annotation reader, selection, the URL, status, grouping and order,
-   self-exclusion; the unit tables and the envtest suite with the RBAC of each selector mode.
-3. **API:** `GET /api/v1/dashboard`, `GET /api/v1/icons/…`; responses validated against the
-   document in the tests.
-4. **Icons:** the pack builder and the five packs, the grammar, resolution with auto-match, the
-   ConfigMap source, the fetcher and check ported from Cogpit, the cache, the serving headers; the
-   address matrix of the fetcher.
-5. **Badges:** definitions, rules, the effective IngressClass, the `badges` key, the validation at
-   start; the rule matrix.
-6. **UI:** the page of [§8](#8-design-cogpits-dark-cockpit-on-the-web) — top bar, summary, groups,
-   tiles with their badges, status, bookmarks, the empty horizon, polling with visibility; vitest
-   per component.
-7. **Chart:** the RBAC modes and the IngressClass role, the icon ConfigMap, the remote settings, the
-   badge values, the annotations of both Ingresses, the notes; a helm-unittest case per mode.
-8. **End-to-end and pages:** the suite of [§11](#11-test-tiers); `docs/developer/` discovery, icons,
-   frontend, adding-things; `docs/security/` for every case of [§12](#12-security-relations); the
-   README complete — features, naming conventions, TL;DR, the full reference of every value and
-   every annotation key, the light and dark screenshots, and the move from Hajimari: the keys with
-   the prefix replaced, opt-out mode, which icon glyphs to leave behind.
-
-**Verified when:** the end-to-end suite is green on every push; a kind fixture that copies the
-owner's annotation patterns with the prefix replaced — `defaultEnable: true` with opt-outs, bare MDI
-names, `appName`, one `url` — renders the expected tiles, compared against a golden list; each RBAC mode has its chart
-test and its envtest run; the schema refuses each invalid value of a table; every case of §12 has
-its page; coverage is on every pull request.
-
-**Effort:** L.
 
 ### Phase 3 — Cut-over and 1.0
 

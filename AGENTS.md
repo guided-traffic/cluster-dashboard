@@ -4,8 +4,8 @@ Repo: https://github.com/guided-traffic/dash — a start page for a Kubernetes c
 apps through their Ingresses, in the look of Cogpit. Two images — a Go backend (`backend/`, the API)
 and a Go file server with the Angular bundle (`frontend/`) — both distroless; one Helm chart with two
 Ingress objects, `/` to the frontend and `/api/` to the backend.
-**Status: phase 2 (the dashboard: discovery, icons, bookmarks, badges, the page) is built and
-verified locally; phase 3 (the cut-over in the owner's clusters) is next** — the plan is
+**Status: phase 2 (the dashboard: discovery, icons, bookmarks, badges, the page) is done,
+released in 0.4.0; phase 3 (the cut-over in the owner's clusters) is next** — the plan is
 [docs/planning/project-plan.md](docs/planning/project-plan.md), the decisions are
 [docs/adr/](docs/adr/README.md).
 
