@@ -1,0 +1,48 @@
+:host {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 20px 24px;
+}
+
+ul {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+a {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-height: 32px;
+  padding: 4px 8px;
+  border-radius: var(--radius-segment);
+  color: var(--text);
+  text-decoration: none;
+  transition:
+    color var(--motion),
+    background var(--motion);
+}
+
+a:hover {
+  color: var(--link);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+a:hover .icon {
+  color: var(--link);
+}
+
+.icon {
+  color: var(--muted);
+}
+
+.name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

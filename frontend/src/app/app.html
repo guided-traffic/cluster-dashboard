@@ -1,6 +1,6 @@
 <header class="top-bar">
   <div class="brand">
-    <h1 class="title">Dash</h1>
+    <h1 class="title">{{ title() }}</h1>
     <span
       class="version"
       data-testid="backend-version"
@@ -8,7 +8,12 @@
       [attr.aria-label]="backend().state === 'known' ? 'backend version ' + versionText() : null"
       >{{ versionText() }}</span
     >
+    @if (greetingLine(); as line) {
+      <span class="greeting" data-testid="greeting">{{ line }}</span>
+    }
   </div>
   <app-theme-control />
 </header>
-<main class="stage"></main>
+<main class="stage">
+  <app-dashboard />
+</main>

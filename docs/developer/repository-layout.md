@@ -35,11 +35,13 @@ dash/
 ├── frontend/                     # Angular 22.2 workspace, project "frontend"
 │   ├── src/app/
 │   │   ├── api/                  # ng-openapi-gen output (generated)
-│   │   ├── core/                 # theme.service, version.service
-│   │   ├── design/               # tokens.css (Cogpit's palettes), glyphs.ts (Material Symbols)
-│   │   └── shared/theme-control/ # the segmented control of the colour scheme
+│   │   ├── core/                 # dashboard.service (polling), theme.service, clock, version.service
+│   │   ├── design/               # tokens.css (Cogpit's palettes, status and badge tones), glyphs.ts
+│   │   ├── features/dashboard/   # the page: summary, tiles, bookmarks, horizon
+│   │   └── shared/               # item-icon, badge, bracket, theme-control
+│   ├── src/testing/              # fixtures of the dashboard answer, for the specs
 │   ├── public/                   # favicon.svg, theme-init.js
-│   ├── e2e/                      # Playwright: playwright.config.ts, smoke.spec.ts
+│   ├── e2e/                      # Playwright: smoke, dashboard (API and icons), page
 │   ├── server/                   # Go module …/frontend/server, standard library only: the image's file server
 │   ├── proxy.conf.mjs            # ng serve → backend for /api: the developer's stand-in for the Ingress
 │   └── Containerfile             # node:26-alpine → golang:1.27.3-alpine → distroless static nonroot

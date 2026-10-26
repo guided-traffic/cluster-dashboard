@@ -12,9 +12,9 @@ not. Installed by one Helm chart, configured entirely through it, no login.
 > **Phase 2 of 3, in progress.** Built: both images, the chart with its two Ingress objects, the
 > pipeline, the shell with its colour scheme, the dashboard's complete configuration — validated by
 > the chart and the backend — the discovery, which watches the cluster's Ingresses under the chart's
-> RBAC, every icon source and the badges, all served at `/api/v1/dashboard` and `/api/v1/icons/`.
-> **The page does not show apps yet**: the tiles arrive next, as phase 2 of the
-> [project plan](docs/planning/project-plan.md) lists them.
+> RBAC, every icon source, the badges, and the page that draws them. Still to come in phase 2: the
+> rest of the chart's switches, the full end-to-end suite with screenshots, and the move from
+> Hajimari ([project plan](docs/planning/project-plan.md)).
 
 ```mermaid
 flowchart LR
@@ -32,6 +32,7 @@ flowchart LR
 - 🔐 Read-only RBAC that follows the namespace selector: cluster-wide, or a Role per named namespace.
 - 🧭 One origin, two Ingress objects: the UI on `/`, the API on `/api/`, the controller the only hop.
 - 🛡️ Distroless images, non-root, read-only, no shell — proven in CI for each image.
+- 🛩️ Cogpit's Dark Cockpit: quiet while every app is healthy, a spine and a word where one is not, a summary token per app.
 - 🌗 Light, dark or the system's scheme, remembered by the browser, applied before the first paint.
 - 📜 A spec-first API: OpenAPI 3.1, validated requests, RFC 9457 problem bodies.
 - ⚙️ Every setting through the chart, refused at install when wrong (`values.schema.json`).

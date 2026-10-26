@@ -1,0 +1,54 @@
+:host {
+  display: block;
+  margin-bottom: 28px;
+}
+
+.tokens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* A rounded square per app: healthy at about a third of its light, the rest in full colour. */
+.token {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--mint) 35%, transparent);
+  transition: transform var(--motion);
+}
+
+.token:hover {
+  transform: scale(1.25);
+}
+
+.token.degraded {
+  background: var(--amber);
+}
+
+.token.down {
+  background: var(--coral);
+}
+
+.token.unknown {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--outline);
+}
+
+.legend {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.sep {
+  margin: 0 0.4em;
+}
+
+.part.degraded {
+  color: var(--amber-word);
+}
+
+.part.down {
+  color: var(--coral-word);
+}

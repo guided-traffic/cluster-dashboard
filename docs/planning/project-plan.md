@@ -859,7 +859,10 @@ server with RBAC authorisation for the impersonation test.
 - Step 5 (badges) built: definitions, rules, corners, the effective IngressClass with its informer and
   its ClusterRole, the annotation; facts in ADR 0011 (D4, D5), `docs/developer/badges.md`,
   `docs/security/{privilege-footprint,validation}.md`, the README.
-- Steps 6 to 8 open.
+- Step 6 (the page) built: the shell with title, greeting and date; the summary; groups of tiles with
+  icons, badges and status; bookmarks; the horizon; polling with visibility; facts in ADR 0005 (D5,
+  D6), `docs/developer/frontend.md`.
+- Steps 7 and 8 open.
 
 **Goal:** the brief end to end — discovery, custom apps, bookmarks, every icon source, Cogpit's
 look, every setting through the chart.

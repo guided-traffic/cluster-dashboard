@@ -1,0 +1,89 @@
+/* The pill: 18 px high, at least as wide as high — a circle for one character or a glyph. */
+:host {
+  --badge-fill: var(--tone-neutral);
+  --badge-ink: var(--tone-neutral-ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--badge-fill);
+  color: var(--badge-ink);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+:host(:has(.glyph)) {
+  padding: 0;
+}
+
+/* At a corner of the icon, a third outside, cut from it by a ring in the surface's colour as
+   macOS's ring does. The surface is the tile's: --badge-ring. */
+:host(.corner) {
+  position: absolute;
+  box-shadow: 0 0 0 2px var(--badge-ring, var(--plate));
+}
+
+:host(.corner-top-right) {
+  top: -6px;
+  right: -6px;
+}
+
+:host(.corner-top-left) {
+  top: -6px;
+  left: -6px;
+}
+
+:host(.corner-bottom-right) {
+  right: -6px;
+  bottom: -6px;
+}
+
+:host(.corner-bottom-left) {
+  bottom: -6px;
+  left: -6px;
+}
+
+:host(.chip) {
+  height: 16px;
+  min-width: 16px;
+  font-size: 10px;
+}
+
+.glyph {
+  width: 12px;
+  height: 12px;
+  background-color: currentColor;
+  mask: var(--mask) center / contain no-repeat;
+}
+
+:host(.tone-blue) {
+  --badge-fill: var(--tone-blue);
+  --badge-ink: var(--tone-blue-ink);
+}
+
+:host(.tone-cyan) {
+  --badge-fill: var(--tone-cyan);
+  --badge-ink: var(--tone-cyan-ink);
+}
+
+:host(.tone-mint) {
+  --badge-fill: var(--tone-mint);
+  --badge-ink: var(--tone-mint-ink);
+}
+
+:host(.tone-amber) {
+  --badge-fill: var(--tone-amber);
+  --badge-ink: var(--tone-amber-ink);
+}
+
+:host(.tone-coral) {
+  --badge-fill: var(--tone-coral);
+  --badge-ink: var(--tone-coral-ink);
+}

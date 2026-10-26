@@ -1,0 +1,130 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+/* A plate one luminance step above the stage; the badge's ring takes the tile's colour. */
+.tile {
+  --tile-bg: var(--plate);
+  --badge-ring: var(--tile-bg);
+  position: relative;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  height: 100%;
+  padding: 14px 14px 14px 16px;
+  border-radius: var(--radius-plate);
+  background: var(--tile-bg);
+  color: var(--text);
+  text-decoration: none;
+  outline: none;
+  transition:
+    box-shadow var(--motion),
+    background var(--motion);
+}
+
+/* Cogpit's glow frame: a crisp edge in the full light, then a halo that falls off over about seven
+   points, drawn without blur. Never two glows in one region: the frame is the tile's only light. */
+.tile:hover,
+.tile:focus-visible {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--glow) 90%, transparent),
+    0 0 0 2.5px color-mix(in srgb, var(--glow) 36%, transparent),
+    0 0 0 5px color-mix(in srgb, var(--glow) 16%, transparent),
+    0 0 0 8.5px color-mix(in srgb, var(--glow) 6%, transparent);
+}
+
+.icon {
+  position: relative;
+  flex: none;
+  color: var(--muted);
+  transition: color var(--motion);
+}
+
+/* The glyph lights up with its tile. */
+.tile:hover .icon,
+.tile:focus-visible .icon {
+  color: var(--text);
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.name {
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.url,
+.info {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 13px;
+  text-overflow: ellipsis;
+}
+
+.url {
+  white-space: nowrap;
+}
+
+/* A status spine: a 3-point rounded bar at the left edge, only for what is not healthy. */
+.tile.degraded::before,
+.tile.down::before {
+  content: '';
+  position: absolute;
+  top: 10px;
+  bottom: 10px;
+  left: 0;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--spine);
+}
+
+.tile.degraded {
+  --spine: var(--amber);
+}
+
+.tile.down {
+  --spine: var(--coral);
+  --tile-bg: light-dark(
+    color-mix(in srgb, var(--coral) 3.5%, var(--plate)),
+    color-mix(in srgb, var(--coral) 6%, var(--plate))
+  );
+}
+
+/* The status in words: the status colour's tint, a dot, the word that holds 4.5:1 on it. */
+.pill {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  align-self: flex-start;
+  margin-top: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.degraded .pill {
+  background: var(--amber-tint);
+  color: var(--amber-word);
+}
+
+.down .pill {
+  background: var(--coral-tint);
+  color: var(--coral-word);
+}
+
+.pill .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}

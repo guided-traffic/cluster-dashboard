@@ -35,9 +35,9 @@ which Cogpit's check let through when it named a string rather than `url(…)`, 
 Every icon is answered with `Content-Type` from the check (`image/svg+xml` or `image/png`, never the
 source's), `X-Content-Type-Options: nosniff` and
 `Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; sandbox`: an SVG opened on
-its own loads nothing and runs nothing, and the sandbox gives it an opaque origin. The page is to
-draw an icon only as `<img>` or as a CSS mask, where an SVG's script never runs — the rule for the
-tiles of phase 2, step 6; the page draws no icon yet.
+its own loads nothing and runs nothing, and the sandbox gives it an opaque origin. The page draws an
+icon only as `<img>` or as a CSS mask ([item-icon.ts](../../frontend/src/app/shared/item-icon/item-icon.ts),
+[badge.ts](../../frontend/src/app/shared/badge/badge.ts)), where an SVG's script never runs.
 
 ## What this does not cover
 

@@ -1,0 +1,73 @@
+@switch (state().kind) {
+  @case ('failed') {
+    <app-horizon>
+      @if (starting()) {
+        <p class="headline">the backend is starting</p>
+      } @else {
+        <p class="headline">the backend cannot be reached</p>
+      }
+      <p class="detail">The page asks again every {{ retrySeconds }} seconds.</p>
+    </app-horizon>
+  }
+  @case ('ready') {
+    @if (view(); as v) {
+      @if (stale()) {
+        <p class="stale" role="status">
+          The backend did not answer the last refresh: this is its last answer.
+        </p>
+      }
+      @if (v.all.length === 0 && v.bookmarks.length === 0) {
+        <app-horizon>
+          <p class="headline">no apps discovered</p>
+          <p class="detail" data-testid="scope">{{ v.scope }}</p>
+        </app-horizon>
+      } @else {
+        @if (v.all.length > 0) {
+          @if (v.dashboard.ui.show_summary) {
+            <app-summary [summary]="v.dashboard.summary" [tokens]="v.tokens" />
+          }
+          @if (v.dashboard.ui.show_app_groups) {
+            @for (group of v.groups; track group.name) {
+              <section class="group">
+                <app-bracket [label]="group.name" [count]="group.apps.length" />
+                <div class="grid">
+                  @for (p of group.apps; track p.app.id) {
+                    <app-tile
+                      [app]="p.app"
+                      [anchor]="p.anchor"
+                      [showURL]="v.dashboard.ui.show_app_urls"
+                    />
+                  }
+                </div>
+              </section>
+            }
+          } @else {
+            <section class="group">
+              <h2 class="visually-hidden">Apps</h2>
+              <div class="grid">
+                @for (p of v.all; track p.app.id) {
+                  <app-tile
+                    [app]="p.app"
+                    [anchor]="p.anchor"
+                    [showURL]="v.dashboard.ui.show_app_urls"
+                  />
+                }
+              </div>
+            </section>
+          }
+        } @else {
+          <p class="quiet" data-testid="scope">No apps discovered. {{ v.scope }}</p>
+        }
+        @if (v.bookmarks.length > 0) {
+          <section class="bookmarks">
+            <h2 class="visually-hidden">Bookmarks</h2>
+            <app-bookmarks
+              [groups]="v.bookmarks"
+              [showGroups]="v.dashboard.ui.show_bookmark_groups"
+            />
+          </section>
+        }
+      }
+    }
+  }
+}

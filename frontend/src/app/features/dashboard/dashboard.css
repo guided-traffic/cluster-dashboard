@@ -1,0 +1,44 @@
+:host {
+  display: block;
+}
+
+/* Groups 20 points apart. */
+.group + .group,
+.bookmarks {
+  margin-top: 20px;
+}
+
+.bookmarks {
+  margin-top: 36px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.headline {
+  margin: 0 0 6px;
+  color: var(--text);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.detail,
+.quiet {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.quiet {
+  margin-bottom: 20px;
+}
+
+.stale {
+  margin: 0 0 16px;
+  color: var(--amber-word);
+  font-size: 13px;
+}

@@ -16,8 +16,10 @@ export function isThemePreference(value: unknown): value is ThemePreference {
 /**
  * The colour scheme. The preference lives in the browser's storage; it is the data-theme
  * attribute of <html>, which src/app/design/tokens.css turns into the page's color-scheme —
- * `system` leaves it to prefers-color-scheme, live. Storage that throws (a private window, blocked
- * site data) reads as `system`, and a choice it refuses holds for this page.
+ * `system` leaves it to prefers-color-scheme, live. Without a stored choice the dashboard's
+ * `ui.default_theme` applies once it is known (applyDefault); until then, `system`. Storage that
+ * throws (a private window, blocked site data) reads as no choice, and a choice it refuses holds
+ * for this page.
  */
 @Injectable({ providedIn: 'root' })
 export class ThemeService {
@@ -25,7 +27,9 @@ export class ThemeService {
   private readonly media = this.document.defaultView?.matchMedia?.('(prefers-color-scheme: dark)');
   private readonly systemDark = signal(this.media?.matches ?? false);
 
-  readonly preference = signal<ThemePreference>(this.stored());
+  private readonly storedChoice = this.stored();
+  private chosen = this.storedChoice !== undefined;
+  readonly preference = signal<ThemePreference>(this.storedChoice ?? 'system');
   /** The scheme in effect: the preference, or the system's while the preference is `system`. */
   readonly scheme = computed<ColourScheme>(() => {
     const preference = this.preference();
@@ -42,6 +46,7 @@ export class ThemeService {
   }
 
   set(preference: ThemePreference): void {
+    this.chosen = true;
     this.preference.set(preference);
     try {
       this.document.defaultView?.localStorage.setItem(themeStorageKey, preference);
@@ -50,12 +55,19 @@ export class ThemeService {
     }
   }
 
-  private stored(): ThemePreference {
+  /** Applies the installation's default while the person has chosen nothing. */
+  applyDefault(preference: ThemePreference): void {
+    if (!this.chosen) {
+      this.preference.set(preference);
+    }
+  }
+
+  private stored(): ThemePreference | undefined {
     try {
       const value = this.document.defaultView?.localStorage.getItem(themeStorageKey);
-      return isThemePreference(value) ? value : 'system';
+      return isThemePreference(value) ? value : undefined;
     } catch {
-      return 'system';
+      return undefined;
     }
   }
 

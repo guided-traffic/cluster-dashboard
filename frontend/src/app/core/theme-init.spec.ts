@@ -19,11 +19,14 @@ describe('theme-init.js', () => {
     expect(themeInit).toContain(`'${themeStorageKey}'`);
   });
 
-  it.each(['system', 'light', 'dark'])('applies a stored %s before the app starts', (preference) => {
-    localStorage.setItem(themeStorageKey, preference);
-    runThemeInit();
-    expect(html().getAttribute('data-theme')).toBe(preference);
-  });
+  it.each(['system', 'light', 'dark'])(
+    'applies a stored %s before the app starts',
+    (preference) => {
+      localStorage.setItem(themeStorageKey, preference);
+      runThemeInit();
+      expect(html().getAttribute('data-theme')).toBe(preference);
+    },
+  );
 
   it('applies system when nothing is stored', () => {
     runThemeInit();

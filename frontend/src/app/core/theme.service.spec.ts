@@ -62,6 +62,31 @@ describe('ThemeService', () => {
     expect(create().preference()).toBe('system');
   });
 
+  it('applies the installation default while nothing is chosen', () => {
+    const theme = create();
+    theme.applyDefault('dark');
+    TestBed.tick();
+    expect(theme.preference()).toBe('dark');
+    expect(html().getAttribute('data-theme')).toBe('dark');
+    expect(localStorage.getItem(themeStorageKey)).toBeNull();
+    theme.applyDefault('light');
+    expect(theme.preference()).toBe('light'); // a later default too, while nothing is chosen
+  });
+
+  it('keeps a stored or a made choice over the installation default', () => {
+    localStorage.setItem(themeStorageKey, 'system');
+    const stored = create();
+    stored.applyDefault('dark');
+    expect(stored.preference()).toBe('system');
+
+    TestBed.resetTestingModule();
+    localStorage.clear();
+    const fresh = create();
+    fresh.set('light');
+    fresh.applyDefault('dark');
+    expect(fresh.preference()).toBe('light');
+  });
+
   it('stores a choice and applies it to <html>', () => {
     const theme = create();
     theme.set('dark');

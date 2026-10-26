@@ -93,7 +93,8 @@
             "runnerConfig": true,
             "coverageExclude": [
               "src/app/api/**",
-              "src/main.ts"
+              "src/main.ts",
+              "src/testing/**"
             ]
           }
         },

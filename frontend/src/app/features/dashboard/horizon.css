@@ -1,0 +1,29 @@
+:host {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 360px;
+  overflow: hidden;
+  border-radius: var(--radius-plate);
+  background: radial-gradient(ellipse 60% 70% at 50% 0%, var(--stage-light), transparent 70%);
+}
+
+.floor {
+  position: absolute;
+  inset: auto 0 0;
+  width: 100%;
+  height: 100%;
+}
+
+line {
+  stroke: var(--edge);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.content {
+  position: relative;
+  max-width: 34rem;
+  padding: 0 var(--gutter) 120px;
+  text-align: center;
+}

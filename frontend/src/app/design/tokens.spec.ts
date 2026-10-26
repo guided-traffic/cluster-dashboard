@@ -71,6 +71,32 @@ describe('the design tokens', () => {
     }
   }
 
+  const tones = ['neutral', 'blue', 'cyan', 'mint', 'amber', 'coral'];
+  for (const scheme of schemes) {
+    for (const status of ['amber', 'coral']) {
+      it(`hold the ${status} status word on its tint to 4.5:1 in the ${scheme} scheme`, () => {
+        const ratio = contrast(
+          tokens.get(`${status}-word`)![scheme],
+          tokens.get(`${status}-tint`)![scheme],
+        );
+        expect(ratio).toBeGreaterThanOrEqual(4.5);
+      });
+    }
+    for (const tone of tones) {
+      it(`hold the ${tone} badge's ink to 4.5:1 and its fill to 3:1 on every surface in the ${scheme} scheme`, () => {
+        const fill = tokens.get(`tone-${tone}`)![scheme];
+        expect(contrast(tokens.get(`tone-${tone}-ink`)![scheme], fill)).toBeGreaterThanOrEqual(4.5);
+        for (const surface of surfaces) {
+          expect(contrast(fill, tokens.get(surface)![scheme])).toBeGreaterThanOrEqual(3);
+        }
+      });
+    }
+  }
+
+  it('have no violet tone: violet is the agent’s light in Cogpit', () => {
+    expect([...tokens.keys()].some((name) => name.includes('violet'))).toBe(false);
+  });
+
   it('compute the WCAG ratio', () => {
     expect(contrast('#000000', '#ffffff')).toBeCloseTo(21, 5);
     expect(contrast('#777777', '#777777')).toBeCloseTo(1, 5);

@@ -19,7 +19,9 @@ function servedCertificate(url: string): Promise<PeerCertificate> {
   });
 }
 
-test('the shell arrives through the frontend Ingress with its security headers', async ({ page }) => {
+test('the shell arrives through the frontend Ingress with its security headers', async ({
+  page,
+}) => {
   const response = await page.goto('/');
   expect(response?.status()).toBe(200);
   expect(response?.headers()['cache-control']).toBe('no-store');
@@ -28,7 +30,10 @@ test('the shell arrives through the frontend Ingress with its security headers',
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Dash');
 });
 
-test('the backend answers through its own Ingress, on the same origin', async ({ page, request }) => {
+test('the backend answers through its own Ingress, on the same origin', async ({
+  page,
+  request,
+}) => {
   const response = await request.get('/api/v1/version');
   expect(response.status()).toBe(200);
   const body = await response.json();
@@ -44,7 +49,9 @@ test('a deep link resolves to the shell', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Dash');
 });
 
-test('the stage follows the browser scheme while the preference is system', async ({ page }, testInfo) => {
+test('the stage follows the browser scheme while the preference is system', async ({
+  page,
+}, testInfo) => {
   await page.goto('/');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'system');
   const scheme = testInfo.project.use.colorScheme === 'dark' ? 'dark' : 'light';

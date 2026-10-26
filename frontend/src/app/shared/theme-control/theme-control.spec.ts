@@ -20,7 +20,9 @@ describe('ThemeControl', () => {
     const { root, radios } = render();
     expect(root.querySelector('legend')?.textContent?.trim()).toBe('Colour scheme');
     expect(radios().map((radio) => radio.value)).toEqual(['system', 'light', 'dark']);
-    const names = Array.from(root.querySelectorAll('label')).map((label) => label.textContent?.trim());
+    const names = Array.from(root.querySelectorAll('label')).map((label) =>
+      label.textContent?.trim(),
+    );
     expect(names).toEqual(['System', 'Light', 'Dark']);
   });
 

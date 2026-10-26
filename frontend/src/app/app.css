@@ -18,9 +18,17 @@
 
 .brand {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: 10px;
+  column-gap: 10px;
   min-width: 0;
+  padding: 8px 0;
+}
+
+.greeting {
+  flex-basis: 100%;
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .title {
@@ -46,5 +54,8 @@
 
 .stage {
   flex: 1;
-  padding: var(--gutter);
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 24px var(--gutter) 48px;
 }

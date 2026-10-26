@@ -5,7 +5,9 @@
  * prefers-color-scheme live, which is the preference "system"; `light` or `dark` fixes one.
  * public/theme-init.js and the theme service set the preference as data-theme on <html>.
  *
- * tokens.spec.ts reads this file and holds every text pair to 4.5:1 and every shape to 3:1.
+ * tokens.spec.ts reads this file and holds every text pair to 4.5:1 and every shape to 3:1: the
+ * text tokens on every surface, a status word on its tint, a badge's ink on its tone and its tone
+ * on every surface.
  */
 :root {
   color-scheme: light dark;
@@ -38,6 +40,28 @@
   --amber: light-dark(#9a6a00, #f2c14e);
   --orange: light-dark(#c4570e, #ff9f5a);
   --coral: light-dark(#d23b45, #ff6b74);
+
+  /* A degraded or down tile's pill: the status colour at 14 % (18 % in light) of the plate, the
+     word moved in lightness until it holds 4.5:1 on that tint, as Cogpit's status words do. */
+  --amber-tint: light-dark(#e6decd, #302e26);
+  --amber-word: light-dark(#745000, #f2c14e);
+  --coral-tint: light-dark(#f0d6d9, #31222b);
+  --coral-word: light-dark(#9e2c34, #ff6b74);
+
+  /* Badge tones (docs/adr/0011): the pill's fill and the ink of its glyph or text. Violet stays
+     the agent's in Cogpit and is no tone. In light the lights are deepened for 4.5:1 white text. */
+  --tone-neutral: light-dark(#5f6a7c, #8592a5);
+  --tone-neutral-ink: light-dark(#ffffff, #0d121a);
+  --tone-blue: light-dark(#0a6fd6, #4aa8ff);
+  --tone-blue-ink: light-dark(#ffffff, #0d121a);
+  --tone-cyan: light-dark(#0b7c93, #5ad1e3);
+  --tone-cyan-ink: light-dark(#ffffff, #0d121a);
+  --tone-mint: light-dark(#117c4a, #3dd68c);
+  --tone-mint-ink: light-dark(#ffffff, #0d121a);
+  --tone-amber: light-dark(#9a6a00, #f2c14e);
+  --tone-amber-ink: light-dark(#ffffff, #0d121a);
+  --tone-coral: light-dark(#d23b45, #ff6b74);
+  --tone-coral-ink: light-dark(#ffffff, #0d121a);
 
   /* Typography: Inter, self-hosted from npm, no font CDN. */
   --font-sans: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
