@@ -56,6 +56,12 @@ serviceAccount:
   name: ""
   annotations: {}
 
+# The discovery's read: list and watch on Ingresses and EndpointSlices — cluster-wide for
+# namespaceSelector.any or a label selector (plus Namespaces for the latter), as a Role in each
+# named namespace otherwise. false: the cluster administrator grants it.
+rbac:
+  create: true
+
 # Two Ingress objects on the same hosts: <fullname>-frontend takes "/", <fullname>-backend takes
 # "/api/". Both carry hosts, tls, className and annotations; each adds its own annotations.
 ingress:

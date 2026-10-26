@@ -2,8 +2,10 @@
 
 ## Status
 
-Accepted 2026-10-26, decided by the owner. **Partly built**: the chart's own Ingress objects carry
-`dash.gtrfc.com/enable: "false"`; the discovery that reads the keys is phase 2.
+Accepted 2026-10-26, decided by the owner. **Built**: the chart's own Ingress objects carry
+`dash.gtrfc.com/enable: "false"`; the discovery reads the keys under this prefix only
+(`backend/internal/discovery/annotations.go`), and `TestHajimarisAnnotationsChangeNothing` proves a
+`hajimari.io/*` set changes nothing (phase 2, step 2).
 
 ## Context
 
@@ -19,7 +21,7 @@ The organisation names its keys `<product>.gtrfc.com` (`dex.gtrfc.com`, `vko.gtr
 ## Consequences
 
 - The owner's manifests get the new keys before the cut-over; side by side, each carries both sets.
-- A test proves that a `hajimari.io/*` annotation changes nothing (phase 2).
+- A test proves that a `hajimari.io/*` annotation changes nothing.
 
 ## Alternatives considered
 

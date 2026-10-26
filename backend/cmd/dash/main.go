@@ -12,11 +12,16 @@ import (
 	"os"
 	"os/signal"
 	"runtime/debug"
+	"sync"
 	"syscall"
 	"time"
 
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/klog/v2"
+
 	"github.com/guided-traffic/dash/backend/internal/api"
 	"github.com/guided-traffic/dash/backend/internal/config"
+	"github.com/guided-traffic/dash/backend/internal/discovery"
 	"github.com/guided-traffic/dash/backend/internal/httpserver"
 	"github.com/guided-traffic/dash/backend/internal/kube"
 )
@@ -51,23 +56,38 @@ func main() {
 type deps struct {
 	lookup   func(string) (string, bool)
 	readFile func(string) ([]byte, error)
-	// versionGetter builds the Kubernetes client the readiness probe asks.
-	versionGetter func() (kube.VersionGetter, error)
-	listen        func(addr string) (net.Listener, error)
-	stdout        io.Writer
-	stderr        io.Writer
+	// clients builds the Kubernetes clients: the one the readiness probe
+	// asks, and the one the discovery watches with.
+	clients func() (clients, error)
+	listen  func(addr string) (net.Listener, error)
+	stdout  io.Writer
+	stderr  io.Writer
+}
+
+// clients are the backend's connections to the Kubernetes API server.
+type clients struct {
+	version kube.VersionGetter
+	kube    kubernetes.Interface
 }
 
 func defaultDeps() deps {
 	return deps{
 		lookup:   os.LookupEnv,
 		readFile: os.ReadFile,
-		versionGetter: func() (kube.VersionGetter, error) {
+		clients: func() (clients, error) {
 			cfg, err := kube.RESTConfig("dash/" + version)
 			if err != nil {
-				return nil, err
+				return clients{}, err
 			}
-			return kube.NewVersionGetter(cfg)
+			getter, err := kube.NewVersionGetter(cfg)
+			if err != nil {
+				return clients{}, err
+			}
+			client, err := kubernetes.NewForConfig(cfg)
+			if err != nil {
+				return clients{}, fmt.Errorf("create the Kubernetes client: %w", err)
+			}
+			return clients{version: getter, kube: client}, nil
 		},
 		listen: func(addr string) (net.Listener, error) { return net.Listen("tcp", addr) },
 		stdout: os.Stdout,
@@ -97,8 +117,8 @@ func run(ctx context.Context, args []string, d deps) int {
 }
 
 // serve loads the configuration, refusing to start on any problem with it,
-// connects to the Kubernetes API server in the background, and serves until
-// a signal or ctx ends it.
+// connects to the Kubernetes API server and starts the discovery in the
+// background, and serves until a signal or ctx ends it.
 func serve(ctx context.Context, d deps) int {
 	cfg, err := config.Load(d.lookup, d.readFile)
 	if err != nil {
@@ -106,26 +126,45 @@ func serve(ctx context.Context, d deps) int {
 		return 1
 	}
 	logger := slog.New(slog.NewJSONHandler(d.stderr, &slog.HandlerOptions{Level: cfg.LogLevel}))
+	// client-go's own messages, through klog, in the same log and format.
+	klog.SetSlogLogger(logger)
 	logger.Info("starting", "version", version, "commit", commit, "config", configSource(cfg), "memory_limit", memoryLimit())
 
-	getter, err := d.versionGetter()
+	cl, err := d.clients()
 	if err != nil {
 		logger.Error("no Kubernetes client", "error", err)
 		return 1
 	}
 
+	// serve returns once the work it started in the background has stopped:
+	// the deferred stop ends it, then this wait — deferred first, run last.
+	var background sync.WaitGroup
+	defer background.Wait()
 	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	probe := kube.NewProbe(getter)
-	go probe.Run(ctx, logger)
+	probe := kube.NewProbe(cl.version)
+	background.Go(func() { probe.Run(ctx, logger) })
+	ready := []func(context.Context) error{probe.Ready}
+
+	if cfg.File.Discovery.Enabled {
+		disc, err := newDiscovery(cl.kube, cfg.File.Discovery, logger)
+		if err != nil {
+			logger.Error("discovery setup failed", "error", err)
+			return 1
+		}
+		background.Go(func() { disc.Run(ctx) })
+		ready = append(ready, disc.Ready)
+	} else {
+		logger.Info("the discovery is off: the dashboard shows the configured apps and bookmarks only")
+	}
 
 	apiHandler, err := api.New(api.Options{Logger: logger, Version: version, Commit: commit, BuildTime: buildTime})
 	if err != nil {
 		logger.Error("API setup failed", "error", err)
 		return 1
 	}
-	root := httpserver.New(httpserver.Options{Ready: probe.Ready, API: apiHandler, Logger: logger})
+	root := httpserver.New(httpserver.Options{Ready: allReady(ready), API: apiHandler, Logger: logger})
 
 	ln, err := d.listen(cfg.ListenAddr)
 	if err != nil {
@@ -139,6 +178,28 @@ func serve(ctx context.Context, d deps) int {
 	}
 	logger.Info("stopped")
 	return 0
+}
+
+// newDiscovery sets the discovery up as the configuration selects.
+func newDiscovery(client kubernetes.Interface, c config.Discovery, logger *slog.Logger) (*discovery.Discovery, error) {
+	opts, err := discovery.OptionsFrom(c)
+	if err != nil {
+		return nil, err
+	}
+	return discovery.New(client, opts, logger)
+}
+
+// allReady is ready when every check is: the API server has answered, and
+// the discovery, when it runs, has listed.
+func allReady(checks []func(context.Context) error) func(context.Context) error {
+	return func(ctx context.Context) error {
+		for _, check := range checks {
+			if err := check(ctx); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
 }
 
 // configSource names the file the configuration came from, for the log.

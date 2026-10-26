@@ -509,9 +509,9 @@ both schemes, which also become the README's `<picture>` pairs (`docs/images/<sc
 | ConfigMap (`config.yaml`), checksum on the backend's pods | `<fullname>-config` | Always |
 | ConfigMap (`binaryData`) | `<fullname>-icons` | `icons.configMap.files` is not empty |
 | ServiceAccount | `<fullname>-backend` | `serviceAccount.create` |
-| ClusterRole and ClusterRoleBinding | `<fullname>` | `rbac.create`, selector `any` or `labelSelector` |
-| Role and RoleBinding per namespace | `<fullname>` | `rbac.create`, selector `matchNames` only |
-| ClusterRole and ClusterRoleBinding on `ingressclasses` | `<fullname>-ingressclasses` | `rbac.create` and `badges.rules` not empty, in every selector mode |
+| ClusterRole and ClusterRoleBinding | `<namespace>-<fullname>` | `rbac.create`, selector `any` or `labelSelector` |
+| Role and RoleBinding per namespace | `<namespace>-<fullname>` | `rbac.create`, selector `matchNames` only |
+| ClusterRole and ClusterRoleBinding on `ingressclasses` | `<namespace>-<fullname>-ingressclasses` | `rbac.create` and `badges.rules` not empty, in every selector mode |
 
 - **RBAC:** `list` and `watch` on `ingresses` (`networking.k8s.io`) and `endpointslices`
   (`discovery.k8s.io`); on `namespaces` only for a label selector; on `ingressclasses` —
@@ -834,11 +834,17 @@ server with RBAC authorisation for the impersonation test.
 
 ### Phase 2 — The dashboard
 
-**Status 2026-10-26: step 1 (configuration) on `main`, verified locally** — `make lint cyclo gosec
-vuln test-unit helm-lint helm-template helm-unittest helm-kubeconform e2e`; its facts moved to ADR
-0004 (D5, D6), `docs/developer/configuration.md`, `docs/security/validation.md` and the README's
-reference. Steps 2 to 8 open. Each step is one commit on `main` (the owner's choice), not a pull
-request.
+**Status 2026-10-26:** each step is one commit on `main` (the owner's choice), not a pull request.
+
+- Step 1 (configuration) on `main`: facts in ADR 0004 (D5, D6),
+  `docs/developer/configuration.md`, `docs/security/validation.md`, the README's reference.
+- Step 2 (discovery) built with the chart's RBAC, verified locally (`make lint cyclo gosec vuln
+  test-unit test-integration helm-* e2e`): facts in ADR 0007 (D4 amended, D6, D7), ADR 0010,
+  `docs/developer/discovery.md`, `docs/security/privilege-footprint.md` (H-4), the README's
+  annotation table. The RBAC objects are named `<release namespace>-<fullname>`, not `<fullname>`
+  as §9 had them, so that two releases of one name do not collide; the chart's RBAC moved from step
+  7 into this step, because the discovery needs it to turn ready.
+- Steps 3 to 8 open.
 
 **Goal:** the brief end to end — discovery, custom apps, bookmarks, every icon source, Cogpit's
 look, every setting through the chart.

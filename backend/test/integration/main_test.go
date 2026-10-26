@@ -25,6 +25,9 @@ import (
 const (
 	envAssets  = "DASH_TEST_ENVTEST_ASSETS"
 	envVersion = "DASH_TEST_ENVTEST_VERSION"
+	// envRBAC names the folder of the chart's rendered RBAC, a file per mode
+	// of the namespace selector (make integration-rbac).
+	envRBAC = "DASH_TEST_RBAC_DIR"
 )
 
 var (
@@ -54,6 +57,12 @@ func run(m *testing.M) int {
 	if os.Getenv(envVersion) == "" {
 		fmt.Fprintf(os.Stderr, "FAIL: %s is not set: run make test-integration, which sets it to ENVTEST_K8S_VERSION\n", envVersion)
 		return 1
+	}
+	for _, mode := range rbacModes {
+		if _, err := os.Stat(filepath.Join(os.Getenv(envRBAC), mode+".yaml")); err != nil {
+			fmt.Fprintf(os.Stderr, "FAIL: %s holds no %s.yaml: run make test-integration, which renders the chart's RBAC (make integration-rbac) (%v)\n", envRBAC, mode, err)
+			return 1
+		}
 	}
 	// envtest logs through controller-runtime's global logger, which warns
 	// once when nothing set it.

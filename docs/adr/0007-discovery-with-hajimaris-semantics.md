@@ -2,7 +2,12 @@
 
 ## Status
 
-Accepted 2026-10-26 (the plan's §6, from Hajimari's source at `b07024d`). **Not built** — phase 2.
+Accepted 2026-10-26 (the plan's §6, from Hajimari's source at `b07024d`). **Built** 2026-10-26 (phase
+2, step 2) in `backend/internal/discovery` and `backend/internal/dashboard`, with the chart's
+`templates/rbac.yaml`; amended the same day with D4's reading of an empty slice and a terminating
+endpoint, and D6 and D7. Verified by the unit tables, by the informers on a fake clientset, and by
+the integration tier, which runs the discovery as the chart's ServiceAccount under the RBAC
+`helm template` renders for each selector mode.
 
 ## Context
 
@@ -26,11 +31,25 @@ step 1).
 first `Prefix` or `Exact` path without regular-expression characters, else `/`; `url` only with `http`
 or `https`.
 
-**D4 — Status**: ready endpoints over all endpoints of the referenced Services, each pod once.
+**D4 — Status**: ready endpoints over all endpoints of the referenced Services, each pod once; a
+terminating endpoint is not counted, so a rollout does not light the tile. No EndpointSlice at all is
+`unknown` (nothing to count); slices without a ready endpoint — a Deployment scaled to zero leaves
+its slice empty — are `down`.
 
 **D5 — Informers** on Ingresses and EndpointSlices (Namespaces for a label selector), trimmed; the API
-reads the cache.
+reads the cache. An Ingress is read when it changes, its status counted when the page asks; ready
+once every informer has listed.
+
+**D6 — The RBAC follows the selector**: a ClusterRole for `any` and for a label selector (plus
+Namespaces), a Role in each named namespace for names alone — the informers' layout. The objects are
+named `<release namespace>-<fullname>`, so two releases of one name in two namespaces do not claim
+the same ClusterRole.
+
+**D7 — What the configuration hides is not served**: `ui.showApps`, `ui.showBookmarks`,
+`ui.showAppInfo` and `ui.showAppStatus` off leave apps, bookmarks, descriptions and statuses out of
+what the backend answers, not only out of the page.
 
 ## References
 
 - [docs/planning/project-plan.md](../planning/project-plan.md) §6
+- [docs/developer/discovery.md](../developer/discovery.md), [docs/security/privilege-footprint.md](../security/privilege-footprint.md)

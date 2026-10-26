@@ -224,14 +224,27 @@ $(ENVTEST_DIR)/.verified:
 envtest-key: ## Print the CI cache key of the envtest binaries: version, platform and pinned SHA-512.
 	@echo 'envtest-$(ENVTEST_K8S_VERSION)-$(ENVTEST_PLATFORM_$(ENVTEST_HOST))-$(ENVTEST_SHA512_$(ENVTEST_HOST))'
 
-INTEGRATION_ENV = $(TEST_ENV) DASH_TEST_ENVTEST_ASSETS=$(ENVTEST_DIR) DASH_TEST_ENVTEST_VERSION=$(ENVTEST_K8S_VERSION)
+# The discovery's RBAC as the chart renders it in each mode of the namespace selector, released as
+# dash in namespace dash: the integration tier runs the discovery under exactly these grants.
+RBAC_DIR := $(CACHE)/rbac
+RBAC_RENDER = $(HELM) template dash $(HELM_CHART) --namespace dash --show-only templates/rbac.yaml
+
+.PHONY: integration-rbac
+integration-rbac: $(HELM_BIN) ## Render the chart's RBAC of each namespace-selector mode into .cache/rbac for the integration tier.
+	@mkdir -p $(RBAC_DIR)
+	$(RBAC_RENDER) > $(RBAC_DIR)/any.yaml
+	$(RBAC_RENDER) --set discovery.namespaceSelector.any=false --set 'discovery.namespaceSelector.matchNames={team-a,team-b}' > $(RBAC_DIR)/names.yaml
+	$(RBAC_RENDER) --set discovery.namespaceSelector.any=false --set 'discovery.namespaceSelector.matchNames={static}' \
+	  --set discovery.namespaceSelector.labelSelector.matchLabels.dash=listed > $(RBAC_DIR)/labels.yaml
+
+INTEGRATION_ENV = $(TEST_ENV) DASH_TEST_ENVTEST_ASSETS=$(ENVTEST_DIR) DASH_TEST_ENVTEST_VERSION=$(ENVTEST_K8S_VERSION) DASH_TEST_RBAC_DIR=$(RBAC_DIR)
 
 .PHONY: test-integration
-test-integration: envtest-bin ## Run the backend integration tests (tag integration) against envtest's kube-apiserver and etcd.
+test-integration: envtest-bin integration-rbac ## Run the backend integration tests (tag integration) against envtest's kube-apiserver and etcd.
 	cd $(BACKEND_DIR) && $(INTEGRATION_ENV) go test -race -tags=integration -count=1 -timeout=10m ./test/integration/...
 
 .PHONY: test-integration-coverage
-test-integration-coverage: envtest-bin ## Run the backend integration tests with a coverage profile in coverage/integration.out.
+test-integration-coverage: envtest-bin integration-rbac ## Run the backend integration tests with a coverage profile in coverage/integration.out.
 	@mkdir -p $(COVERAGE_DIR)
 	cd $(BACKEND_DIR) && $(INTEGRATION_ENV) go test -race -tags=integration -count=1 -timeout=10m -covermode=atomic -coverpkg=./... -coverprofile=$(COVERAGE_DIR)/integration.out ./test/integration/...
 	@python3 hack/coverage.py total $(COVERAGE_DIR)/integration.out

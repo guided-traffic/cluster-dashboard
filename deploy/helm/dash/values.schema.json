@@ -123,6 +123,11 @@
         "annotations": { "$ref": "#/definitions/stringMap" }
       }
     },
+    "rbac": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": { "create": { "type": "boolean" } }
+    },
     "ingress": {
       "type": "object",
       "additionalProperties": false,

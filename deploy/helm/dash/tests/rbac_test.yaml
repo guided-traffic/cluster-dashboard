@@ -1,0 +1,188 @@
+suite: the discovery's RBAC in each mode of the namespace selector
+templates:
+  - templates/rbac.yaml
+release:
+  name: dash
+  namespace: web
+tests:
+  - it: grants list and watch on Ingresses and EndpointSlices cluster-wide for every namespace
+    asserts:
+      - hasDocuments:
+          count: 2
+      - documentIndex: 0
+        isKind:
+          of: ClusterRole
+      - documentIndex: 0
+        equal:
+          path: metadata.name
+          value: web-dash
+      - documentIndex: 0
+        equal:
+          path: rules
+          value:
+            - apiGroups: [networking.k8s.io]
+              resources: [ingresses]
+              verbs: [list, watch]
+            - apiGroups: [discovery.k8s.io]
+              resources: [endpointslices]
+              verbs: [list, watch]
+      - documentIndex: 1
+        isKind:
+          of: ClusterRoleBinding
+      - documentIndex: 1
+        equal:
+          path: roleRef
+          value:
+            apiGroup: rbac.authorization.k8s.io
+            kind: ClusterRole
+            name: web-dash
+      - documentIndex: 1
+        equal:
+          path: subjects
+          value:
+            - kind: ServiceAccount
+              name: dash-backend
+              namespace: web
+
+  - it: adds Namespaces for a label selector, and nothing else
+    set:
+      discovery.namespaceSelector:
+        any: false
+        matchNames: [static]
+        labelSelector:
+          matchLabels:
+            dash: listed
+    asserts:
+      - hasDocuments:
+          count: 2
+      - documentIndex: 0
+        isKind:
+          of: ClusterRole
+      - documentIndex: 0
+        equal:
+          path: rules
+          value:
+            - apiGroups: [networking.k8s.io]
+              resources: [ingresses]
+              verbs: [list, watch]
+            - apiGroups: [discovery.k8s.io]
+              resources: [endpointslices]
+              verbs: [list, watch]
+            - apiGroups: [""]
+              resources: [namespaces]
+              verbs: [list, watch]
+
+  - it: takes match expressions as a label selector too
+    set:
+      discovery.namespaceSelector:
+        any: false
+        labelSelector:
+          matchExpressions:
+            - key: tier
+              operator: Exists
+    asserts:
+      - documentIndex: 0
+        isKind:
+          of: ClusterRole
+      - documentIndex: 0
+        contains:
+          path: rules
+          content:
+            apiGroups: [""]
+            resources: [namespaces]
+            verbs: [list, watch]
+
+  - it: grants a Role in each named namespace and nothing cluster-wide
+    set:
+      discovery.namespaceSelector:
+        any: false
+        matchNames: [media, tools]
+    asserts:
+      - hasDocuments:
+          count: 4
+      - containsDocument:
+          kind: Role
+          apiVersion: rbac.authorization.k8s.io/v1
+          name: web-dash
+          namespace: media
+          any: true
+      - containsDocument:
+          kind: Role
+          apiVersion: rbac.authorization.k8s.io/v1
+          name: web-dash
+          namespace: tools
+          any: true
+      - containsDocument:
+          kind: RoleBinding
+          apiVersion: rbac.authorization.k8s.io/v1
+          name: web-dash
+          namespace: media
+          any: true
+      - containsDocument:
+          kind: RoleBinding
+          apiVersion: rbac.authorization.k8s.io/v1
+          name: web-dash
+          namespace: tools
+          any: true
+      - documentIndex: 0
+        notContains:
+          path: rules
+          content:
+            apiGroups: [""]
+            resources: [namespaces]
+            verbs: [list, watch]
+      - documentIndex: 3
+        equal:
+          path: subjects
+          value:
+            - kind: ServiceAccount
+              name: dash-backend
+              namespace: web
+
+  - it: binds a ServiceAccount the chart does not create
+    set:
+      serviceAccount.create: false
+      serviceAccount.name: dash-reader
+    asserts:
+      - documentIndex: 1
+        equal:
+          path: subjects[0].name
+          value: dash-reader
+
+  - it: renders nothing while the discovery is off
+    set:
+      discovery.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders nothing when the administrator grants the read
+    set:
+      rbac.create: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: never grants anything on Secrets or ConfigMaps, nor a verb that changes something
+    set:
+      discovery.namespaceSelector:
+        any: false
+        labelSelector:
+          matchLabels:
+            dash: listed
+    asserts:
+      - documentIndex: 0
+        notMatchRegex:
+          path: rules[0].resources[0]
+          pattern: secrets|configmaps
+      - documentIndex: 0
+        notContains:
+          path: rules
+          content:
+            apiGroups: [""]
+            resources: [secrets]
+            verbs: [list, watch]
+      - documentIndex: 0
+        notMatchRegex:
+          path: rules[2].verbs[0]
+          pattern: get|create|update|patch|delete

@@ -10,10 +10,11 @@
 not. Installed by one Helm chart, configured entirely through it, no login.
 
 > **Phase 2 of 3, in progress.** Built: both images, the chart with its two Ingress objects, the
-> pipeline, the shell with its colour scheme, and the dashboard's complete configuration — every key
-> below is validated by the chart and the backend. **Nothing reads the dashboard's keys yet**:
-> discovery, icons, badges and the dashboard page arrive step by step, as phase 2 of the
-> [project plan](docs/planning/project-plan.md) lists them.
+> pipeline, the shell with its colour scheme, the dashboard's complete configuration — validated by
+> the chart and the backend — and the discovery, which watches the cluster's Ingresses under the
+> chart's RBAC. **The page does not show apps yet**: the API, icons, badges and the tiles arrive step
+> by step, as phase 2 of the [project plan](docs/planning/project-plan.md) lists them; until then
+> `icons`, `badges`, the `ui` switches and the icon and badge annotations are validated but not used.
 
 ```mermaid
 flowchart LR
@@ -24,6 +25,9 @@ flowchart LR
 
 ## ✨ Key Features
 
+- 🔎 Apps found through their Ingresses with Hajimari's annotation keys under `dash.gtrfc.com/`, watched, not polled.
+- 🚦 Readiness counted from EndpointSlices, each pod once: healthy, degraded, down or unknown.
+- 🔐 Read-only RBAC that follows the namespace selector: cluster-wide, or a Role per named namespace.
 - 🧭 One origin, two Ingress objects: the UI on `/`, the API on `/api/`, the controller the only hop.
 - 🛡️ Distroless images, non-root, read-only, no shell — proven in CI for each image.
 - 🌗 Light, dark or the system's scheme, remembered by the browser, applied before the first paint.
@@ -37,7 +41,8 @@ flowchart LR
 | Images | `guidedtraffic/dash-backend`, `guidedtraffic/dash-frontend` |
 | Chart, repository | `dash`, `https://guided-traffic.github.io/dash/` |
 | Resources | `<fullname>-backend` (Deployment, Service, Ingress, ServiceAccount), `<fullname>-frontend` (Deployment, Service, Ingress), `<fullname>-config` (ConfigMap) |
-| Annotations | `dash.gtrfc.com/<key>` — read by the discovery from phase 2; the chart puts `dash.gtrfc.com/enable: "false"` on its own Ingress objects |
+| RBAC | `<release namespace>-<fullname>`: the ClusterRole and ClusterRoleBinding, or the Role and RoleBinding in each named namespace |
+| Annotations | `dash.gtrfc.com/<key>` ([the keys](#annotations)); the chart puts `dash.gtrfc.com/enable: "false"` on its own Ingress objects |
 | Backend variables | `DASH_CONFIG`, `DASH_LISTEN_ADDR`, `DASH_LOG_LEVEL` |
 | Configuration file | `/etc/dash/config.yaml` |
 | Browser storage | `dash.theme` |
@@ -123,6 +128,11 @@ frontend:
   nodeSelector: {}                           # default
   tolerations: []                            # default
   affinity: {}                               # default
+
+rbac:
+  create: true             # default; list and watch on Ingresses and EndpointSlices — a ClusterRole for
+                           # namespaceSelector.any or labelSelector (plus Namespaces), a Role per named
+                           # namespace otherwise; nothing while discovery.enabled is false
 
 serviceAccount:            # the backend's identity towards the Kubernetes API
   create: true             # default
@@ -235,11 +245,37 @@ and one Certificate is made for it (verified with cert-manager v1.21.3 and hapro
 
 `apps[].apps[].url` and `bookmarks[].bookmarks[].url` take `http` and `https` only — a `javascript:`
 link would run on the dashboard's origin — and refuse a user or password, which every viewer would
-see ([docs/security/validation.md](docs/security/validation.md)). `icons.remote.fromAnnotations` lets
+see ([docs/security/validation.md](docs/security/validation.md)). With `namespaceSelector.any` or a
+`labelSelector` the backend's token reads the Ingresses — every annotation included — and
+EndpointSlices of every namespace; `matchNames` alone confines it to Roles in those namespaces
+([docs/security/privilege-footprint.md](docs/security/privilege-footprint.md)). `icons.remote.fromAnnotations` lets
 whoever may annotate an Ingress in a watched namespace make the backend send a request;
 `allowPrivateNetworks` and `allowedHosts` widen where those requests may go.
 
 </details>
+
+### Annotations
+
+Read on Ingresses of the selected namespaces, under `dash.gtrfc.com/` only — a `hajimari.io/` key is
+ignored, so a manifest migrates by replacing the prefix. A value that does not parse is ignored with
+a warning naming the Ingress and the key, and the default applies.
+
+| Key | Example | Meaning | Default |
+|---|---|---|---|
+| `dash.gtrfc.com/enable` | `"true"` | With `discovery.defaultEnable: false` only `"true"` shows the Ingress; with `true` only `"false"` hides it | `discovery.defaultEnable` |
+| `dash.gtrfc.com/appName` | `Grafana` | The name on the tile | The Ingress's name |
+| `dash.gtrfc.com/group` | `monitoring` | The group | The namespace |
+| `dash.gtrfc.com/icon` | `si:grafana`, `web` | The icon reference; a bare name is `mdi:<name>` | Auto-match, then `icons.defaultAppIcon` |
+| `dash.gtrfc.com/url` | `https://grafana.example.com/d/home` | The address; `http` or `https`, no user or password | Derived: the first rule with a concrete host, `https` when a TLS block names it, the first `Prefix` or `Exact` path without regular-expression characters, else `/` |
+| `dash.gtrfc.com/info` | `Dashboards` | The description (`ui.showAppInfo`) | None |
+| `dash.gtrfc.com/targetBlank` | `"true"` | Opens in a new tab; `ui.alwaysTargetBlank` wins | `false` |
+| `dash.gtrfc.com/instance` | `home,office` | The dashboards that show it; with `discovery.instanceName` set, an Ingress without the key is hidden | None |
+| `dash.gtrfc.com/statusCheckEnabled` | `"false"` | Counts the ready endpoints of the Ingress's Services | `true` |
+| `dash.gtrfc.com/badges` | `beta@bottom-left,text:new` | The app's own badges, comma-separated | None |
+
+**Status.** Ready endpoints over all endpoints of the Services the Ingress routes to, each pod once,
+terminating endpoints not counted: **healthy** (all ready), **degraded** (some), **down** (none, a
+Deployment scaled to zero included), **unknown** (no EndpointSlice, or the check off).
 
 ### Backend configuration
 

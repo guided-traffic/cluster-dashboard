@@ -1,0 +1,90 @@
+{{- if and .Values.rbac.create .Values.discovery.enabled }}
+{{- /*
+The discovery's read (docs/adr/0007; docs/security/privilege-footprint.md): list and watch on
+Ingresses and EndpointSlices, on Namespaces only for a label selector; nothing on Secrets or
+ConfigMaps. The layout follows the namespace selector as the backend lays out its informers
+(backend/internal/discovery/options.go): every namespace (any) or a label selector needs a
+ClusterRole; names alone get a Role in each named namespace and nothing cluster-wide.
+*/}}
+{{- $sel := .Values.discovery.namespaceSelector }}
+{{- $labels := $sel.labelSelector | default dict }}
+{{- $byLabels := and (not $sel.any) (or $labels.matchLabels $labels.matchExpressions) }}
+{{- $name := include "dash.rbac.name" . }}
+{{- $account := include "dash.serviceAccountName" . }}
+{{- if or $sel.any $byLabels }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "dash.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+rules:
+  - apiGroups: [networking.k8s.io]
+    resources: [ingresses]
+    verbs: [list, watch]
+  - apiGroups: [discovery.k8s.io]
+    resources: [endpointslices]
+    verbs: [list, watch]
+  {{- if $byLabels }}
+  # The label selector reads the namespaces' labels.
+  - apiGroups: [""]
+    resources: [namespaces]
+    verbs: [list, watch]
+  {{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "dash.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ $name }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ $account }}
+    namespace: {{ $.Release.Namespace }}
+{{- else }}
+{{- range $i, $ns := $sel.matchNames }}
+{{- if $i }}
+---
+{{- end }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ $name }}
+  namespace: {{ $ns }}
+  labels:
+    {{- include "dash.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: backend
+rules:
+  - apiGroups: [networking.k8s.io]
+    resources: [ingresses]
+    verbs: [list, watch]
+  - apiGroups: [discovery.k8s.io]
+    resources: [endpointslices]
+    verbs: [list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $name }}
+  namespace: {{ $ns }}
+  labels:
+    {{- include "dash.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: backend
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ $name }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ $account }}
+    namespace: {{ $.Release.Namespace }}
+{{- end }}
+{{- end }}
+{{- end }}

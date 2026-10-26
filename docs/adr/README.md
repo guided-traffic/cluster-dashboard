@@ -26,8 +26,8 @@ says so.
 | [0004](0004-configuration-is-three-variables-and-one-validated-file.md) | Three variables and one strict YAML file, the values' keys | Yes |
 | [0005](0005-cogpits-dark-cockpit-on-the-web-without-a-component-library.md) | Cogpit's design language, no component library, the theme preference | Shell and theme |
 | [0006](0006-one-version-of-every-tool.md) | Toolchains track the newest release; every tool pinned once | Yes |
-| [0007](0007-discovery-with-hajimaris-semantics.md) | Ingress discovery with Hajimari's semantics, watched not polled | No |
+| [0007](0007-discovery-with-hajimaris-semantics.md) | Ingress discovery with Hajimari's semantics, watched not polled; RBAC by selector | Yes |
 | [0008](0008-icons-come-from-bundled-packs-configmaps-and-urls.md) | Icon sources, packs, auto-match, resolution | No |
 | [0009](0009-remote-icons-are-fetched-by-the-backend-under-cogpits-rules.md) | The remote icon fetch policy | No |
-| [0010](0010-annotations-are-read-under-dash-gtrfc-com-only.md) | Annotations under `dash.gtrfc.com/` only | No |
+| [0010](0010-annotations-are-read-under-dash-gtrfc-com-only.md) | Annotations under `dash.gtrfc.com/` only | Yes |
 | [0011](0011-badges-on-icons-from-definitions-and-rules.md) | Badges on icons, macOS style, from definitions and rules | No |

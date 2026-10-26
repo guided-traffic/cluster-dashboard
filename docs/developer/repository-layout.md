@@ -17,12 +17,14 @@ dash/
 │   │   │   └── apigen/           # oapi-codegen output (generated)
 │   │   ├── badges/               # corners, tones, the grammar of a badge entry
 │   │   ├── config/               # DASH_* variables and the strict YAML file → Config, validated
+│   │   ├── dashboard/            # groups, order, summary: the page's model
+│   │   ├── discovery/            # informers, annotations, selection, URL, status
 │   │   ├── httpserver/           # health, readiness, request id, recovery, request log, lifecycle
 │   │   ├── icons/                # the grammar of an icon reference
 │   │   ├── kube/                 # the REST configuration and the API server probe
 │   │   ├── problem/              # RFC 9457 bodies and the code catalogue
 │   │   └── requestid/            # the request id in the context
-│   ├── test/integration/         # build tag integration: envtest
+│   ├── test/integration/         # build tag integration: envtest; the discovery under the chart's RBAC
 │   ├── tools/configcheck/        # holds the chart's rendered config.yaml to the backend's validation
 │   ├── tools/problemdoc/         # writes problem-codes.yaml and the README table
 │   ├── tools/specbundle/         # bundles api/ into openapi.gen.json

@@ -38,6 +38,16 @@ The component names: <fullname>-backend, <fullname>-frontend, <fullname>-config.
 {{- end }}
 
 {{/*
+The name of the discovery's RBAC objects: <namespace>-<fullname>. Cluster-scoped objects carry the
+release namespace, so two releases of one name in two namespaces — two dashboards with their own
+instanceName — do not claim the same ClusterRole; the namespaced Roles in the watched namespaces
+share the name for the same reason.
+*/}}
+{{- define "dash.rbac.name" -}}
+{{- printf "%s-%s" .Release.Namespace (include "dash.fullname" .) | trunc 253 | trimSuffix "-" }}
+{{- end }}
+
+{{/*
 The backend's ServiceAccount.
 */}}
 {{- define "dash.serviceAccountName" -}}
