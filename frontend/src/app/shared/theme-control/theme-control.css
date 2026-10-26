@@ -1,0 +1,68 @@
+:host {
+  display: inline-flex;
+}
+
+.segments {
+  display: inline-flex;
+  gap: 2px;
+  margin: 0;
+  padding: 3px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-plate);
+  background: var(--plate);
+}
+
+.segment {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 28px;
+  border-radius: var(--radius-segment);
+  color: var(--muted);
+  cursor: pointer;
+  transition:
+    background var(--motion),
+    color var(--motion);
+}
+
+.segment:hover {
+  color: var(--text);
+}
+
+/* The native radio stays in place, invisible, so it keeps its focus and its keys. */
+.segment input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.segment:has(input:checked) {
+  background: var(--plate-lifted);
+  color: var(--text);
+}
+
+.segment:has(input:checked)::after {
+  content: '';
+  position: absolute;
+  right: 8px;
+  bottom: 2px;
+  left: 8px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--glow);
+}
+
+.segment:has(input:focus-visible) {
+  outline: 2px solid var(--glow);
+  outline-offset: 1px;
+}
+
+svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+  pointer-events: none;
+}

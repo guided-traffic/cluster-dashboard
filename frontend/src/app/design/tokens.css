@@ -1,0 +1,64 @@
+/*
+ * The design tokens (docs/adr/0005): Cogpit's Dark Cockpit palettes — its
+ * internal/ui/fyneui/theme.go and docs/developer/design-language.md — each token one
+ * light-dark() pair. Which half applies is the color-scheme of <html>: `light dark` follows
+ * prefers-color-scheme live, which is the preference "system"; `light` or `dark` fixes one.
+ * public/theme-init.js and the theme service set the preference as data-theme on <html>.
+ *
+ * tokens.spec.ts reads this file and holds every text pair to 4.5:1 and every shape to 3:1.
+ */
+:root {
+  color-scheme: light dark;
+
+  /* Surfaces: a stage, chrome darker than it, plates one luminance step above it; hairlines
+     only where luminance is not enough. */
+  --stage: light-dark(#fbfcfd, #0d121a);
+  --chrome: light-dark(#eef1f5, #0a0e14);
+  --plate: light-dark(#f7f8fa, #10161f);
+  --plate-lifted: light-dark(#ffffff, #121925);
+  --header: light-dark(#eef1f6, #141b26);
+  --hairline: light-dark(#e1e6ed, #1b2330);
+  --edge: light-dark(#cdd4df, #263042);
+  --outline: light-dark(#a1acbc, #3e4f6a);
+  --selection: light-dark(#d6e6ff, #183252);
+  --stage-light: light-dark(#e4edfb, #15233b);
+
+  /* Text. */
+  --text: light-dark(#1a2230, #d5dde8);
+  --muted: light-dark(#5f6a7c, #8592a5);
+  --link: light-dark(#0a62c2, #7cc4ff);
+
+  /* The lights, one meaning each: glow blue is you — focus, hover, links, the chosen theme;
+     cyan is the cluster. Violet stays the agent's and is not used here. */
+  --glow: light-dark(#0a6fd6, #4aa8ff);
+  --cyan: light-dark(#0b7c93, #5ad1e3);
+
+  /* Status, for deviations only: a healthy app draws no colour. */
+  --mint: light-dark(#138a52, #3dd68c);
+  --amber: light-dark(#9a6a00, #f2c14e);
+  --orange: light-dark(#c4570e, #ff9f5a);
+  --coral: light-dark(#d23b45, #ff6b74);
+
+  /* Typography: Inter, self-hosted from npm, no font CDN. */
+  --font-sans: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  /* Shapes and motion: slow and purposeful, none when the person asks for none. */
+  --radius-plate: 10px;
+  --radius-segment: 7px;
+  --gutter: 16px;
+  --motion: 160ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion: 0ms linear;
+  }
+}

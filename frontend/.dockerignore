@@ -1,0 +1,13 @@
+# The frontend image's build copies what each stage reads by name (Containerfile); this keeps the
+# rest out of the build context: dependencies are installed inside the image from the lockfile,
+# and no build output, cache or test result of this machine enters it.
+node_modules/
+dist/
+.angular/
+coverage/
+e2e/
+server/bin/
+.idea/
+.vscode/
+.DS_Store
+server/server

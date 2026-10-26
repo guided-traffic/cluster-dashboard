@@ -1,0 +1,24 @@
+# Compiled output
+/dist
+/tmp
+/out-tsc
+
+# Node
+/node_modules
+npm-debug.log
+
+# Angular's cache and the unit tests' coverage
+/.angular/cache
+/coverage
+
+# The end-to-end suite's output
+/e2e/test-results/
+/e2e/playwright-report/
+
+# IDEs and OS
+.idea/
+.vscode/
+.DS_Store
+
+# A local go build of the file server writes its binary here.
+/server/server

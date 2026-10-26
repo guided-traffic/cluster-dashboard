@@ -1,0 +1,50 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* The chrome recedes: darker than the stage. */
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gutter);
+  min-height: 56px;
+  padding: 0 var(--gutter);
+  border-bottom: 1px solid var(--hairline);
+  background: var(--chrome);
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.version {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Glow is never the only signal: the word says it. */
+.version.unknown {
+  color: var(--amber);
+}
+
+.stage {
+  flex: 1;
+  padding: var(--gutter);
+}

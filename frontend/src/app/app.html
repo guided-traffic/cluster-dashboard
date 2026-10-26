@@ -1,0 +1,14 @@
+<header class="top-bar">
+  <div class="brand">
+    <h1 class="title">Dash</h1>
+    <span
+      class="version"
+      data-testid="backend-version"
+      [class.unknown]="backend().state === 'unknown'"
+      [attr.aria-label]="backend().state === 'known' ? 'backend version ' + versionText() : null"
+      >{{ versionText() }}</span
+    >
+  </div>
+  <app-theme-control />
+</header>
+<main class="stage"></main>
