@@ -1,0 +1,614 @@
+name: Test and Release
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write  # For PR comments
+  issues: write         # For issue comments
+
+env:
+  GO_VERSION: '1.27.3'
+  NODE_VERSION: '26'
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+# Every job runs a make target (docs/adr/0003 D1); every verification job is in
+# semantic-release's needs (D4). The Go jobs cover both modules, backend/ and
+# frontend/server/.
+jobs:
+  linter:
+    name: Code Linting
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: backend/go.sum
+
+      - name: Install build tools
+        run: sudo apt-get update && sudo apt-get install -y build-essential
+
+      - name: Run linting
+        run: make lint
+
+      - name: Check the generated files
+        run: make generate-check
+
+  gosec:
+    name: GoSec Security Scan
+    runs-on: self-hosted
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: backend/go.sum
+
+      - name: Install build tools
+        run: sudo apt-get update && sudo apt-get install -y build-essential
+
+      - name: Run GoSec security scan
+        timeout-minutes: 10
+        run: make gosec
+
+  govulncheck:
+    name: Vulnerability Check
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: backend/go.sum
+
+      - name: Install build tools
+        run: sudo apt-get update && sudo apt-get install -y build-essential
+
+      - name: Run vulnerability check
+        run: make vuln
+
+  cyclomatic-complexity:
+    name: Cyclomatic Complexity
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: backend/go.sum
+
+      - name: Install build tools
+        run: sudo apt-get update && sudo apt-get install -y build-essential
+
+      - name: Run cyclomatic complexity check
+        run: make cyclo
+
+      - name: Generate complexity report
+        if: always()
+        run: |
+          echo "## 📊 Cyclomatic Complexity Report" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          make -s cyclo-report >> $GITHUB_STEP_SUMMARY || true
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "> Threshold: 15 (functions above this are flagged)" >> $GITHUB_STEP_SUMMARY
+
+  malware-scan:
+    name: Malware Scan (Source Code)
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install ClamAV
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clamav clamav-daemon
+
+      - name: Update ClamAV database
+        run: |
+          sudo systemctl stop clamav-freshclam || true
+          sudo freshclam
+
+      - name: Run ClamAV scan on source code
+        run: |
+          clamscan --recursive --infected --exclude-dir=.git --exclude-dir=node_modules . | tee clamav-report.txt
+          if grep -q "Infected files: 0" clamav-report.txt; then
+            echo "✅ No malware detected in source code"
+          else
+            echo "❌ MALWARE DETECTED! Blocking release."
+            exit 1
+          fi
+
+      - name: Upload ClamAV report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: clamav-report
+          path: clamav-report.txt
+          retention-days: 30
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: backend/go.sum
+
+      - name: Install build tools
+        run: sudo apt-get update && sudo apt-get install -y build-essential
+
+      - name: Run unit tests with coverage
+        run: make test-unit-coverage
+
+      - name: Upload unit coverage artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: unit-coverage
+          path: coverage/unit.out
+          retention-days: 7
+
+  # The integration tier is what only a real API server decides: envtest's
+  # kube-apiserver and etcd, fetched at their pinned version and checksum. The
+  # tests fail, never skip, without them.
+  integration-tests:
+    name: Integration Tests (envtest)
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: backend/go.sum
+
+      - name: Install build tools
+        run: sudo apt-get update && sudo apt-get install -y build-essential curl
+
+      - name: Run integration tests with coverage
+        run: make test-integration-coverage
+
+      - name: Upload integration coverage artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: integration-coverage
+          path: coverage/integration.out
+          retention-days: 7
+
+  frontend:
+    name: Frontend (lint, test, build)
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # The runner image has neither make nor libatomic1, which the Node 26
+      # binary loads; both are installed before setup-node.
+      - name: Install build tools
+        run: sudo apt-get update && sudo apt-get install -y make libatomic1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: make frontend-install
+
+      - name: Check the generated API client
+        run: make frontend-generate-check
+
+      - name: Lint
+        run: make frontend-lint
+
+      - name: Unit tests with coverage
+        run: make frontend-test-coverage
+
+      - name: Production build
+        run: make frontend-build
+
+      - name: Upload frontend coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: frontend-coverage
+          path: frontend/coverage/frontend/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  helm:
+    name: Helm Chart
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # The pinned Helm, helm-unittest and kubeconform are built with Go into bin/.
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: backend/go.sum
+
+      - name: Install build tools
+        run: sudo apt-get update && sudo apt-get install -y make curl
+
+      - name: Lint the chart with every ci values file
+        run: make helm-lint
+
+      - name: Render the chart with every ci values file
+        run: make helm-template
+
+      - name: Run the chart unit tests
+        run: make helm-unittest
+
+      - name: Validate the rendered manifests against the Kubernetes schemas
+        run: make helm-kubeconform
+
+  coverage-report:
+    name: Combined Coverage Report
+    runs-on: self-hosted
+    needs: [unit-tests, integration-tests, frontend]
+    if: always() && (needs.unit-tests.result == 'success' || needs.integration-tests.result == 'success')
+    permissions:
+      contents: read  # Read only - semantic-release commits the badge
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Download unit test coverage
+        uses: actions/download-artifact@v8
+        with:
+          name: unit-coverage
+          path: coverage
+        continue-on-error: true
+
+      - name: Download integration test coverage
+        uses: actions/download-artifact@v8
+        with:
+          name: integration-coverage
+          path: coverage
+        continue-on-error: true
+
+      - name: Download frontend coverage
+        uses: actions/download-artifact@v8
+        with:
+          name: frontend-coverage
+          path: frontend-coverage
+        continue-on-error: true
+
+      - name: Merge the Go coverage
+        id: merge
+        run: |
+          make coverage-report
+          echo "percentage=$(cat coverage/total.txt)" >> $GITHUB_OUTPUT
+          FRONTEND="N/A"
+          if [ -f frontend-coverage/coverage-summary.json ]; then
+            FRONTEND=$(jq -r '.total.lines.pct' frontend-coverage/coverage-summary.json)
+          fi
+          echo "frontend=$FRONTEND" >> $GITHUB_OUTPUT
+          {
+            echo "## Combined Coverage Report"
+            echo ""
+            echo "Go: $(cat coverage/total.txt)% — Frontend (lines): ${FRONTEND}%"
+            echo ""
+            cat coverage/summary.md
+          } >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload combined coverage report
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-combined
+          path: coverage/
+
+      # The badge carries the Go number: the file semantic-release commits back to main.
+      - name: Create coverage badge
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          mkdir -p .github/badges
+          cp coverage/badge.json .github/badges/coverage.json
+
+      - name: Upload coverage badge as artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-badge
+          path: .github/badges/coverage.json
+
+      - name: Get main branch coverage
+        if: github.event_name == 'pull_request'
+        id: main-coverage
+        continue-on-error: true
+        run: |
+          MAIN="N/A"
+          if curl -fs "https://raw.githubusercontent.com/${{ github.repository }}/main/.github/badges/coverage.json" -o main-coverage.json; then
+            MAIN=$(jq -r '.message' main-coverage.json | sed 's/%//')
+          fi
+          echo "percentage=$MAIN" >> $GITHUB_OUTPUT
+
+      - name: Prepare the PR comment
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "COVERAGE_SUMMARY<<EOF" >> $GITHUB_ENV
+          head -c 50000 coverage/summary.md >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Comment PR with combined coverage
+        if: github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v3
+        with:
+          header: coverage
+          message: |
+            ## 📊 Test Coverage Report
+
+            **Go (unit + integration, both modules):** `${{ steps.merge.outputs.percentage }}%`
+            **Main branch:** `${{ steps.main-coverage.outputs.percentage }}%`
+            **Frontend (lines):** `${{ steps.merge.outputs.frontend }}%`
+
+            <details>
+            <summary>📁 Go coverage by package</summary>
+
+            ${{ env.COVERAGE_SUMMARY }}
+
+            </details>
+
+  container-malware-scan:
+    name: Container Malware Scan (${{ matrix.component }})
+    runs-on: self-hosted
+    needs: [malware-scan]
+    strategy:
+      fail-fast: false
+      matrix:
+        component: [backend, frontend]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: guidedtraffic
+          password: ${{ secrets.DOCKERHUB_PAT }}
+
+      # Each Containerfile builds its image from its own directory, so this job
+      # also proves that the images build from a clean checkout.
+      - name: Build container for scanning
+        uses: docker/build-push-action@v7
+        with:
+          file: ${{ matrix.component }}/Containerfile
+          context: ${{ matrix.component }}
+          build-args: |
+            BUILD_NUMBER=scan-${{ github.sha }}
+            GIT_COMMIT=${{ github.sha }}
+          platforms: linux/amd64
+          push: false
+          load: true
+          tags: guidedtraffic/dash-${{ matrix.component }}:scan-${{ github.sha }}
+
+      - name: Run Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: guidedtraffic/dash-${{ matrix.component }}:scan-${{ github.sha }}
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+          scanners: 'vuln,secret,misconfig'
+
+      # Distroless (docs/adr/0001 D5): no shell starts, none is among the files.
+      - name: Prove the image has no shell
+        run: hack/no-shell.sh guidedtraffic/dash-${{ matrix.component }}:scan-${{ github.sha }}
+
+      # The end-to-end job runs the image this job built and scanned.
+      - name: Save the image for the end-to-end tests
+        run: docker save guidedtraffic/dash-${{ matrix.component }}:scan-${{ github.sha }} | gzip > e2e-image-${{ matrix.component }}.tar.gz
+
+      - name: Upload the image for the end-to-end tests
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-image-${{ matrix.component }}
+          path: e2e-image-${{ matrix.component }}.tar.gz
+          retention-days: 1
+          compression-level: 0
+
+      - name: Run Trivy scan (SARIF output)
+        if: always()
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: guidedtraffic/dash-${{ matrix.component }}:scan-${{ github.sha }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          scanners: 'vuln,secret,misconfig'
+
+      - name: Upload Trivy scan results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: trivy-container-report-${{ matrix.component }}
+          path: trivy-results.sarif
+          retention-days: 30
+
+      - name: Cleanup scan image
+        if: always()
+        run: docker rmi guidedtraffic/dash-${{ matrix.component }}:scan-${{ github.sha }} || true
+
+  # The end-to-end tier: the two images the container scan built, in a kind
+  # cluster of its own behind haproxy-ingress and cert-manager, driven by
+  # Playwright through both Ingress objects over TLS (hack/e2e.sh).
+  e2e:
+    name: End-to-End Tests
+    runs-on: self-hosted
+    needs: [container-malware-scan]
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install build tools
+        run: sudo apt-get update && sudo apt-get install -y make libatomic1 curl openssl
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: backend/go.sum
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install the browsers and their system packages
+        run: make e2e-browsers PLAYWRIGHT_INSTALL_FLAGS=--with-deps
+
+      - name: Download the backend image
+        uses: actions/download-artifact@v8
+        with:
+          name: e2e-image-backend
+
+      - name: Download the frontend image
+        uses: actions/download-artifact@v8
+        with:
+          name: e2e-image-frontend
+
+      - name: Load the images
+        run: |
+          docker load -i e2e-image-backend.tar.gz
+          docker load -i e2e-image-frontend.tar.gz
+
+      - name: Run the end-to-end suite
+        run: make e2e E2E_BUILD=false BACKEND_IMG=guidedtraffic/dash-backend:scan-${{ github.sha }} FRONTEND_IMG=guidedtraffic/dash-frontend:scan-${{ github.sha }}
+
+      - name: Upload the traces, videos and reports of the failed tests
+        if: failure() || cancelled()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-results
+          path: |
+            frontend/e2e/test-results/
+            frontend/e2e/playwright-report/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      # make e2e deletes its cluster itself; this is for a run the budget cut short.
+      - name: Remove the end-to-end cluster
+        if: always()
+        run: make e2e-down
+
+  # Proves on every PR that the semantic-release dependency set can still render
+  # release notes; the release job is the only other place these packages run.
+  release-tooling:
+    name: Release Tooling
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "lts/*"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify the integrity of provenance attestations and registry signatures for installed dependencies
+        run: npm audit signatures
+
+      - name: Install build tools
+        run: sudo apt-get update && sudo apt-get install -y make
+
+      - name: Verify release tooling renders release notes
+        run: make test-release-tooling
+
+  semantic-release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [malware-scan, container-malware-scan, gosec, govulncheck, linter, cyclomatic-complexity, unit-tests, integration-tests, frontend, helm, coverage-report, e2e, release-tooling]
+    name: Semantic Release
+    runs-on: self-hosted
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      id-token: write
+    steps:
+      # GitHub App installation token (guided-traffic-automation, organisation
+      # secrets). Not GITHUB_TOKEN: a release created with it would not start
+      # "Release Docker & Helm".
+      - name: Create GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ secrets.APP_CLIENT_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          permission-contents: write  # tag, release, @semantic-release/git commit
+
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Download coverage badge
+        uses: actions/download-artifact@v8
+        with:
+          name: coverage-badge
+          path: .github/badges/
+        continue-on-error: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "lts/*"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify the integrity of provenance attestations and registry signatures for installed dependencies
+        run: npm audit signatures
+
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: npx semantic-release

@@ -1,0 +1,36 @@
+{{> header}}
+
+## 📊 Quality Metrics
+
+![Go Version](https://img.shields.io/badge/go-1.27-blue)
+![Security](https://img.shields.io/badge/security-✅%20passed-green)
+![Linting](https://img.shields.io/badge/linting-✅%20passed-green)
+
+{{#if noteGroups}}
+{{#each noteGroups}}
+
+### {{title}}
+
+{{#each notes}}
+* {{#if commit.scope}}**{{commit.scope}}:** {{/if}}{{text}}
+{{/each}}
+{{/each}}
+
+{{/if}}
+
+## 🐳 Docker Images
+
+```bash
+docker pull guidedtraffic/dash-backend:{{version}}
+docker pull guidedtraffic/dash-frontend:{{version}}
+```
+
+## ⎈ Helm Chart
+
+```bash
+helm repo add dash https://guided-traffic.github.io/dash/
+helm repo update
+helm install dash dash/dash --version {{version}}
+```
+
+{{> footer}}

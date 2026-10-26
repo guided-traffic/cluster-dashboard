@@ -1,0 +1,20 @@
+{
+  "name": "dash",
+  "version": "0.0.0-development",
+  "description": "Dash, a start page for a Kubernetes cluster: the release tooling of the repository (the UI lives in frontend/)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/guided-traffic/dash.git"
+  },
+  "author": "Guided Traffic",
+  "license": "Apache-2.0",
+  "private": true,
+  "devDependencies": {
+    "@semantic-release/commit-analyzer": "13.0.1",
+    "@semantic-release/git": "11.0.1",
+    "@semantic-release/github": "12.0.10",
+    "@semantic-release/release-notes-generator": "14.1.1",
+    "conventional-changelog-conventionalcommits": "9.3.1",
+    "semantic-release": "25.0.9"
+  }
+}
