@@ -82,11 +82,14 @@ jobs:
           provenance: true
           sbom: true
 
+      # The action writes into a temporary directory unless output-file names a path; the
+      # release step below takes exactly that file and fails when it is missing.
       - name: Generate and upload SBOM
         uses: anchore/sbom-action@v0
         with:
           image: guidedtraffic/dash-${{ matrix.component }}:${{ steps.version.outputs.version }}
           format: spdx-json
+          output-file: ${{ github.workspace }}/dash-${{ matrix.component }}-${{ steps.version.outputs.version }}.spdx.json
           upload-artifact: true
           upload-release-assets: false
         env:
@@ -96,7 +99,8 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           files: |
-            ${{ github.workspace }}/guidedtraffic-dash-${{ matrix.component }}_*.spdx.json
+            ${{ github.workspace }}/dash-${{ matrix.component }}-${{ steps.version.outputs.version }}.spdx.json
+          fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
