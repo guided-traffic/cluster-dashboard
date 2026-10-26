@@ -17,7 +17,10 @@ is rounded to 0 or 1; every Ingress and EndpointSlice is re-listed every 60 seco
 ([ADR 0010](0010-annotations-are-read-under-dash-gtrfc-com-only.md)).
 
 **D2 — Selection**: `defaultEnable`, `instanceName`, `namespaceSelector` (`any`, `matchNames`,
-`labelSelector`, united).
+`labelSelector`, united). Where Hajimari lets `any: true` silently win over names and a label
+selector, Dash refuses the combination at install and at start; `any: false` with neither selects
+nothing and is refused while the discovery is enabled (built with the configuration, phase 2
+step 1).
 
 **D3 — The URL**: the first rule with a concrete host; `https` when that host is in any TLS block; its
 first `Prefix` or `Exact` path without regular-expression characters, else `/`; `url` only with `http`

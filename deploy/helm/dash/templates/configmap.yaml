@@ -1,6 +1,16 @@
-# The backend's configuration file (docs/adr/0004), read from DASH_CONFIG. It holds no key yet:
-# the dashboard's settings arrive with phase 2 of docs/planning/project-plan.md. The backend's pods
-# carry its checksum, so a changed file rolls them.
+# The backend's configuration file (docs/adr/0004), read from DASH_CONFIG: the values discovery,
+# ui, apps, bookmarks, icons and badges as they are — icons without configMap and
+# existingConfigMaps, which are the chart's. values.schema.json refuses a wrong type at install;
+# the backend refuses what the schema cannot express, naming every key at once. The backend's
+# pods carry this file's checksum, so a changed file rolls them.
+{{- $icons := omit .Values.icons "configMap" "existingConfigMaps" }}
+{{- $file := dict
+  "discovery" .Values.discovery
+  "ui" .Values.ui
+  "apps" .Values.apps
+  "bookmarks" .Values.bookmarks
+  "icons" $icons
+  "badges" .Values.badges }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -10,4 +20,4 @@ metadata:
     app.kubernetes.io/component: backend
 data:
   config.yaml: |
-    {}
+    {{- toYaml $file | nindent 4 }}

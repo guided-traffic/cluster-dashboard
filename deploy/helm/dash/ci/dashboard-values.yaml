@@ -1,0 +1,103 @@
+# Every key of the dashboard's configuration set to a realistic value: namespaces by name and label,
+# custom apps and bookmarks with their own badges, every icon setting, badge definitions and rules.
+# make helm-template also hands the rendered config.yaml to the backend's own validation.
+discovery:
+  enabled: true
+  defaultEnable: true
+  instanceName: home
+  namespaceSelector:
+    any: false
+    matchNames:
+      - monitoring
+      - media
+    labelSelector:
+      matchLabels:
+        dash.example.com/listed: "true"
+      matchExpressions:
+        - key: tier
+          operator: In
+          values: [web, tools]
+ui:
+  title: Home lab
+  greeting:
+    enabled: true
+    name: Hans
+  defaultTheme: dark
+  refreshSeconds: 30
+  showSummary: true
+  showApps: true
+  showAppGroups: true
+  showAppUrls: false
+  showAppInfo: true
+  showAppStatus: true
+  showBookmarks: true
+  showBookmarkGroups: true
+  alwaysTargetBlank: true
+  groupOrder:
+    - monitoring
+    - tools
+apps:
+  - group: tools
+    apps:
+      - name: Router
+        url: https://192.168.1.1
+        icon: material-symbols:router
+        info: The edge router
+        targetBlank: true
+        badges:
+          - home
+          - text:lan@bottom-left
+bookmarks:
+  - group: docs
+    bookmarks:
+      - name: Kubernetes
+        url: https://kubernetes.io/docs
+        icon: si:kubernetes
+        targetBlank: true
+        badges:
+          - world
+icons:
+  defaultAppIcon: mdi:application
+  defaultBookmarkIcon: configmap:bookmark.svg
+  autoMatch:
+    enabled: true
+    catalogs:
+      - dashboard-icons
+      - selfhst
+  configMap:
+    files:
+      bookmark.svg: PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTUgM2gxNHYxOGwtNy0zLTcgM3oiLz48L3N2Zz4=
+  existingConfigMaps:
+    - team-icons
+  remote:
+    enabled: true
+    fromAnnotations: false
+    allowPrivateNetworks: false
+    allowedHosts:
+      - icons.home.arpa
+    maxBytes: 131072
+    timeout: 10s
+    maxEntries: 128
+badges:
+  definitions:
+    world:
+      icon: material-symbols:public
+      label: reachable worldwide
+      tone: cyan
+    home:
+      icon: material-symbols:home
+      label: local network only
+    beta:
+      text: beta
+      label: beta release
+      tone: amber
+  rules:
+    - match:
+        ingressClassNames: [external]
+      badge: world
+    - match:
+        ingressControllers: [haproxy-ingress.github.io/controller]
+        hosts: ["*.home.arpa"]
+        kinds: [ingress, app]
+      badge: home
+      corner: top-right

@@ -10,7 +10,10 @@ Accepted 2026-10-26, the owner's requirement (the plan's §7.9). **Not built** �
 tone from the palette's lights.
 
 **D2 — Rules** match on IngressClass names, IngressClass controllers, namespaces, hosts, labels,
-annotations and kinds; the annotation `dash.gtrfc.com/badges` adds an item's own.
+annotations and kinds; the annotation `dash.gtrfc.com/badges` adds an item's own, comma-separated. A
+custom app or a bookmark lists its own under `badges`, one entry per list item, in the annotation's
+grammar (`name`, `name@corner`, `text:<value>`, `text:<value>@corner`). In the values an unknown
+name or a corner taken twice refuses the start; in an annotation it is ignored with a log line.
 
 **D3 — One badge per corner**, four at most; the item's own first, then the first matching rule.
 

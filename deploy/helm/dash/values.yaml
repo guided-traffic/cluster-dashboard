@@ -74,3 +74,98 @@ ingress:
   backend:
     # -- On <fullname>-backend only, e.g. a longer timeout for the API.
     annotations: {}
+
+# The backend's configuration (docs/adr/0004): discovery, ui, apps, bookmarks, icons and badges
+# are rendered as they are into <fullname>-config — all of icons but configMap and
+# existingConfigMaps, which are the chart's — and the backend refuses to start on an invalid key,
+# naming each. The README's "Full reference" explains every key.
+
+# Which Ingresses become apps (docs/adr/0007). Annotations are read under dash.gtrfc.com/ only;
+# hajimari.io/* is ignored (docs/adr/0010).
+discovery:
+  # -- false: no discovery, the dashboard shows apps and bookmarks only.
+  enabled: true
+  # -- true: every selected Ingress shows unless it says dash.gtrfc.com/enable: "false";
+  # false: only those that say "true".
+  defaultEnable: false
+  # -- Set: only Ingresses whose dash.gtrfc.com/instance lists this name show.
+  instanceName: ""
+  # -- Where Ingresses are read: every namespace (any), or the names united with the label
+  # selector's matches; any must be false for the other two.
+  namespaceSelector:
+    any: true
+    matchNames: []
+    labelSelector: {}
+
+# The page.
+ui:
+  title: Dash
+  # -- The line under the title: the time of day and a name.
+  greeting:
+    enabled: true
+    name: You
+  # -- The colour scheme until a person picks one, which the browser keeps: system, light or dark.
+  defaultTheme: system
+  # -- How often the page asks for the dashboard again, 5 to 3600 seconds.
+  refreshSeconds: 60
+  showSummary: true
+  showApps: true
+  showAppGroups: true
+  showAppUrls: true
+  showAppInfo: false
+  showAppStatus: true
+  showBookmarks: true
+  showBookmarkGroups: true
+  # -- Every app and bookmark opens in a new tab.
+  alwaysTargetBlank: false
+  # -- Groups that come first, in this order, e.g. [monitoring, home]; the rest follow by name.
+  groupOrder: []
+
+# -- Apps no Ingress describes, in groups, e.g.
+# [{group: tools, apps: [{name: Router, url: "https://192.168.1.1", icon: "material-symbols:router"}]}].
+apps: []
+# -- Bookmarks, in groups, e.g.
+# [{group: docs, bookmarks: [{name: Kubernetes, url: "https://kubernetes.io/docs", icon: "si:kubernetes"}]}].
+bookmarks: []
+
+# Where icons come from (docs/adr/0008, 0009).
+icons:
+  # -- The icon of an app whose own does not resolve and that auto-match does not find: a
+  # catalogue icon or configmap:<key>, never a URL.
+  defaultAppIcon: material-symbols:apps
+  defaultBookmarkIcon: material-symbols:bookmark
+  # -- An app without an icon is looked up by name in these logo catalogues, in this order.
+  autoMatch:
+    enabled: true
+    catalogs:
+      - selfhst
+      - dashboard-icons
+  # -- Icons as base64 content by key, e.g. {billing.jpg: <base64>}, rendered into <fullname>-icons
+  # and referenced as configmap:billing.jpg.
+  configMap:
+    files: {}
+  # -- ConfigMaps of the release namespace whose keys are icons, e.g. [team-icons].
+  existingConfigMaps: []
+  # Icons named by a URL, downloaded by the backend and served from the dashboard's origin.
+  remote:
+    enabled: true
+    # -- Also fetch the URLs Ingress annotations name: whoever may annotate an Ingress in a watched
+    # namespace then makes the backend send a request (docs/security/).
+    fromAnnotations: true
+    # -- Fetch from hosts at loopback, private and link-local addresses too.
+    allowPrivateNetworks: false
+    # -- Host names fetched at any address, and over plain http, e.g. [icons.home.arpa].
+    allowedHosts: []
+    maxBytes: 262144
+    timeout: 20s
+    maxEntries: 512
+
+# Pills on icons in the style of macOS dock badges (docs/adr/0011).
+badges:
+  # -- Named badges: an icon (a glyph of mdi, material-symbols or si) or a text of at most eight
+  # characters, a label, a tone (neutral, blue, cyan, mint, amber, coral), e.g.
+  # {world: {icon: "material-symbols:public", label: "reachable worldwide", tone: cyan}}.
+  definitions: {}
+  # -- In order: a match and the badge it puts on, e.g.
+  # [{match: {ingressClassNames: [external]}, badge: world, corner: top-right}].
+  rules: []

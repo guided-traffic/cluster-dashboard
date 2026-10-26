@@ -2,9 +2,11 @@
 
 ## Status
 
-Accepted 2026-10-26. **Built** in `backend/internal/config` with unit tests; the file holds **no key
-yet** — the dashboard's settings arrive with phase 2 of the plan, so today every key a file sets is
-refused.
+Accepted 2026-10-26. **Built** in `backend/internal/config` with unit tests. Amended 2026-10-26 (phase
+2, step 1): the file holds the dashboard's keys — `discovery`, `ui`, `apps`, `bookmarks`, `icons`,
+`badges` — and D5 and D6 are added. Verified by the unit tests of `backend/internal/config`, the
+chart's `tests/configmap_test.yaml`, and `make helm-template`, which hands the `config.yaml` rendered
+from every `ci/*-values.yaml` to the backend's validation (`backend/tools/configcheck`).
 
 ## Context
 
@@ -27,10 +29,23 @@ never echoing a secret.
 changed configuration rolls them. `values.schema.json` refuses wrong types at install; the backend
 refuses what the schema cannot express.
 
+**D5 — The file's keys are the values' keys.** The chart renders the values `discovery`, `ui`, `apps`,
+`bookmarks`, `icons` and `badges` with `toYaml`, unchanged; only the chart's own keys
+(`icons.configMap`, `icons.existingConfigMaps`) stay out. One name per setting, from `values.yaml`
+to the struct field; the backend's defaults (`config.DefaultFile`) are the values' defaults, which a
+unit test compares.
+
+**D6 — A problem names its line and its key's path**, the decoder's and the validation's alike, sorted
+by line; a value the decoder could not read is reported once, not again by the validation.
+
 ## Consequences
 
-- Two validations to keep in step; the chart's tests and the config tests hold each.
+- Two validations to keep in step; the chart's tests and the config tests hold each, and
+  `make helm-template` runs the backend's validation on what the chart renders.
+- A key added to the values flows into the file by itself; the backend refuses it until `File` names
+  it, and `configcheck` fails the chart job until then.
 
 ## References
 
-- `backend/internal/config/`, `deploy/helm/dash/templates/configmap.yaml`, `deploy/helm/dash/values.schema.json`
+- `backend/internal/config/`, `backend/tools/configcheck/`, `deploy/helm/dash/templates/configmap.yaml`,
+  `deploy/helm/dash/values.schema.json`, [docs/developer/configuration.md](../developer/configuration.md)

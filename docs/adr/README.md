@@ -23,7 +23,7 @@ says so.
 | [0001](0001-two-images-two-ingress-objects-one-chart.md) | Two images, two Ingress objects, one chart; distroless; spec-first API; readiness | Yes |
 | [0002](0002-documentation-homes-and-the-plan-consumed.md) | Where a statement lives; the project plan is consumed | Yes |
 | [0003](0003-test-and-ci-policy.md) | `make` as the entry point, the test tiers, required gates | Yes |
-| [0004](0004-configuration-is-three-variables-and-one-validated-file.md) | Three variables and one strict YAML file | Yes (no keys yet) |
+| [0004](0004-configuration-is-three-variables-and-one-validated-file.md) | Three variables and one strict YAML file, the values' keys | Yes |
 | [0005](0005-cogpits-dark-cockpit-on-the-web-without-a-component-library.md) | Cogpit's design language, no component library, the theme preference | Shell and theme |
 | [0006](0006-one-version-of-every-tool.md) | Toolchains track the newest release; every tool pinned once | Yes |
 | [0007](0007-discovery-with-hajimaris-semantics.md) | Ingress discovery with Hajimari's semantics, watched not polled | No |

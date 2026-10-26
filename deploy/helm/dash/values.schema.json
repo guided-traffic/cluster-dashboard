@@ -14,10 +14,7 @@
         "pullPolicy": { "type": "string", "enum": ["Always", "IfNotPresent", "Never"] }
       }
     },
-    "stringMap": {
-      "type": "object",
-      "additionalProperties": { "type": "string" }
-    },
+    "stringMap": { "type": "object", "additionalProperties": { "type": "string" } },
     "resources": {
       "type": "object",
       "additionalProperties": false,
@@ -45,8 +42,61 @@
     "annotations": {
       "type": "object",
       "additionalProperties": false,
+      "properties": { "annotations": { "$ref": "#/definitions/stringMap" } }
+    },
+    "labelSelector": {
+      "type": "object",
+      "additionalProperties": false,
       "properties": {
-        "annotations": { "$ref": "#/definitions/stringMap" }
+        "matchLabels": { "$ref": "#/definitions/stringMap" },
+        "matchExpressions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["key", "operator"],
+            "properties": {
+              "key": { "type": "string", "minLength": 1 },
+              "operator": { "type": "string", "enum": ["In", "NotIn", "Exists", "DoesNotExist"] },
+              "values": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        }
+      }
+    },
+    "emptyLabelSelector": {
+      "properties": { "matchLabels": { "maxProperties": 0 }, "matchExpressions": { "maxItems": 0 } }
+    },
+    "name": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "\\S" },
+    "link": { "type": "string", "pattern": "^https?://[^/?#@]+([/?#].*)?$" },
+    "iconRef": { "type": "string", "minLength": 1 },
+    "defaultIcon": { "type": "string", "minLength": 1, "not": { "pattern": "//" } },
+    "badgeEntries": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "namespaceName": { "type": "string", "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$", "maxLength": 63 },
+    "stringList": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "app": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "url"],
+      "properties": {
+        "name": { "$ref": "#/definitions/name" },
+        "url": { "$ref": "#/definitions/link" },
+        "icon": { "$ref": "#/definitions/iconRef" },
+        "info": { "type": "string", "maxLength": 120 },
+        "targetBlank": { "type": "boolean" },
+        "badges": { "$ref": "#/definitions/badgeEntries" }
+      }
+    },
+    "bookmark": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "url"],
+      "properties": {
+        "name": { "$ref": "#/definitions/name" },
+        "url": { "$ref": "#/definitions/link" },
+        "icon": { "$ref": "#/definitions/iconRef" },
+        "targetBlank": { "type": "boolean" },
+        "badges": { "$ref": "#/definitions/badgeEntries" }
       }
     }
   },
@@ -63,12 +113,7 @@
       }
     },
     "backend": { "$ref": "#/definitions/pod" },
-    "frontend": {
-      "allOf": [
-        { "$ref": "#/definitions/pod" },
-        { "not": { "required": ["logLevel"] } }
-      ]
-    },
+    "frontend": { "allOf": [{ "$ref": "#/definitions/pod" }, { "not": { "required": ["logLevel"] } }] },
     "serviceAccount": {
       "type": "object",
       "additionalProperties": false,
@@ -100,6 +145,186 @@
         "annotations": { "$ref": "#/definitions/stringMap" },
         "frontend": { "$ref": "#/definitions/annotations" },
         "backend": { "$ref": "#/definitions/annotations" }
+      }
+    },
+    "discovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "defaultEnable": { "type": "boolean" },
+        "instanceName": { "type": "string", "pattern": "^[^,]*$" },
+        "namespaceSelector": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "any": { "type": "boolean" },
+            "matchNames": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/namespaceName" },
+              "uniqueItems": true
+            },
+            "labelSelector": { "$ref": "#/definitions/labelSelector" }
+          },
+          "if": { "required": ["any"], "properties": { "any": { "const": true } } },
+          "then": {
+            "properties": {
+              "matchNames": { "maxItems": 0 },
+              "labelSelector": { "$ref": "#/definitions/emptyLabelSelector" }
+            }
+          }
+        }
+      }
+    },
+    "ui": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "title": { "$ref": "#/definitions/name" },
+        "greeting": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": { "enabled": { "type": "boolean" }, "name": { "type": "string", "maxLength": 64 } }
+        },
+        "defaultTheme": { "type": "string", "enum": ["system", "light", "dark"] },
+        "refreshSeconds": { "type": "integer", "minimum": 5, "maximum": 3600 },
+        "showSummary": { "type": "boolean" },
+        "showApps": { "type": "boolean" },
+        "showAppGroups": { "type": "boolean" },
+        "showAppUrls": { "type": "boolean" },
+        "showAppInfo": { "type": "boolean" },
+        "showAppStatus": { "type": "boolean" },
+        "showBookmarks": { "type": "boolean" },
+        "showBookmarkGroups": { "type": "boolean" },
+        "alwaysTargetBlank": { "type": "boolean" },
+        "groupOrder": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true }
+      }
+    },
+    "apps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["group", "apps"],
+        "properties": {
+          "group": { "$ref": "#/definitions/name" },
+          "apps": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/app" } }
+        }
+      }
+    },
+    "bookmarks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["group", "bookmarks"],
+        "properties": {
+          "group": { "$ref": "#/definitions/name" },
+          "bookmarks": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/bookmark" } }
+        }
+      }
+    },
+    "icons": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "defaultAppIcon": { "$ref": "#/definitions/defaultIcon" },
+        "defaultBookmarkIcon": { "$ref": "#/definitions/defaultIcon" },
+        "autoMatch": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "catalogs": {
+              "type": "array",
+              "items": { "type": "string", "enum": ["selfhst", "dashboard-icons"] },
+              "uniqueItems": true
+            }
+          }
+        },
+        "configMap": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "files": {
+              "type": "object",
+              "propertyNames": { "pattern": "^[-._a-zA-Z0-9]+$", "maxLength": 253 },
+              "additionalProperties": { "type": "string", "pattern": "^[A-Za-z0-9+/\\s]*={0,2}\\s*$" }
+            }
+          }
+        },
+        "existingConfigMaps": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^[a-z0-9]([-a-z0-9.]*[a-z0-9])?$", "maxLength": 253 }
+        },
+        "remote": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "fromAnnotations": { "type": "boolean" },
+            "allowPrivateNetworks": { "type": "boolean" },
+            "allowedHosts": {
+              "type": "array",
+              "items": { "type": "string", "pattern": "^[a-z0-9.:-]+$" },
+              "uniqueItems": true
+            },
+            "maxBytes": { "type": "integer", "minimum": 1024, "maximum": 4194304 },
+            "timeout": { "type": "string", "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$" },
+            "maxEntries": { "type": "integer", "minimum": 1, "maximum": 10000 }
+          }
+        }
+      }
+    },
+    "badges": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "definitions": {
+          "type": "object",
+          "propertyNames": { "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$", "maxLength": 63 },
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["label"],
+            "properties": {
+              "icon": { "type": "string", "minLength": 1 },
+              "text": { "type": "string", "minLength": 1, "maxLength": 8, "pattern": "^[^,@]+$" },
+              "label": { "$ref": "#/definitions/name" },
+              "tone": { "type": "string", "enum": ["neutral", "blue", "cyan", "mint", "amber", "coral"] }
+            },
+            "oneOf": [{ "required": ["icon"] }, { "required": ["text"] }]
+          }
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["badge"],
+            "properties": {
+              "match": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "ingressClassNames": { "$ref": "#/definitions/stringList" },
+                  "ingressControllers": { "$ref": "#/definitions/stringList" },
+                  "namespaces": { "type": "array", "items": { "$ref": "#/definitions/namespaceName" } },
+                  "hosts": { "$ref": "#/definitions/stringList" },
+                  "labels": { "$ref": "#/definitions/labelSelector" },
+                  "annotations": { "$ref": "#/definitions/stringMap" },
+                  "kinds": {
+                    "type": "array",
+                    "items": { "type": "string", "enum": ["ingress", "app", "bookmark"] }
+                  }
+                }
+              },
+              "badge": { "type": "string", "minLength": 1 },
+              "corner": { "type": "string", "enum": ["top-right", "top-left", "bottom-right", "bottom-left"] }
+            }
+          }
+        }
       }
     }
   }

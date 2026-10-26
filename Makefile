@@ -355,12 +355,25 @@ helm-lint: $(HELM_BIN) ## Lint the chart strictly, alone and with every values f
 	$(HELM) lint $(HELM_CHART) --strict
 	@for f in $(HELM_CHART)/ci/*-values.yaml; do echo "helm lint with $$f"; $(HELM) lint $(HELM_CHART) --strict -f $$f; done
 
+# Values the schema must refuse, one --set each, quoted for the shell; a comma sets several keys of
+# one case, and \, is a comma inside a value.
+HELM_REFUSED_VALUES := 'ingress.enabled=yes' 'backend.replicas=-1' 'frontend.image.pullPolicy=Sometimes' \
+	'unknownKey=1' 'discovery.namespaceSelector.matchNames={media}' 'discovery.instanceName=a\,b' \
+	'ui.defaultTheme=sepia' 'ui.refreshSeconds=4' 'ui.refreshSeconds=3601' 'ui.showSearch=true' \
+	'icons.defaultAppIcon=https://example.com/a.png' 'icons.autoMatch.catalogs={mdi}' \
+	'icons.remote.timeout=soon' 'icons.remote.maxBytes=10' 'badges.definitions.x.label=neither' \
+	'badges.definitions.x.text=toolongtext,badges.definitions.x.label=l' \
+	'badges.definitions.x.text=v,badges.definitions.x.label=l,badges.definitions.x.tone=violet' \
+	'badges.rules[0].badge=x,badges.rules[0].corner=middle' \
+	'apps[0].group=g,apps[0].apps[0].name=n,apps[0].apps[0].url=javascript:alert(1)'
+
 .PHONY: helm-template
-helm-template: $(HELM_BIN) ## Render the chart with every values file under ci/ and check what the unit suite cannot: invalid values refused.
-	@for f in $(HELM_CHART)/ci/*-values.yaml; do echo "helm template with $$f"; $(HELM) template dash $(HELM_CHART) -f $$f > /dev/null; done
+helm-template: $(HELM_BIN) ## Render the chart with every values file under ci/, hand each rendered config.yaml to the backend's validation, and check that invalid values are refused.
+	@for f in $(HELM_CHART)/ci/*-values.yaml; do echo "helm template with $$f"; \
+	  $(HELM) template dash $(HELM_CHART) -f $$f | (cd $(BACKEND_DIR) && go run ./tools/configcheck); done
 	@echo "helm template with values the schema refuses: each must fail the render"
-	@for set in ingress.enabled=yes backend.replicas=-1 frontend.image.pullPolicy=Sometimes unknownKey=1; do \
-	  if $(HELM) template dash $(HELM_CHART) --set $$set >/dev/null 2>&1; then echo "--set $$set must fail against values.schema.json"; exit 1; fi; \
+	@for set in $(HELM_REFUSED_VALUES); do \
+	  if $(HELM) template dash $(HELM_CHART) --set "$$set" >/dev/null 2>&1; then echo "--set $$set must fail against values.schema.json"; exit 1; fi; \
 	done
 
 .PHONY: helm-unittest

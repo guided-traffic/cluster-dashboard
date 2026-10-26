@@ -834,12 +834,18 @@ server with RBAC authorisation for the impersonation test.
 
 ### Phase 2 — The dashboard
 
+**Status 2026-10-26: step 1 (configuration) on `main`, verified locally** — `make lint cyclo gosec
+vuln test-unit helm-lint helm-template helm-unittest helm-kubeconform e2e`; its facts moved to ADR
+0004 (D5, D6), `docs/developer/configuration.md`, `docs/security/validation.md` and the README's
+reference. Steps 2 to 8 open. Each step is one commit on `main` (the owner's choice), not a pull
+request.
+
 **Goal:** the brief end to end — discovery, custom apps, bookmarks, every icon source, Cogpit's
 look, every setting through the chart.
 
 **Needs:** nothing open — [Q1](#q1--which-annotation-keys-does-discovery-read) is decided.
 
-**Delivers**, one pull request per step, each with its tests and its pages:
+**Delivers**, one commit on `main` per step, each with its tests and its pages:
 
 1. **Configuration:** the values of [§9](#9-the-helm-chart) → `config.yaml` → `Config`; the schema
    complete; the README's reference tables.

@@ -40,7 +40,7 @@ func problemsOf(t *testing.T, err error) []string {
 func TestDefaultsWithoutVariablesOrFile(t *testing.T) {
 	cfg, err := Load(env(nil), files(nil))
 	require.NoError(t, err)
-	assert.Equal(t, Config{ListenAddr: ":8080", LogLevel: slog.LevelInfo}, cfg,
+	assert.Equal(t, Config{ListenAddr: ":8080", LogLevel: slog.LevelInfo, File: DefaultFile()}, cfg,
 		"no file at the default path is no error: the defaults apply")
 }
 
@@ -57,7 +57,7 @@ func TestVariablesAreRead(t *testing.T) {
 		EnvConfig:     "/tmp/cd.yaml",
 	}), files(map[string]string{"/tmp/cd.yaml": ""}))
 	require.NoError(t, err)
-	assert.Equal(t, Config{ConfigPath: "/tmp/cd.yaml", ListenAddr: "127.0.0.1:9090", LogLevel: slog.LevelDebug}, cfg)
+	assert.Equal(t, Config{ConfigPath: "/tmp/cd.yaml", ListenAddr: "127.0.0.1:9090", LogLevel: slog.LevelDebug, File: DefaultFile()}, cfg)
 }
 
 func TestEveryLogLevel(t *testing.T) {
@@ -87,14 +87,15 @@ func TestEveryProblemAtOnce(t *testing.T) {
 		EnvListenAddr: "nope",
 		EnvLogLevel:   "verbose",
 		EnvConfig:     "/etc/cd.yaml",
-	}), files(map[string]string{"/etc/cd.yaml": "ui:\n  title: x\ndiscovery: {}\n"}))
+	}), files(map[string]string{"/etc/cd.yaml": "ui:\n  title: x\n  defaultTheme: sepia\nsearch: {}\ndiscovery:\n  defaultEnable: maybe\n"}))
 	require.Error(t, err)
 	assert.Equal(t, []string{
 		"DASH_LISTEN_ADDR: must be host:port, such as :8080 or 127.0.0.1:8080",
 		"DASH_LOG_LEVEL: must be one of debug, info, warn, error",
-		"/etc/cd.yaml: line 1: ui: is not a known key",
-		"/etc/cd.yaml: line 3: discovery: is not a known key",
-	}, problemsOf(t, err))
+		"/etc/cd.yaml: line 3: ui.defaultTheme: must be system, light or dark",
+		"/etc/cd.yaml: line 4: search: is not a known key",
+		"/etc/cd.yaml: line 6: discovery.defaultEnable: must be true or false",
+	}, problemsOf(t, err), "the decoder's problems and the validation's, in the order of their lines")
 	assert.Contains(t, err.Error(), "invalid configuration:\n  DASH_LISTEN_ADDR")
 	assert.NotContains(t, err.Error(), "verbose", "a value is never echoed")
 }
@@ -134,8 +135,9 @@ func TestTheFileShapes(t *testing.T) {
 		"a list":           {content: "- a\n", problems: []string{"/c.yaml: line 1: the document: must be a mapping of keys"}},
 		"a single value":   {content: "hello\n", problems: []string{"/c.yaml: line 1: the document: must be a mapping of keys"}},
 		"not yaml":         {content: "a: [\n", problems: []string{"/c.yaml: line 1: did not find expected node content"}},
-		"any key is new":   {content: "title: x\n", problems: []string{"/c.yaml: line 1: title: is not a known key"}},
+		"an unknown key":   {content: "title: x\n", problems: []string{"/c.yaml: line 1: title: is not a known key"}},
 		"hajimari's names": {content: "defaultEnable: true\nshowAppUrls: false\n", problems: []string{"/c.yaml: line 1: defaultEnable: is not a known key", "/c.yaml: line 2: showAppUrls: is not a known key"}},
+		"hajimari's keys":  {content: "ui:\n  showSearch: true\n  lightTheme: x\n", problems: []string{"/c.yaml: line 2: ui.showSearch: is not a known key", "/c.yaml: line 3: ui.lightTheme: is not a known key"}},
 	} {
 		t.Run(name, func(t *testing.T) {
 			_, err := Load(env(map[string]string{EnvConfig: "/c.yaml"}), files(map[string]string{"/c.yaml": tc.content}))
@@ -149,7 +151,7 @@ func TestTheFileShapes(t *testing.T) {
 }
 
 // probe is a schema with a field of every kind the decoder walks, for the
-// branches the File of this release does not reach.
+// branches the File does not reach.
 type probe struct {
 	Title    string            `yaml:"title"`
 	Enabled  bool              `yaml:"enabled"`
@@ -173,7 +175,7 @@ type probeNested struct {
 
 func TestTheDecoderFillsEveryKind(t *testing.T) {
 	var p probe
-	problems := decodeStrict([]byte(`
+	d := decodeStrict([]byte(`
 title: Dash
 enabled: true
 count: -3
@@ -188,7 +190,7 @@ items:
   - name: two
 optional: {name: set}
 `), &p)
-	require.Empty(t, problems)
+	require.Empty(t, d.problems)
 	assert.Equal(t, probe{
 		Title: "Dash", Enabled: true, Count: -3, Max: 7, Ratio: 0.5, Timeout: 20 * time.Second,
 		Hosts: []string{"a.example.com", "b.example.com"}, Labels: map[string]string{"team": "platform"},
@@ -199,7 +201,7 @@ optional: {name: set}
 
 func TestTheDecoderReportsEveryProblem(t *testing.T) {
 	var p probe
-	problems := decodeStrict([]byte(`title: [not, a, string]
+	d := decodeStrict([]byte(`title: [not, a, string]
 enabled: maybe
 count: many
 max: -1
@@ -237,23 +239,23 @@ labels2: {}
 		"line 18: Untagged: is not a known key",
 		"line 19: Ignored: is not a known key",
 		"line 20: labels2: is not a known key",
-	}, problems)
+	}, d.messages())
 }
 
 // yaml.v3 parses a key set twice into a node without complaint; the walk
 // refuses it, in a map as in a struct.
 func TestTheDecoderRefusesADuplicateMapKey(t *testing.T) {
 	var p probe
-	problems := decodeStrict([]byte("labels:\n  a: x\n  a: y\n"), &p)
-	assert.Equal(t, []string{"line 3: labels.a: is set twice"}, problems)
+	d := decodeStrict([]byte("labels:\n  a: x\n  a: y\n"), &p)
+	assert.Equal(t, []string{"line 3: labels.a: is set twice"}, d.messages())
 	assert.Equal(t, map[string]string{"a": "x"}, p.Labels, "the first value stays")
 }
 
 func TestTheDecoderFollowsAnchorsAndLeavesNullAlone(t *testing.T) {
 	var p probe
 	p.Title = "kept"
-	problems := decodeStrict([]byte("title: ~\nnested: &n {name: shared}\noptional: *n\n"), &p)
-	require.Empty(t, problems)
+	d := decodeStrict([]byte("title: ~\nnested: &n {name: shared}\noptional: *n\n"), &p)
+	require.Empty(t, d.problems)
 	assert.Equal(t, "kept", p.Title, "an explicit null leaves the default")
 	assert.Equal(t, &probeNested{Name: "shared"}, p.Optional)
 }

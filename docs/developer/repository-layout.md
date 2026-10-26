@@ -15,12 +15,15 @@ dash/
 │   ├── internal/
 │   │   ├── api/                  # the request pipeline and the handlers
 │   │   │   └── apigen/           # oapi-codegen output (generated)
-│   │   ├── config/               # DASH_* variables and the strict YAML file → Config
+│   │   ├── badges/               # corners, tones, the grammar of a badge entry
+│   │   ├── config/               # DASH_* variables and the strict YAML file → Config, validated
 │   │   ├── httpserver/           # health, readiness, request id, recovery, request log, lifecycle
+│   │   ├── icons/                # the grammar of an icon reference
 │   │   ├── kube/                 # the REST configuration and the API server probe
 │   │   ├── problem/              # RFC 9457 bodies and the code catalogue
 │   │   └── requestid/            # the request id in the context
 │   ├── test/integration/         # build tag integration: envtest
+│   ├── tools/configcheck/        # holds the chart's rendered config.yaml to the backend's validation
 │   ├── tools/problemdoc/         # writes problem-codes.yaml and the README table
 │   ├── tools/specbundle/         # bundles api/ into openapi.gen.json
 │   ├── Containerfile             # golang:1.27.3-alpine → distroless static nonroot
@@ -37,6 +40,7 @@ dash/
 │   ├── proxy.conf.mjs            # ng serve → backend for /api: the developer's stand-in for the Ingress
 │   └── Containerfile             # node:26-alpine → golang:1.27.3-alpine → distroless static nonroot
 ├── deploy/helm/dash/             # the chart: templates/, values.yaml, values.schema.json, ci/, tests/
+│                                 #   ci/dashboard-values.yaml sets every key of the configuration
 ├── hack/
 │   ├── e2e.sh                    # the end-to-end tier: kind, cert-manager, haproxy-ingress, Dash, Playwright
 │   ├── kind/                     # the cluster, the controller's values, the issuer, Dash's e2e values

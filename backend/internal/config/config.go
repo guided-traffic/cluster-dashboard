@@ -14,6 +14,7 @@ import (
 	"io/fs"
 	"log/slog"
 	"net"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -53,12 +54,6 @@ type Config struct {
 	File File
 }
 
-// File is the schema of the YAML file: a key the struct does not name is
-// refused. It holds no key yet — the settings of the dashboard arrive with
-// the dashboard (docs/planning/project-plan.md, phase 2) — so every key a file
-// sets is refused today.
-type File struct{}
-
 // Error is an invalid configuration: every problem Load found, each naming
 // the variable or the file, the line and the key. A value is never echoed.
 type Error struct {
@@ -72,7 +67,7 @@ func (e *Error) Error() string {
 // Load reads the configuration through lookup (os.LookupEnv) and readFile
 // (os.ReadFile). It returns an *Error that lists every problem at once.
 func Load(lookup func(string) (string, bool), readFile func(string) ([]byte, error)) (Config, error) {
-	cfg := Config{ListenAddr: DefaultListenAddr, LogLevel: slog.LevelInfo}
+	cfg := Config{ListenAddr: DefaultListenAddr, LogLevel: slog.LevelInfo, File: DefaultFile()}
 	var problems []string
 
 	if v, ok := lookup(EnvListenAddr); ok {
@@ -102,7 +97,7 @@ func Load(lookup func(string) (string, bool), readFile func(string) ([]byte, err
 		switch {
 		case err == nil:
 			cfg.ConfigPath = path
-			for _, p := range decodeStrict(data, &cfg.File) {
+			for _, p := range Parse(data, &cfg.File) {
 				problems = append(problems, path+": "+p)
 			}
 		case !explicit && errors.Is(err, fs.ErrNotExist):
@@ -116,6 +111,23 @@ func Load(lookup func(string) (string, bool), readFile func(string) ([]byte, err
 		return Config{}, &Error{Problems: problems}
 	}
 	return cfg, nil
+}
+
+// Parse decodes the YAML file's content into f, which holds the defaults the
+// file may override, and validates the result. It returns every problem, in
+// the order of their lines; none means f is ready to use.
+func Parse(data []byte, f *File) []string {
+	d := decodeStrict(data, f)
+	found := append(d.problems, validate(f, d)...)
+	if len(found) == 0 {
+		return nil
+	}
+	slices.SortStableFunc(found, func(a, b problem) int { return a.line - b.line })
+	out := make([]string, 0, len(found))
+	for _, p := range found {
+		out = append(out, p.String())
+	}
+	return out
 }
 
 // validateListenAddr accepts host:port with an empty host or a host name or

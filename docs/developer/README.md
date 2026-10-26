@@ -12,8 +12,11 @@ For contributors and agents. Read [AGENTS.md](../../AGENTS.md) for the rules in 
    document and the Angular client are generated from it and committed.
 4. **`make` is the entry point**, locally and in CI; every tool is pinned once and built into `bin/`
    ([ADR 0006](../adr/0006-one-version-of-every-tool.md)).
-5. **Phase 1 is a skeleton**: the dashboard itself — discovery, icons, badges, tiles — is phase 2 of
-   the [plan](../planning/project-plan.md).
+5. **One setting, one name**: the chart renders its values `discovery`, `ui`, `apps`, `bookmarks`,
+   `icons` and `badges` into the backend's file unchanged; the schema and the backend validate them
+   ([configuration.md](configuration.md)).
+6. **Phase 2 is in progress**: the configuration is complete; discovery, icons, badges and the tiles
+   follow, step by step, as the [plan](../planning/project-plan.md) lists them.
 
 ## Pages
 
@@ -24,6 +27,7 @@ For contributors and agents. Read [AGENTS.md](../../AGENTS.md) for the rules in 
 | [testing.md](testing.md) | The test tiers, what each proves, their fixtures |
 | [ci-and-release.md](ci-and-release.md) | The workflows, the gates, the release, Renovate |
 | [conventions.md](conventions.md) | Commits, errors, logs, generated code, Kubernetes safety |
+| [configuration.md](configuration.md) | From the chart's values to the backend's `File`, validated twice; adding a key |
 
 Decisions: [docs/adr/](../adr/README.md). Security architecture: [docs/security/](../security/README.md).
 
@@ -37,7 +41,8 @@ browser ─┬─ https://<host>/        → Ingress <fullname>-frontend → Ser
 
 ## Start-up of the backend
 
-`dash serve` loads the configuration ([ADR 0004](../adr/0004-configuration-is-three-variables-and-one-validated-file.md)),
+`dash serve` loads the configuration and refuses to start on any problem with it
+([ADR 0004](../adr/0004-configuration-is-three-variables-and-one-validated-file.md)),
 builds the Kubernetes client (the pod's ServiceAccount in a cluster, client-go's loading rules
 elsewhere), starts the probe that asks the API server for its version until it answers once, and
 listens. `/healthz` answers at once; `/readyz` answers `503 not_ready` until the probe has its answer.

@@ -1,0 +1,100 @@
+suite: the backend's configuration file
+templates:
+  - templates/configmap.yaml
+release:
+  name: dash
+tests:
+  - it: renders every key of the file with the chart's defaults
+    asserts:
+      - equal:
+          path: metadata.name
+          value: dash-config
+      - equal:
+          path: data["config.yaml"]
+          value: |
+            apps: []
+            badges:
+              definitions: {}
+              rules: []
+            bookmarks: []
+            discovery:
+              defaultEnable: false
+              enabled: true
+              instanceName: ""
+              namespaceSelector:
+                any: true
+                labelSelector: {}
+                matchNames: []
+            icons:
+              autoMatch:
+                catalogs:
+                - selfhst
+                - dashboard-icons
+                enabled: true
+              defaultAppIcon: material-symbols:apps
+              defaultBookmarkIcon: material-symbols:bookmark
+              remote:
+                allowPrivateNetworks: false
+                allowedHosts: []
+                enabled: true
+                fromAnnotations: true
+                maxBytes: 262144
+                maxEntries: 512
+                timeout: 20s
+            ui:
+              alwaysTargetBlank: false
+              defaultTheme: system
+              greeting:
+                enabled: true
+                name: You
+              groupOrder: []
+              refreshSeconds: 60
+              showAppGroups: true
+              showAppInfo: false
+              showAppStatus: true
+              showAppUrls: true
+              showApps: true
+              showBookmarkGroups: true
+              showBookmarks: true
+              showSummary: true
+              title: Dash
+
+  - it: carries the values into the file
+    set:
+      ui.title: Home lab
+      discovery.namespaceSelector:
+        any: false
+        matchNames: [media]
+      badges.definitions.beta: { text: beta, label: beta release, tone: amber }
+    asserts:
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: "(?m)^  title: Home lab$"
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: "(?m)^    matchNames:\\n    - media$"
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: "(?m)^    beta:\\n      label: beta release\\n      text: beta\\n      tone: amber$"
+
+  - it: leaves the chart's own icon keys out of the file
+    set:
+      icons.configMap.files:
+        logo.png: aWNvbg==
+      icons.existingConfigMaps: [team-icons]
+    asserts:
+      - notMatchRegex:
+          path: data["config.yaml"]
+          pattern: "configMap|existingConfigMaps|team-icons|aWNvbg=="
+
+  - it: quotes a value YAML would read as another type
+    set:
+      ui.title: "true"
+      ui.greeting.name: "0123"
+    asserts:
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: "(?m)^  title: \"true\"$"
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: "(?m)^    name: \"0123\"$"

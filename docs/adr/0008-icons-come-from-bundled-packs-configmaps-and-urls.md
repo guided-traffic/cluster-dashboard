@@ -14,7 +14,9 @@ leaves the origin.
 name meaning `mdi:<name>`.
 
 **D3 — Resolution**: the icon set, else a logo matched by name (auto-match), else the default; every app
-and bookmark has an icon.
+and bookmark has an icon. The defaults (`icons.defaultAppIcon`, `icons.defaultBookmarkIcon`) are a
+catalogue icon or a ConfigMap key, never a URL: the last resort must not depend on a download (the
+grammar and this rule built with the configuration, phase 2 step 1).
 
 **D4 — ConfigMap icons** from the release namespace only, mounted, keys unique.
 
