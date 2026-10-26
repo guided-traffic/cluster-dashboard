@@ -39,6 +39,8 @@ Decisions: [docs/adr/](../adr/README.md). Security architecture: [docs/security/
 ```text
 browser ─┬─ https://<host>/        → Ingress <fullname>-frontend → Service → frontend/server (bundle in memory)
          └─ https://<host>/api/... → Ingress <fullname>-backend  → Service → backend (dash serve)
+                                                                      │  /api/v1/dashboard: discovery cache
+                                                                      │  + configuration → dashboard.Build
                                                                       └── Kubernetes API (version probe;
                                                                           list and watch: Ingresses,
                                                                           EndpointSlices, Namespaces)

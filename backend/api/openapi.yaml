@@ -22,7 +22,11 @@ servers:
 tags:
   - name: meta
     description: What the backend is
+  - name: dashboard
+    description: What the page shows
 paths:
+  /api/v1/dashboard:
+    $ref: './dashboard.yaml#/dashboard'
   /api/v1/version:
     $ref: './meta.yaml#/version'
   /api/v1/openapi.json:

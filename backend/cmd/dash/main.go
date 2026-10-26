@@ -21,9 +21,11 @@ import (
 
 	"github.com/guided-traffic/dash/backend/internal/api"
 	"github.com/guided-traffic/dash/backend/internal/config"
+	"github.com/guided-traffic/dash/backend/internal/dashboard"
 	"github.com/guided-traffic/dash/backend/internal/discovery"
 	"github.com/guided-traffic/dash/backend/internal/httpserver"
 	"github.com/guided-traffic/dash/backend/internal/kube"
+	"github.com/guided-traffic/dash/backend/internal/problem"
 )
 
 // Set by the linker; see the Containerfile and the Makefile.
@@ -147,8 +149,9 @@ func serve(ctx context.Context, d deps) int {
 	background.Go(func() { probe.Run(ctx, logger) })
 	ready := []func(context.Context) error{probe.Ready}
 
+	var disc *discovery.Discovery
 	if cfg.File.Discovery.Enabled {
-		disc, err := newDiscovery(cl.kube, cfg.File.Discovery, logger)
+		disc, err = newDiscovery(cl.kube, cfg.File.Discovery, logger)
 		if err != nil {
 			logger.Error("discovery setup failed", "error", err)
 			return 1
@@ -159,7 +162,10 @@ func serve(ctx context.Context, d deps) int {
 		logger.Info("the discovery is off: the dashboard shows the configured apps and bookmarks only")
 	}
 
-	apiHandler, err := api.New(api.Options{Logger: logger, Version: version, Commit: commit, BuildTime: buildTime})
+	apiHandler, err := api.New(api.Options{
+		Logger: logger, Version: version, Commit: commit, BuildTime: buildTime,
+		Dashboard: dashboardSource(disc, cfg.File),
+	})
 	if err != nil {
 		logger.Error("API setup failed", "error", err)
 		return 1
@@ -187,6 +193,21 @@ func newDiscovery(client kubernetes.Interface, c config.Discovery, logger *slog.
 		return nil, err
 	}
 	return discovery.New(client, opts, logger)
+}
+
+// dashboardSource answers the page's content now: the discovery's apps — once
+// it has listed, not_ready before — and the configuration's.
+func dashboardSource(disc *discovery.Discovery, f config.File) func(context.Context) (dashboard.Dashboard, error) {
+	return func(ctx context.Context) (dashboard.Dashboard, error) {
+		var apps []discovery.App
+		if disc != nil {
+			if err := disc.Ready(ctx); err != nil {
+				return dashboard.Dashboard{}, problem.New(problem.NotReady, "the discovery has not listed the Ingresses yet")
+			}
+			apps = disc.Apps()
+		}
+		return dashboard.Build(apps, f), nil
+	}
 }
 
 // allReady is ready when every check is: the API server has answered, and

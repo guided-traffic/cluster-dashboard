@@ -13,6 +13,69 @@ import (
 	"net/http"
 )
 
+// Defines values for AppKind.
+const (
+	AppKindApp     AppKind = "app"
+	AppKindIngress AppKind = "ingress"
+)
+
+// Valid indicates whether the value is a known member of the AppKind enum.
+func (e AppKind) Valid() bool {
+	switch e {
+	case AppKindApp:
+		return true
+	case AppKindIngress:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AppStatusState.
+const (
+	AppStatusStateDegraded AppStatusState = "degraded"
+	AppStatusStateDown     AppStatusState = "down"
+	AppStatusStateHealthy  AppStatusState = "healthy"
+	AppStatusStateUnknown  AppStatusState = "unknown"
+)
+
+// Valid indicates whether the value is a known member of the AppStatusState enum.
+func (e AppStatusState) Valid() bool {
+	switch e {
+	case AppStatusStateDegraded:
+		return true
+	case AppStatusStateDown:
+		return true
+	case AppStatusStateHealthy:
+		return true
+	case AppStatusStateUnknown:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for DashboardUIDefaultTheme.
+const (
+	DashboardUIDefaultThemeDark   DashboardUIDefaultTheme = "dark"
+	DashboardUIDefaultThemeLight  DashboardUIDefaultTheme = "light"
+	DashboardUIDefaultThemeSystem DashboardUIDefaultTheme = "system"
+)
+
+// Valid indicates whether the value is a known member of the DashboardUIDefaultTheme enum.
+func (e DashboardUIDefaultTheme) Valid() bool {
+	switch e {
+	case DashboardUIDefaultThemeDark:
+		return true
+	case DashboardUIDefaultThemeLight:
+		return true
+	case DashboardUIDefaultThemeSystem:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ProblemCode.
 const (
 	ProblemCodeInternal         ProblemCode = "internal"
@@ -40,12 +103,129 @@ func (e ProblemCode) Valid() bool {
 	}
 }
 
+// App A tile
+type App struct {
+	// Id Unique on the page: ingress/<namespace>/<name> or app/<group>/<index>
+	Id string `json:"id"`
+
+	// Info The description; absent while ui.showAppInfo is off or the app has none
+	Info *string `json:"info,omitempty"`
+
+	// Kind ingress: discovered; app: configured under apps
+	Kind AppKind `json:"kind"`
+	Name string  `json:"name"`
+
+	// Status The readiness: endpoints ready over all, each pod once; unknown for a configured app and while ui.showAppStatus is off
+	Status      AppStatus `json:"status"`
+	TargetBlank bool      `json:"target_blank"`
+
+	// Url An absolute http or https URL
+	Url string `json:"url"`
+}
+
+// AppKind ingress: discovered; app: configured under apps
+type AppKind string
+
+// AppGroup defines model for AppGroup.
+type AppGroup struct {
+	// Apps Ordered by name
+	Apps []App  `json:"apps"`
+	Name string `json:"name"`
+}
+
+// AppStatus The readiness: endpoints ready over all, each pod once; unknown for a configured app and while ui.showAppStatus is off
+type AppStatus struct {
+	Ready int            `json:"ready"`
+	State AppStatusState `json:"state"`
+	Total int            `json:"total"`
+}
+
+// AppStatusState defines model for AppStatus.State.
+type AppStatusState string
+
+// Bookmark defines model for Bookmark.
+type Bookmark struct {
+	// Id bookmark/<group>/<index>
+	Id          string `json:"id"`
+	Name        string `json:"name"`
+	TargetBlank bool   `json:"target_blank"`
+	Url         string `json:"url"`
+}
+
+// BookmarkGroup defines model for BookmarkGroup.
+type BookmarkGroup struct {
+	Bookmarks []Bookmark `json:"bookmarks"`
+	Name      string     `json:"name"`
+}
+
+// Dashboard The page's content (backend/internal/dashboard)
+type Dashboard struct {
+	// Bookmarks The bookmark groups in the configuration's order. Empty while ui.showBookmarks is off
+	Bookmarks []BookmarkGroup `json:"bookmarks"`
+
+	// Discovery What the discovery reads, for the page that has no app to show
+	Discovery DiscoveryScope `json:"discovery"`
+
+	// Groups The app groups: those ui.groupOrder names first, in its order, then by name. Empty while ui.showApps is off
+	Groups []AppGroup `json:"groups"`
+
+	// Summary The apps served, counted by state
+	Summary Summary `json:"summary"`
+
+	// Ui The ui settings the page applies itself
+	Ui DashboardUI `json:"ui"`
+}
+
+// DashboardUI The ui settings the page applies itself
+type DashboardUI struct {
+	// DefaultTheme The colour scheme until a person picks one
+	DefaultTheme DashboardUIDefaultTheme `json:"default_theme"`
+
+	// Greeting The line under the title, the time of day and a name
+	Greeting           Greeting `json:"greeting"`
+	RefreshSeconds     int      `json:"refresh_seconds"`
+	ShowAppGroups      bool     `json:"show_app_groups"`
+	ShowAppUrls        bool     `json:"show_app_urls"`
+	ShowBookmarkGroups bool     `json:"show_bookmark_groups"`
+	ShowSummary        bool     `json:"show_summary"`
+	Title              string   `json:"title"`
+}
+
+// DashboardUIDefaultTheme The colour scheme until a person picks one
+type DashboardUIDefaultTheme string
+
+// DiscoveryScope What the discovery reads, for the page that has no app to show
+type DiscoveryScope struct {
+	Enabled bool `json:"enabled"`
+
+	// InstanceName discovery.instanceName; empty: every instance
+	InstanceName string `json:"instance_name"`
+
+	// Namespaces The namespace selector: every namespace, or the names united with the label selector's matches
+	Namespaces NamespaceScope `json:"namespaces"`
+}
+
 // FieldError defines model for FieldError.
 type FieldError struct {
 	Message string `json:"message"`
 
 	// Pointer A JSON pointer into the body, or query:<name> for a query parameter
 	Pointer string `json:"pointer"`
+}
+
+// Greeting The line under the title, the time of day and a name
+type Greeting struct {
+	Enabled bool   `json:"enabled"`
+	Name    string `json:"name"`
+}
+
+// NamespaceScope The namespace selector: every namespace, or the names united with the label selector's matches
+type NamespaceScope struct {
+	Any bool `json:"any"`
+
+	// LabelSelector The label selector in its text form, such as dash=listed; empty: none
+	LabelSelector string   `json:"label_selector"`
+	Names         []string `json:"names"`
 }
 
 // Problem An RFC 9457 problem details body (backend/internal/problem)
@@ -72,6 +252,15 @@ type Problem struct {
 // ProblemCode The stable code of a problem
 type ProblemCode string
 
+// Summary The apps served, counted by state
+type Summary struct {
+	Degraded int `json:"degraded"`
+	Down     int `json:"down"`
+	Healthy  int `json:"healthy"`
+	Total    int `json:"total"`
+	Unknown  int `json:"unknown"`
+}
+
 // Version defines model for Version.
 type Version struct {
 	// BuildTime When it was built, in seconds since the epoch
@@ -86,6 +275,9 @@ type Version struct {
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// GetDashboard The page's content
+	// (GET /api/v1/dashboard)
+	GetDashboard(w http.ResponseWriter, r *http.Request)
 	// GetOpenAPI This document
 	// (GET /api/v1/openapi.json)
 	GetOpenAPI(w http.ResponseWriter, r *http.Request)
@@ -102,6 +294,20 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// GetDashboard operation middleware
+func (siw *ServerInterfaceWrapper) GetDashboard(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetDashboard(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // GetOpenAPI operation middleware
 func (siw *ServerInterfaceWrapper) GetOpenAPI(w http.ResponseWriter, r *http.Request) {
@@ -251,6 +457,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 		ErrorHandlerFunc:   options.ErrorHandlerFunc,
 	}
 
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/dashboard", wrapper.GetDashboard)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/openapi.json", wrapper.GetOpenAPI)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/version", wrapper.GetVersion)
 
@@ -264,6 +471,71 @@ type ProblemApplicationProblemPlusJSONResponse struct {
 	Body Problem
 
 	Headers ProblemResponseHeaders
+}
+
+type GetDashboardRequestObject struct {
+}
+
+type GetDashboardResponseObject interface {
+	VisitGetDashboardResponse(w http.ResponseWriter) error
+}
+
+type GetDashboard200JSONResponse Dashboard
+
+func (response GetDashboard200JSONResponse) VisitGetDashboardResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetDashboard503ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetDashboard503ApplicationProblemPlusJSONResponse) VisitGetDashboardResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XRequestId != nil {
+		w.Header().Set("X-Request-Id", fmt.Sprint(*response.Headers.XRequestId))
+	}
+	w.WriteHeader(503)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetDashboarddefaultResponseHeaders struct {
+	XRequestId *string
+}
+
+type GetDashboarddefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    GetDashboarddefaultResponseHeaders
+	StatusCode int
+}
+
+func (response GetDashboarddefaultApplicationProblemPlusJSONResponse) VisitGetDashboardResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XRequestId != nil {
+		w.Header().Set("X-Request-Id", fmt.Sprint(*response.Headers.XRequestId))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
 }
 
 type GetOpenAPIRequestObject struct {
@@ -352,6 +624,9 @@ func (response GetVersiondefaultApplicationProblemPlusJSONResponse) VisitGetVers
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// GetDashboard The page's content
+	// (GET /api/v1/dashboard)
+	GetDashboard(ctx context.Context, request GetDashboardRequestObject) (GetDashboardResponseObject, error)
 	// GetOpenAPI This document
 	// (GET /api/v1/openapi.json)
 	GetOpenAPI(ctx context.Context, request GetOpenAPIRequestObject) (GetOpenAPIResponseObject, error)
@@ -397,6 +672,30 @@ type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
 	options     StrictHTTPServerOptions
+}
+
+// GetDashboard operation middleware
+func (sh *strictHandler) GetDashboard(w http.ResponseWriter, r *http.Request) {
+	var request GetDashboardRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetDashboard(ctx, request.(GetDashboardRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetDashboard")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetDashboardResponseObject); ok {
+		if err := validResponse.VisitGetDashboardResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
 }
 
 // GetOpenAPI operation middleware

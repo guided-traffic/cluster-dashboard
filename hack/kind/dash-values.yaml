@@ -20,3 +20,7 @@ ingress:
   frontend:
     annotations:
       cert-manager.io/cluster-issuer: selfsigned
+# Every Ingress shows unless it opts out: Dash's own two objects carry the opt-out the chart puts on
+# them, and the suite proves they stay off the dashboard.
+discovery:
+  defaultEnable: true

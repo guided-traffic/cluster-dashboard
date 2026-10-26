@@ -41,7 +41,7 @@ var (
 	NotFound         = Code{"not_found", http.StatusNotFound, "Not found", "No such route. The frontend's file server answers the same for an `/api/` path that reached it instead of the backend"}
 	MethodNotAllowed = Code{"method_not_allowed", http.StatusMethodNotAllowed, "Method not allowed", "The path exists with other methods; `Allow` names them"}
 	Internal         = Code{"internal", http.StatusInternalServerError, "Internal error", "Something failed inside the backend; the `request_id` finds it in the log"}
-	NotReady         = Code{"not_ready", http.StatusServiceUnavailable, "Not ready", "The backend has not reached the Kubernetes API server since it started (`/readyz`)"}
+	NotReady         = Code{"not_ready", http.StatusServiceUnavailable, "Not ready", "The backend has not reached the Kubernetes API server since it started, or its discovery has not listed the Ingresses yet (`/readyz`, `/api/v1/dashboard`)"}
 )
 
 // Catalogue lists every code; the generators read it.

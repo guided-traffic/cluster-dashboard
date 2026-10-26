@@ -1,0 +1,23 @@
+# The dashboard: everything the page shows, in one answer.
+dashboard:
+  get:
+    operationId: getDashboard
+    tags: [dashboard]
+    summary: The page's content
+    description: |
+      The app groups — discovered through Ingresses and configured — the bookmark groups, the summary
+      of the apps' states and the page's settings. Answered from the discovery's cache: a request
+      costs the Kubernetes API server nothing. The page asks on load, every `ui.refreshSeconds` and
+      when it becomes visible again. What the configuration hides (`ui.showApps`, `ui.showBookmarks`,
+      `ui.showAppInfo`, `ui.showAppStatus`) is left out of the answer, not only out of the page.
+    responses:
+      '200':
+        description: The page's content
+        content:
+          application/json:
+            schema:
+              $ref: './components/schemas.yaml#/Dashboard'
+      '503':
+        $ref: './components/responses.yaml#/Problem'
+      default:
+        $ref: './components/responses.yaml#/Problem'

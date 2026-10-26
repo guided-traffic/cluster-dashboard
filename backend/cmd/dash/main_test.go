@@ -17,7 +17,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	networkingv1 "k8s.io/api/networking/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	k8sversion "k8s.io/apimachinery/pkg/version"
@@ -151,6 +153,11 @@ func stopped(t *testing.T, cancel context.CancelFunc, exit chan int) {
 // the context ends.
 func TestServeServesUntilItsContextEnds(t *testing.T) {
 	d, _, stderr := testDeps(map[string]string{"DASH_LISTEN_ADDR": "127.0.0.1:0", "DASH_LOG_LEVEL": "debug"}, nil)
+	grafana := &networkingv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{Namespace: "monitoring", Name: "grafana", Annotations: map[string]string{"dash.gtrfc.com/enable": "true"}},
+		Spec:       networkingv1.IngressSpec{Rules: []networkingv1.IngressRule{{Host: "grafana.example.com"}}},
+	}
+	d.clients = func() (clients, error) { return clients{version: answering{}, kube: fake.NewClientset(grafana)}, nil }
 	base, cancel, exit := serving(t, d)
 	assert.Equal(t, http.StatusOK, status(t, base+"/healthz"))
 	require.Eventually(t, func() bool { return status(t, base+"/readyz") == http.StatusOK }, 5*time.Second, 10*time.Millisecond,
@@ -161,6 +168,24 @@ func TestServeServesUntilItsContextEnds(t *testing.T) {
 	require.NoError(t, json.NewDecoder(res.Body).Decode(&v))
 	_ = res.Body.Close()
 	assert.Equal(t, map[string]string{"version": "dev", "commit": "unknown", "build_time": "unknown"}, v)
+
+	res, err = http.Get(base + "/api/v1/dashboard")
+	require.NoError(t, err)
+	var page struct {
+		Groups []struct {
+			Name string `json:"name"`
+			Apps []struct {
+				ID  string `json:"id"`
+				URL string `json:"url"`
+			} `json:"apps"`
+		} `json:"groups"`
+	}
+	require.NoError(t, json.NewDecoder(res.Body).Decode(&page))
+	_ = res.Body.Close()
+	require.Len(t, page.Groups, 1, "the discovered Ingress, in the group of its namespace")
+	assert.Equal(t, "monitoring", page.Groups[0].Name)
+	assert.Equal(t, "ingress/monitoring/grafana", page.Groups[0].Apps[0].ID)
+	assert.Equal(t, "http://grafana.example.com/", page.Groups[0].Apps[0].URL)
 
 	stopped(t, cancel, exit)
 	logs := stderr.String()
@@ -186,6 +211,7 @@ func TestServeIsNotReadyUntilTheDiscoveryListed(t *testing.T) {
 	require.Eventually(t, func() bool { return strings.Contains(stderr.String(), "forbidden") }, 5*time.Second, 10*time.Millisecond)
 	require.Eventually(t, func() bool { return strings.Contains(stderr.String(), `"the Kubernetes API server answered"`) }, 5*time.Second, 10*time.Millisecond)
 	assert.Equal(t, http.StatusServiceUnavailable, status(t, base+"/readyz"), "the API server answered, the discovery has not listed")
+	assert.Equal(t, http.StatusServiceUnavailable, status(t, base+"/api/v1/dashboard"), "no page from a discovery that has not listed")
 	stopped(t, cancel, exit)
 }
 
@@ -198,6 +224,7 @@ func TestServeWithoutTheDiscovery(t *testing.T) {
 	d.clients = func() (clients, error) { return clients{version: answering{}, kube: client}, nil }
 	base, cancel, exit := serving(t, d)
 	require.Eventually(t, func() bool { return status(t, base+"/readyz") == http.StatusOK }, 5*time.Second, 10*time.Millisecond)
+	assert.Equal(t, http.StatusOK, status(t, base+"/api/v1/dashboard"), "the configured apps and bookmarks, at once")
 	stopped(t, cancel, exit)
 	assert.Contains(t, stderr.String(), "the discovery is off")
 	assert.Empty(t, client.Actions(), "nothing is listed or watched")

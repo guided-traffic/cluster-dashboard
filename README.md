@@ -12,9 +12,9 @@ not. Installed by one Helm chart, configured entirely through it, no login.
 > **Phase 2 of 3, in progress.** Built: both images, the chart with its two Ingress objects, the
 > pipeline, the shell with its colour scheme, the dashboard's complete configuration — validated by
 > the chart and the backend — and the discovery, which watches the cluster's Ingresses under the
-> chart's RBAC. **The page does not show apps yet**: the API, icons, badges and the tiles arrive step
-> by step, as phase 2 of the [project plan](docs/planning/project-plan.md) lists them; until then
-> `icons`, `badges`, the `ui` switches and the icon and badge annotations are validated but not used.
+> chart's RBAC, served at `/api/v1/dashboard`. **The page does not show apps yet**: icons, badges and
+> the tiles arrive step by step, as phase 2 of the [project plan](docs/planning/project-plan.md) lists
+> them; until then `icons`, `badges` and the icon and badge annotations are validated but not used.
 
 ```mermaid
 flowchart LR
@@ -303,10 +303,11 @@ dash: invalid configuration:
 
 | Path | Served by | Answer |
 |---|---|---|
+| `/api/v1/dashboard` | backend | The page's content: `ui` (the settings the page applies), `discovery` (what it reads), `summary` (apps by state), `groups` (apps: `id`, `kind`, `name`, `url`, `info`, `target_blank`, `status`), `bookmarks`; `503 not_ready` until the discovery has listed. What `ui.showApps`, `ui.showBookmarks`, `ui.showAppInfo` and `ui.showAppStatus` hide is not in it. Schema: `/api/v1/openapi.json` |
 | `/api/v1/version` | backend | `{"version","commit","build_time"}` |
 | `/api/v1/openapi.json` | backend | The API document |
 | `/healthz` | backend, frontend | `200 {"status":"ok"}` while the process serves |
-| `/readyz` | backend | `200` once the Kubernetes API server has answered since the start, `503 not_ready` before |
+| `/readyz` | backend | `200` once the Kubernetes API server has answered and — unless `discovery.enabled` is off — the discovery has listed every Ingress since the start, `503 not_ready` before |
 
 ### Problem codes
 
@@ -319,7 +320,7 @@ Every API error is an RFC 9457 `application/problem+json` body with a stable `co
 | `not_found` | 404 | No such route. The frontend's file server answers the same for an `/api/` path that reached it instead of the backend |
 | `method_not_allowed` | 405 | The path exists with other methods; `Allow` names them |
 | `internal` | 500 | Something failed inside the backend; the `request_id` finds it in the log |
-| `not_ready` | 503 | The backend has not reached the Kubernetes API server since it started (`/readyz`) |
+| `not_ready` | 503 | The backend has not reached the Kubernetes API server since it started, or its discovery has not listed the Ingresses yet (`/readyz`, `/api/v1/dashboard`) |
 <!-- problem-codes:end -->
 
 ## 🛠 Development

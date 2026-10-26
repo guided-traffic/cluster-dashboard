@@ -7,6 +7,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -23,6 +24,7 @@ import (
 
 	apispec "github.com/guided-traffic/dash/backend/api"
 	"github.com/guided-traffic/dash/backend/internal/api/apigen"
+	"github.com/guided-traffic/dash/backend/internal/dashboard"
 	"github.com/guided-traffic/dash/backend/internal/problem"
 	"github.com/guided-traffic/dash/backend/internal/requestid"
 )
@@ -33,6 +35,10 @@ type Options struct {
 	Version   string
 	Commit    string
 	BuildTime string
+	// Dashboard answers GET /api/v1/dashboard with the page's content now.
+	// An error that is a *problem.Error is answered as it is — not_ready
+	// while the discovery has not listed. nil answers not_ready.
+	Dashboard func(ctx context.Context) (dashboard.Dashboard, error)
 	// ValidateResponses checks every response against the document and
 	// answers 500 when one does not match: on in the tests, so a handler that
 	// drifts from the document fails a test.

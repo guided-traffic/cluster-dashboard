@@ -73,6 +73,11 @@ into groups — one group per name, whichever side it comes from — and orders 
 `ui.groupOrder` names first, in its order, then by name, case aside; the apps of a group by name.
 Bookmark groups keep the configuration's order. `ui.alwaysTargetBlank` is applied here.
 
+**Served** at `GET /api/v1/dashboard` ([backend/api/dashboard.yaml](../../backend/api/dashboard.yaml)):
+`cmd/dash`'s `dashboardSource` answers `not_ready` until the discovery has listed, then
+`dashboard.Build` over `Discovery.Apps()` and the configuration; `internal/api/dashboard.go` maps the
+model onto the generated types, every list a list, never `null`.
+
 **What the configuration hides is not served**: `ui.showApps` and `ui.showBookmarks` off leave the
 apps or the bookmarks out, `ui.showAppInfo` off leaves every description out, `ui.showAppStatus` off
 makes every status `unknown`. The other `ui.*` switches are the page's to apply.

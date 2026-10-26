@@ -137,6 +137,23 @@ func TestAlwaysTargetBlankWins(t *testing.T) {
 	assert.True(t, d.Bookmarks[0].Bookmarks[0].TargetBlank)
 }
 
+func TestTheScopeNamesWhatTheDiscoveryReads(t *testing.T) {
+	f := config.DefaultFile()
+	d := Build(nil, f)
+	assert.Equal(t, Scope{Enabled: true, Any: true}, d.Scope)
+	assert.Equal(t, f.UI, d.UI)
+
+	f.Discovery.InstanceName = "home"
+	f.Discovery.NamespaceSelector = config.NamespaceSelector{
+		MatchNames:    []string{"static"},
+		LabelSelector: config.LabelSelector{MatchLabels: map[string]string{"dash": "listed"}},
+	}
+	assert.Equal(t, Scope{Enabled: true, InstanceName: "home", Names: []string{"static"}, LabelSelector: "dash=listed"}, Build(nil, f).Scope)
+
+	f.Discovery.Enabled = false
+	assert.False(t, Build(nil, f).Scope.Enabled)
+}
+
 func TestAnEmptyDashboard(t *testing.T) {
 	d := Build(nil, config.DefaultFile())
 	assert.Empty(t, d.Apps)

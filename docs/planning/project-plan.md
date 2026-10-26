@@ -844,7 +844,11 @@ server with RBAC authorisation for the impersonation test.
   annotation table. The RBAC objects are named `<release namespace>-<fullname>`, not `<fullname>`
   as §9 had them, so that two releases of one name do not collide; the chart's RBAC moved from step
   7 into this step, because the discovery needs it to turn ready.
-- Steps 3 to 8 open.
+- Step 3 (API) built: `GET /api/v1/dashboard`, validated against the document in the tests, the
+  Angular client regenerated; facts in the README's endpoint table, `docs/security/exposure.md`,
+  `docs/developer/discovery.md`. `GET /api/v1/icons/…` moves to step 4: without the packs there is
+  nothing to serve.
+- Steps 4 to 8 open.
 
 **Goal:** the brief end to end — discovery, custom apps, bookmarks, every icon source, Cogpit's
 look, every setting through the chart.

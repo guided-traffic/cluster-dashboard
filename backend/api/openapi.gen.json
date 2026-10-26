@@ -53,6 +53,318 @@
       }
     },
     "schemas": {
+      "App": {
+        "description": "A tile",
+        "properties": {
+          "id": {
+            "description": "Unique on the page: ingress/\u003cnamespace\u003e/\u003cname\u003e or app/\u003cgroup\u003e/\u003cindex\u003e",
+            "type": "string"
+          },
+          "info": {
+            "description": "The description; absent while ui.showAppInfo is off or the app has none",
+            "type": "string"
+          },
+          "kind": {
+            "description": "ingress: discovered; app: configured under apps",
+            "enum": [
+              "ingress",
+              "app"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AppStatus"
+          },
+          "target_blank": {
+            "type": "boolean"
+          },
+          "url": {
+            "description": "An absolute http or https URL",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "url",
+          "target_blank",
+          "status"
+        ],
+        "type": "object"
+      },
+      "AppGroup": {
+        "properties": {
+          "apps": {
+            "description": "Ordered by name",
+            "items": {
+              "$ref": "#/components/schemas/App"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "apps"
+        ],
+        "type": "object"
+      },
+      "AppStatus": {
+        "description": "The readiness: endpoints ready over all, each pod once; unknown for a configured app and while ui.showAppStatus is off",
+        "properties": {
+          "ready": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "state": {
+            "enum": [
+              "healthy",
+              "degraded",
+              "down",
+              "unknown"
+            ],
+            "type": "string"
+          },
+          "total": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "state",
+          "ready",
+          "total"
+        ],
+        "type": "object"
+      },
+      "Bookmark": {
+        "properties": {
+          "id": {
+            "description": "bookmark/\u003cgroup\u003e/\u003cindex\u003e",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "target_blank": {
+            "type": "boolean"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "url",
+          "target_blank"
+        ],
+        "type": "object"
+      },
+      "BookmarkGroup": {
+        "properties": {
+          "bookmarks": {
+            "items": {
+              "$ref": "#/components/schemas/Bookmark"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "bookmarks"
+        ],
+        "type": "object"
+      },
+      "Dashboard": {
+        "description": "The page's content (backend/internal/dashboard)",
+        "example": {
+          "bookmarks": [
+            {
+              "bookmarks": [
+                {
+                  "id": "bookmark/0/0",
+                  "name": "Kubernetes",
+                  "target_blank": true,
+                  "url": "https://kubernetes.io/docs"
+                }
+              ],
+              "name": "docs"
+            }
+          ],
+          "discovery": {
+            "enabled": true,
+            "instance_name": "",
+            "namespaces": {
+              "any": true,
+              "label_selector": "",
+              "names": []
+            }
+          },
+          "groups": [
+            {
+              "apps": [
+                {
+                  "id": "ingress/monitoring/grafana",
+                  "kind": "ingress",
+                  "name": "Grafana",
+                  "status": {
+                    "ready": 2,
+                    "state": "healthy",
+                    "total": 2
+                  },
+                  "target_blank": false,
+                  "url": "https://grafana.example.com/"
+                },
+                {
+                  "id": "ingress/monitoring/prometheus",
+                  "kind": "ingress",
+                  "name": "Prometheus",
+                  "status": {
+                    "ready": 1,
+                    "state": "degraded",
+                    "total": 2
+                  },
+                  "target_blank": false,
+                  "url": "https://prometheus.example.com/"
+                }
+              ],
+              "name": "monitoring"
+            }
+          ],
+          "summary": {
+            "degraded": 1,
+            "down": 0,
+            "healthy": 1,
+            "total": 2,
+            "unknown": 0
+          },
+          "ui": {
+            "default_theme": "system",
+            "greeting": {
+              "enabled": true,
+              "name": "You"
+            },
+            "refresh_seconds": 60,
+            "show_app_groups": true,
+            "show_app_urls": true,
+            "show_bookmark_groups": true,
+            "show_summary": true,
+            "title": "Dash"
+          }
+        },
+        "properties": {
+          "bookmarks": {
+            "description": "The bookmark groups in the configuration's order. Empty while ui.showBookmarks is off",
+            "items": {
+              "$ref": "#/components/schemas/BookmarkGroup"
+            },
+            "type": "array"
+          },
+          "discovery": {
+            "$ref": "#/components/schemas/DiscoveryScope"
+          },
+          "groups": {
+            "description": "The app groups: those ui.groupOrder names first, in its order, then by name. Empty while ui.showApps is off",
+            "items": {
+              "$ref": "#/components/schemas/AppGroup"
+            },
+            "type": "array"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/Summary"
+          },
+          "ui": {
+            "$ref": "#/components/schemas/DashboardUI"
+          }
+        },
+        "required": [
+          "ui",
+          "discovery",
+          "summary",
+          "groups",
+          "bookmarks"
+        ],
+        "type": "object"
+      },
+      "DashboardUI": {
+        "description": "The ui settings the page applies itself",
+        "properties": {
+          "default_theme": {
+            "description": "The colour scheme until a person picks one",
+            "enum": [
+              "system",
+              "light",
+              "dark"
+            ],
+            "type": "string"
+          },
+          "greeting": {
+            "$ref": "#/components/schemas/Greeting"
+          },
+          "refresh_seconds": {
+            "maximum": 3600,
+            "minimum": 5,
+            "type": "integer"
+          },
+          "show_app_groups": {
+            "type": "boolean"
+          },
+          "show_app_urls": {
+            "type": "boolean"
+          },
+          "show_bookmark_groups": {
+            "type": "boolean"
+          },
+          "show_summary": {
+            "type": "boolean"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "greeting",
+          "default_theme",
+          "refresh_seconds",
+          "show_summary",
+          "show_app_groups",
+          "show_app_urls",
+          "show_bookmark_groups"
+        ],
+        "type": "object"
+      },
+      "DiscoveryScope": {
+        "description": "What the discovery reads, for the page that has no app to show",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "instance_name": {
+            "description": "discovery.instanceName; empty: every instance",
+            "type": "string"
+          },
+          "namespaces": {
+            "$ref": "#/components/schemas/NamespaceScope"
+          }
+        },
+        "required": [
+          "enabled",
+          "instance_name",
+          "namespaces"
+        ],
+        "type": "object"
+      },
       "FieldError": {
         "properties": {
           "message": {
@@ -66,6 +378,46 @@
         "required": [
           "pointer",
           "message"
+        ],
+        "type": "object"
+      },
+      "Greeting": {
+        "description": "The line under the title, the time of day and a name",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "enabled",
+          "name"
+        ],
+        "type": "object"
+      },
+      "NamespaceScope": {
+        "description": "The namespace selector: every namespace, or the names united with the label selector's matches",
+        "properties": {
+          "any": {
+            "type": "boolean"
+          },
+          "label_selector": {
+            "description": "The label selector in its text form, such as dash=listed; empty: none",
+            "type": "string"
+          },
+          "names": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "any",
+          "names",
+          "label_selector"
         ],
         "type": "object"
       },
@@ -123,6 +475,39 @@
         ],
         "type": "string"
       },
+      "Summary": {
+        "description": "The apps served, counted by state",
+        "properties": {
+          "degraded": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "down": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "healthy": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "total": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "unknown": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "healthy",
+          "degraded",
+          "down",
+          "unknown"
+        ],
+        "type": "object"
+      },
       "Version": {
         "example": {
           "build_time": "1793000000",
@@ -163,6 +548,34 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/dashboard": {
+      "get": {
+        "description": "The app groups — discovered through Ingresses and configured — the bookmark groups, the summary\nof the apps' states and the page's settings. Answered from the discovery's cache: a request\ncosts the Kubernetes API server nothing. The page asks on load, every `ui.refreshSeconds` and\nwhen it becomes visible again. What the configuration hides (`ui.showApps`, `ui.showBookmarks`,\n`ui.showAppInfo`, `ui.showAppStatus`) is left out of the answer, not only out of the page.\n",
+        "operationId": "getDashboard",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Dashboard"
+                }
+              }
+            },
+            "description": "The page's content"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "summary": "The page's content",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
     "/api/v1/openapi.json": {
       "get": {
         "description": "The bundled OpenAPI document the backend validates every request against; `info.version` is the backend version.",
@@ -251,6 +664,10 @@
     {
       "description": "What the backend is",
       "name": "meta"
+    },
+    {
+      "description": "What the page shows",
+      "name": "dashboard"
     }
   ]
 }

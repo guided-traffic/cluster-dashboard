@@ -34,3 +34,164 @@ Version:
     version: 0.1.0
     commit: 6c4adc7
     build_time: '1793000000'
+Dashboard:
+  type: object
+  description: The page's content (backend/internal/dashboard)
+  required: [ui, discovery, summary, groups, bookmarks]
+  properties:
+    ui:
+      $ref: '#/DashboardUI'
+    discovery:
+      $ref: '#/DiscoveryScope'
+    summary:
+      $ref: '#/Summary'
+    groups:
+      type: array
+      description: 'The app groups: those ui.groupOrder names first, in its order, then by name. Empty while ui.showApps is off'
+      items:
+        $ref: '#/AppGroup'
+    bookmarks:
+      type: array
+      description: The bookmark groups in the configuration's order. Empty while ui.showBookmarks is off
+      items:
+        $ref: '#/BookmarkGroup'
+  example:
+    ui:
+      title: Dash
+      greeting: {enabled: true, name: You}
+      default_theme: system
+      refresh_seconds: 60
+      show_summary: true
+      show_app_groups: true
+      show_app_urls: true
+      show_bookmark_groups: true
+    discovery:
+      enabled: true
+      instance_name: ''
+      namespaces: {any: true, names: [], label_selector: ''}
+    summary: {total: 2, healthy: 1, degraded: 1, down: 0, unknown: 0}
+    groups:
+      - name: monitoring
+        apps:
+          - id: ingress/monitoring/grafana
+            kind: ingress
+            name: Grafana
+            url: https://grafana.example.com/
+            target_blank: false
+            status: {state: healthy, ready: 2, total: 2}
+          - id: ingress/monitoring/prometheus
+            kind: ingress
+            name: Prometheus
+            url: https://prometheus.example.com/
+            target_blank: false
+            status: {state: degraded, ready: 1, total: 2}
+    bookmarks:
+      - name: docs
+        bookmarks:
+          - {id: bookmark/0/0, name: Kubernetes, url: 'https://kubernetes.io/docs', target_blank: true}
+DashboardUI:
+  type: object
+  description: The ui settings the page applies itself
+  required: [title, greeting, default_theme, refresh_seconds, show_summary, show_app_groups, show_app_urls, show_bookmark_groups]
+  properties:
+    title: {type: string}
+    greeting:
+      $ref: '#/Greeting'
+    default_theme:
+      type: string
+      enum: [system, light, dark]
+      description: The colour scheme until a person picks one
+    refresh_seconds: {type: integer, minimum: 5, maximum: 3600}
+    show_summary: {type: boolean}
+    show_app_groups: {type: boolean}
+    show_app_urls: {type: boolean}
+    show_bookmark_groups: {type: boolean}
+DiscoveryScope:
+  type: object
+  description: What the discovery reads, for the page that has no app to show
+  required: [enabled, instance_name, namespaces]
+  properties:
+    enabled: {type: boolean}
+    instance_name: {type: string, description: 'discovery.instanceName; empty: every instance'}
+    namespaces:
+      $ref: '#/NamespaceScope'
+Greeting:
+  type: object
+  description: The line under the title, the time of day and a name
+  required: [enabled, name]
+  properties:
+    enabled: {type: boolean}
+    name: {type: string}
+NamespaceScope:
+  type: object
+  description: 'The namespace selector: every namespace, or the names united with the label selector''s matches'
+  required: [any, names, label_selector]
+  properties:
+    any: {type: boolean}
+    names:
+      type: array
+      items: {type: string}
+    label_selector: {type: string, description: 'The label selector in its text form, such as dash=listed; empty: none'}
+Summary:
+  type: object
+  description: The apps served, counted by state
+  required: [total, healthy, degraded, down, unknown]
+  properties:
+    total: {type: integer, minimum: 0}
+    healthy: {type: integer, minimum: 0}
+    degraded: {type: integer, minimum: 0}
+    down: {type: integer, minimum: 0}
+    unknown: {type: integer, minimum: 0}
+AppGroup:
+  type: object
+  required: [name, apps]
+  properties:
+    name: {type: string}
+    apps:
+      type: array
+      description: Ordered by name
+      items:
+        $ref: '#/App'
+App:
+  type: object
+  description: A tile
+  required: [id, kind, name, url, target_blank, status]
+  properties:
+    id: {type: string, description: 'Unique on the page: ingress/<namespace>/<name> or app/<group>/<index>'}
+    kind:
+      type: string
+      enum: [ingress, app]
+      description: 'ingress: discovered; app: configured under apps'
+    name: {type: string}
+    url: {type: string, description: An absolute http or https URL}
+    info: {type: string, description: 'The description; absent while ui.showAppInfo is off or the app has none'}
+    target_blank: {type: boolean}
+    status:
+      $ref: '#/AppStatus'
+AppStatus:
+  type: object
+  description: 'The readiness: endpoints ready over all, each pod once; unknown for a configured app and while ui.showAppStatus is off'
+  required: [state, ready, total]
+  properties:
+    state:
+      type: string
+      enum: [healthy, degraded, down, unknown]
+    ready: {type: integer, minimum: 0}
+    total: {type: integer, minimum: 0}
+BookmarkGroup:
+  type: object
+  required: [name, bookmarks]
+  properties:
+    name: {type: string}
+    bookmarks:
+      type: array
+      items:
+        $ref: '#/Bookmark'
+Bookmark:
+  type: object
+  required: [id, name, url, target_blank]
+  properties:
+    id: {type: string, description: 'bookmark/<group>/<index>'}
+    name: {type: string}
+    url: {type: string}
+    target_blank: {type: boolean}

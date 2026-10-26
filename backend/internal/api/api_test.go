@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -13,6 +14,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/guided-traffic/dash/backend/internal/config"
+	"github.com/guided-traffic/dash/backend/internal/dashboard"
 	"github.com/guided-traffic/dash/backend/internal/problem"
 	"github.com/guided-traffic/dash/backend/internal/requestid"
 )
@@ -21,7 +24,12 @@ import (
 // document.
 func newAPI(t *testing.T) http.Handler {
 	t.Helper()
-	h, err := New(Options{Version: "1.2.3", Commit: "abc1234", BuildTime: "1793000000", ValidateResponses: true})
+	h, err := New(Options{
+		Version: "1.2.3", Commit: "abc1234", BuildTime: "1793000000", ValidateResponses: true,
+		Dashboard: func(context.Context) (dashboard.Dashboard, error) {
+			return dashboard.Build(nil, config.DefaultFile()), nil
+		},
+	})
 	require.NoError(t, err)
 	return h
 }

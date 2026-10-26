@@ -9,6 +9,8 @@ import (
 	"slices"
 	"strings"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/guided-traffic/dash/backend/internal/config"
 	"github.com/guided-traffic/dash/backend/internal/discovery"
 )
@@ -26,6 +28,10 @@ const (
 
 // Dashboard is the page's content.
 type Dashboard struct {
+	// UI are the settings the page applies itself.
+	UI config.UI
+	// Scope is what the discovery reads, for the page without an app.
+	Scope Scope
 	// Apps are the app groups: ui.groupOrder's first, in its order, then
 	// the others by name. Empty while ui.showApps is off.
 	Apps []AppGroup
@@ -79,6 +85,19 @@ type Bookmark struct {
 	TargetBlank bool
 }
 
+// Scope is what the discovery reads: the empty page names it, so that a
+// person can tell a selector that matches nothing from a cluster without
+// apps.
+type Scope struct {
+	Enabled      bool
+	InstanceName string
+	Any          bool
+	Names        []string
+	// LabelSelector is the selector in its text form, such as dash=listed;
+	// empty for none.
+	LabelSelector string
+}
+
 // Summary counts the apps served, by state.
 type Summary struct {
 	Total, Healthy, Degraded, Down, Unknown int
@@ -86,7 +105,7 @@ type Summary struct {
 
 // Build assembles the page from the discovered apps and the configuration.
 func Build(discovered []discovery.App, f config.File) Dashboard {
-	var d Dashboard
+	d := Dashboard{UI: f.UI, Scope: scopeOf(f.Discovery)}
 	if f.UI.ShowApps {
 		d.Apps = appGroups(discovered, f)
 	}
@@ -99,6 +118,18 @@ func Build(discovered []discovery.App, f config.File) Dashboard {
 		}
 	}
 	return d
+}
+
+func scopeOf(c config.Discovery) Scope {
+	sel := c.NamespaceSelector
+	scope := Scope{Enabled: c.Enabled, InstanceName: c.InstanceName, Any: sel.Any, Names: slices.Clone(sel.MatchNames)}
+	if !sel.Any && !sel.LabelSelector.IsEmpty() {
+		// config.Load refused a selector that does not convert.
+		if ls, err := metav1.LabelSelectorAsSelector(discovery.LabelSelector(sel.LabelSelector)); err == nil {
+			scope.LabelSelector = ls.String()
+		}
+	}
+	return scope
 }
 
 func (s *Summary) add(state discovery.State) {
