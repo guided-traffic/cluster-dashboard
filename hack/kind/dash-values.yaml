@@ -1,0 +1,22 @@
+# Dash in the end-to-end cluster: the images of make docker-build, loaded into kind (hack/e2e.sh
+# sets repository and tag), both Ingress objects with TLS on localhost, cert-manager's issuer
+# annotation on the frontend's object only and the secret named by both — the split the chart's
+# README recommends.
+backend:
+  image:
+    pullPolicy: Never
+frontend:
+  image:
+    pullPolicy: Never
+ingress:
+  enabled: true
+  className: haproxy
+  hosts:
+    - localhost
+  tls:
+    - secretName: dash-tls
+      hosts:
+        - localhost
+  frontend:
+    annotations:
+      cert-manager.io/cluster-issuer: selfsigned

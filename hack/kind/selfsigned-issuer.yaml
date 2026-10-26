@@ -1,0 +1,8 @@
+# The issuer of the end-to-end cluster: cert-manager signs the certificate of Dash's TLS secret
+# itself, from the issuer annotation on the frontend's Ingress object (dash-values.yaml).
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: selfsigned
+spec:
+  selfSigned: {}

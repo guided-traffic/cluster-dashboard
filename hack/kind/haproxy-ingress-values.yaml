@@ -1,0 +1,22 @@
+# haproxy-ingress for the end-to-end cluster: the owner's internal controller (stutor-k8s-flux-base),
+# here as a DaemonSet on the labelled node, its ports 80 and 443 on the node's own, which kind maps
+# to the host (cluster.yaml). The IngressClass "haproxy" is created and is the class Dash's
+# Ingress objects name.
+controller:
+  kind: DaemonSet
+  daemonset:
+    useHostPort: true
+    hostPorts:
+      http: 80
+      https: 443
+  ingressClass: haproxy
+  ingressClassResource:
+    enabled: true
+  service:
+    type: ClusterIP
+  nodeSelector:
+    ingress-ready: "true"
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      operator: Exists
+      effect: NoSchedule
