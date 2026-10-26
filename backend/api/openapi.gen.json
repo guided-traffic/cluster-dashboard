@@ -56,6 +56,14 @@
       "App": {
         "description": "A tile",
         "properties": {
+          "badges": {
+            "description": "The pills on the icon, one per corner, in the order top-right, top-left, bottom-right, bottom-left",
+            "items": {
+              "$ref": "#/components/schemas/Badge"
+            },
+            "maxItems": 4,
+            "type": "array"
+          },
           "icon": {
             "$ref": "#/components/schemas/Icon"
           },
@@ -96,7 +104,8 @@
           "url",
           "target_blank",
           "status",
-          "icon"
+          "icon",
+          "badges"
         ],
         "type": "object"
       },
@@ -147,8 +156,57 @@
         ],
         "type": "object"
       },
+      "Badge": {
+        "description": "A pill on an item's icon, in the style of macOS dock badges: a glyph or a text, filled with its\ntone. The label is the tooltip and the accessible name.\n",
+        "properties": {
+          "corner": {
+            "enum": [
+              "top-right",
+              "top-left",
+              "bottom-right",
+              "bottom-left"
+            ],
+            "type": "string"
+          },
+          "icon": {
+            "$ref": "#/components/schemas/Icon"
+          },
+          "label": {
+            "type": "string"
+          },
+          "text": {
+            "description": "The text of a text badge; absent for a glyph",
+            "maxLength": 8,
+            "type": "string"
+          },
+          "tone": {
+            "enum": [
+              "neutral",
+              "blue",
+              "cyan",
+              "mint",
+              "amber",
+              "coral"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "corner",
+          "label",
+          "tone"
+        ],
+        "type": "object"
+      },
       "Bookmark": {
         "properties": {
+          "badges": {
+            "items": {
+              "$ref": "#/components/schemas/Badge"
+            },
+            "maxItems": 4,
+            "type": "array"
+          },
           "icon": {
             "$ref": "#/components/schemas/Icon"
           },
@@ -171,7 +229,8 @@
           "name",
           "url",
           "target_blank",
-          "icon"
+          "icon",
+          "badges"
         ],
         "type": "object"
       },
@@ -200,6 +259,7 @@
             {
               "bookmarks": [
                 {
+                  "badges": [],
                   "icon": {
                     "src": "/api/v1/icons/si@1.2.101/kubernetes.svg",
                     "tint": true
@@ -226,6 +286,17 @@
             {
               "apps": [
                 {
+                  "badges": [
+                    {
+                      "corner": "top-right",
+                      "icon": {
+                        "src": "/api/v1/icons/material-symbols@1.2.96/home.svg",
+                        "tint": true
+                      },
+                      "label": "local network only",
+                      "tone": "neutral"
+                    }
+                  ],
                   "icon": {
                     "src": "/api/v1/icons/sh@1d65d45a42e6/grafana.svg",
                     "tint": false
@@ -242,6 +313,23 @@
                   "url": "https://grafana.example.com/"
                 },
                 {
+                  "badges": [
+                    {
+                      "corner": "top-right",
+                      "icon": {
+                        "src": "/api/v1/icons/material-symbols@1.2.96/home.svg",
+                        "tint": true
+                      },
+                      "label": "local network only",
+                      "tone": "neutral"
+                    },
+                    {
+                      "corner": "bottom-left",
+                      "label": "beta release",
+                      "text": "beta",
+                      "tone": "amber"
+                    }
+                  ],
                   "icon": {
                     "src": "/api/v1/icons/sh@1d65d45a42e6/prometheus.svg",
                     "tint": false

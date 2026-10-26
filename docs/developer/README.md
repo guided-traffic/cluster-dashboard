@@ -20,8 +20,8 @@ For contributors and agents. Read [AGENTS.md](../../AGENTS.md) for the rules in 
 7. **Every icon from the dashboard's origin**: five catalogues packed into the backend image from
    pins, ConfigMap and remote images checked and kept in memory; the backend decides every fallback
    ([icons.md](icons.md)).
-8. **Phase 2 is in progress**: configuration, discovery, the dashboard API and the icons are built;
-   badges and the tiles follow, as the [plan](../planning/project-plan.md) lists them.
+8. **Phase 2 is in progress**: configuration, discovery, the dashboard API, icons and badges are
+   built; the tiles follow, as the [plan](../planning/project-plan.md) lists them.
 
 ## Pages
 
@@ -35,6 +35,7 @@ For contributors and agents. Read [AGENTS.md](../../AGENTS.md) for the rules in 
 | [configuration.md](configuration.md) | From the chart's values to the backend's `File`, validated twice; adding a key |
 | [discovery.md](discovery.md) | Ingresses to apps: informers, selection, URL, status, RBAC per mode; the dashboard model; adding an annotation key |
 | [icons.md](icons.md) | The packs and their pins, resolution and auto-match, ConfigMap and remote icons, serving; adding a catalogue |
+| [badges.md](badges.md) | Definitions, rules, corners, the effective IngressClass; adding a match field |
 
 Decisions: [docs/adr/](../adr/README.md). Security architecture: [docs/security/](../security/README.md).
 

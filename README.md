@@ -12,10 +12,9 @@ not. Installed by one Helm chart, configured entirely through it, no login.
 > **Phase 2 of 3, in progress.** Built: both images, the chart with its two Ingress objects, the
 > pipeline, the shell with its colour scheme, the dashboard's complete configuration — validated by
 > the chart and the backend — the discovery, which watches the cluster's Ingresses under the chart's
-> RBAC, and every icon source, all served at `/api/v1/dashboard` and `/api/v1/icons/`. **The page does
-> not show apps yet**: badges and the tiles arrive step by step, as phase 2 of the
-> [project plan](docs/planning/project-plan.md) lists them; until then `badges` and the badge
-> annotation are validated but not used.
+> RBAC, every icon source and the badges, all served at `/api/v1/dashboard` and `/api/v1/icons/`.
+> **The page does not show apps yet**: the tiles arrive next, as phase 2 of the
+> [project plan](docs/planning/project-plan.md) lists them.
 
 ```mermaid
 flowchart LR
@@ -29,6 +28,7 @@ flowchart LR
 - 🔎 Apps found through their Ingresses with Hajimari's annotation keys under `dash.gtrfc.com/`, watched, not polled.
 - 🚦 Readiness counted from EndpointSlices, each pod once: healthy, degraded, down or unknown.
 - 🖼️ An icon for every app: ~28,000 glyphs and ~5,100 app logos bundled, a logo found by the app's name, your own images from ConfigMaps or URLs — all served from the dashboard's origin, checked and inert.
+- 🏷️ Badges on icons, macOS style: a globe for an external IngressClass, a house for an internal one — from rules or an Ingress's own annotation.
 - 🔐 Read-only RBAC that follows the namespace selector: cluster-wide, or a Role per named namespace.
 - 🧭 One origin, two Ingress objects: the UI on `/`, the API on `/api/`, the controller the only hop.
 - 🛡️ Distroless images, non-root, read-only, no shell — proven in CI for each image.
@@ -43,7 +43,7 @@ flowchart LR
 | Images | `guidedtraffic/dash-backend`, `guidedtraffic/dash-frontend` |
 | Chart, repository | `dash`, `https://guided-traffic.github.io/dash/` |
 | Resources | `<fullname>-backend` (Deployment, Service, Ingress, ServiceAccount), `<fullname>-frontend` (Deployment, Service, Ingress), `<fullname>-config` (ConfigMap), `<fullname>-icons` (ConfigMap, when `icons.configMap.files` holds a file) |
-| RBAC | `<release namespace>-<fullname>`: the ClusterRole and ClusterRoleBinding, or the Role and RoleBinding in each named namespace |
+| RBAC | `<release namespace>-<fullname>`: the ClusterRole and ClusterRoleBinding, or the Role and RoleBinding in each named namespace; `<release namespace>-<fullname>-ingressclasses` while badge rules exist |
 | Annotations | `dash.gtrfc.com/<key>` ([the keys](#annotations)); the chart puts `dash.gtrfc.com/enable: "false"` on its own Ingress objects |
 | Backend variables | `DASH_CONFIG`, `DASH_ICON_PACKS`, `DASH_ICON_CONFIGMAPS`, `DASH_LISTEN_ADDR`, `DASH_LOG_LEVEL` |
 | Configuration file | `/etc/dash/config.yaml` |
@@ -316,6 +316,31 @@ them. PNG, JPEG, GIF and WebP are encoded again as a PNG of at most 256 pixels a
 only as one self-contained document ([served icons](docs/security/served-icons.md)). A changed
 existing ConfigMap arrives with the backend's next start.
 
+### Badges
+
+Pills on an icon in the style of macOS dock badges: a glyph or a text of at most eight characters,
+filled with a tone, one per corner. **Definitions** name them (`badges.definitions`); **rules** put a
+definition on every item they match (`badges.rules`, in order); an item names **its own** — the
+annotation `dash.gtrfc.com/badges: "beta@bottom-left,text:new"`, or `badges:` of a custom app or a
+bookmark. An item's own entries take their corners first, then each rule that matches takes its
+corner if it is free; four at most.
+
+| Match field | Holds when | Items that have it |
+|---|---|---|
+| `ingressClassNames` | The effective IngressClass — `spec.ingressClassName`, else `kubernetes.io/ingress.class`, else the cluster's one default class — is listed | Ingresses |
+| `ingressControllers` | That class's `spec.controller` is listed, which tells controllers apart where class names differ between clusters | Ingresses |
+| `namespaces` | The namespace is listed | Ingresses |
+| `hosts` | A glob (`*.home.arpa`) matches the host of the item's URL | All |
+| `labels` | The label selector matches the Ingress's labels | Ingresses |
+| `annotations` | Every key has exactly that value | Ingresses |
+| `kinds` | `ingress`, `app` or `bookmark` is listed | All |
+
+Every field set must hold; a field an item does not have does not; an empty match holds for all.
+Tones: `neutral` (the default), `blue`, `cyan`, `mint`, `amber`, `coral`. Corners: `top-right` (the
+default), `top-left`, `bottom-right`, `bottom-left`. A definition whose glyph does not resolve, or a
+rule naming no definition, refuses the start; in an annotation an unusable entry is dropped with a
+warning. Rules make the backend watch IngressClasses, and the chart grants that read.
+
 ### Backend configuration
 
 | Variable | Default | Meaning |
@@ -344,7 +369,7 @@ dash: invalid configuration:
 
 | Path | Served by | Answer |
 |---|---|---|
-| `/api/v1/dashboard` | backend | The page's content: `ui` (the settings the page applies), `discovery` (what it reads), `summary` (apps by state), `groups` (apps: `id`, `kind`, `name`, `url`, `info`, `target_blank`, `status`), `bookmarks`; `503 not_ready` until the discovery has listed. What `ui.showApps`, `ui.showBookmarks`, `ui.showAppInfo` and `ui.showAppStatus` hide is not in it. Schema: `/api/v1/openapi.json` |
+| `/api/v1/dashboard` | backend | The page's content: `ui` (the settings the page applies), `discovery` (what it reads), `summary` (apps by state), `groups` (apps: `id`, `kind`, `name`, `url`, `info`, `target_blank`, `status`, `icon`, `badges`), `bookmarks`; `503 not_ready` until the discovery has listed. What `ui.showApps`, `ui.showBookmarks`, `ui.showAppInfo` and `ui.showAppStatus` hide is not in it. Schema: `/api/v1/openapi.json` |
 | `/api/v1/icons/<catalogue>@<version>/<name>.svg` | backend | An icon of a bundled catalogue; only the version the backend carries |
 | `/api/v1/icons/blob/<sha256>.<png\|svg>` | backend | An icon of a ConfigMap or a URL, as checked |
 | `/api/v1/version` | backend | `{"version","commit","build_time"}` |

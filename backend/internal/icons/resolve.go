@@ -128,6 +128,26 @@ func (r *Resolver) Register(raw string, fromAnnotation bool) error {
 	return err
 }
 
+// ErrNotAGlyph refuses a badge icon that is no monochrome glyph.
+var ErrNotAGlyph = errors.New("must be a glyph of mdi, material-symbols or si")
+
+// Glyph resolves a badge's icon: a glyph of a bundled catalogue, which takes
+// the badge's colour.
+func (r *Resolver) Glyph(raw string) (Icon, error) {
+	ref, err := ParseRef(raw)
+	if err != nil {
+		return Icon{}, err
+	}
+	if ref.Kind != RefCatalog || !IsGlyphCatalog(ref.Catalog) {
+		return Icon{}, ErrNotAGlyph
+	}
+	icon, ok := r.catalog(ref.Catalog, ref.Name)
+	if !ok {
+		return Icon{}, ErrNotBundled
+	}
+	return icon, nil
+}
+
 // Settled is nil while no download runs. The backend turns ready once the
 // icons known at start are downloaded or failed.
 func (r *Resolver) Settled() error {

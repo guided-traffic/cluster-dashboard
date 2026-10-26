@@ -27,7 +27,7 @@ func newAPI(t *testing.T) http.Handler {
 	h, err := New(Options{
 		Version: "1.2.3", Commit: "abc1234", BuildTime: "1793000000", ValidateResponses: true,
 		Dashboard: func(context.Context) (dashboard.Dashboard, error) {
-			return dashboard.Build(nil, config.DefaultFile(), stubIcons{}), nil
+			return dashboard.Build(nil, config.DefaultFile(), stubIcons{}, noBadges), nil
 		},
 		Icons: stubIcons{},
 	})

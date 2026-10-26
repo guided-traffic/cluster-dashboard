@@ -37,7 +37,22 @@ bookmarks:
       - name: ConfigMap icon
         url: https://example.com
         icon: configmap:e2e.svg
+        badges:
+          - text:cm@bottom-left
 icons:
   configMap:
     files:
       e2e.svg: PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTAiIGZpbGw9IiM0YWE4ZmYiLz48L3N2Zz4=
+# A badge rule: the backend then watches IngressClasses, under the ClusterRole the chart adds — the
+# backend turns ready only if that grant works — and the custom app on example.com gets the globe.
+badges:
+  definitions:
+    world:
+      icon: material-symbols:public
+      label: reachable worldwide
+      tone: cyan
+  rules:
+    - match:
+        hosts: ["*.example.com"]
+        kinds: [app]
+      badge: world

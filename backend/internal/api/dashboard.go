@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/guided-traffic/dash/backend/internal/api/apigen"
+	"github.com/guided-traffic/dash/backend/internal/badges"
 	"github.com/guided-traffic/dash/backend/internal/dashboard"
 	"github.com/guided-traffic/dash/backend/internal/problem"
 )
@@ -60,7 +61,9 @@ func toDashboard(d dashboard.Dashboard) apigen.Dashboard {
 	for _, g := range d.Bookmarks {
 		group := apigen.BookmarkGroup{Name: g.Name, Bookmarks: make([]apigen.Bookmark, 0, len(g.Bookmarks))}
 		for _, b := range g.Bookmarks {
-			group.Bookmarks = append(group.Bookmarks, apigen.Bookmark{Id: b.ID, Name: b.Name, Url: b.URL, TargetBlank: b.TargetBlank, Icon: toIcon(b.Icon)})
+			group.Bookmarks = append(group.Bookmarks, apigen.Bookmark{
+				Id: b.ID, Name: b.Name, Url: b.URL, TargetBlank: b.TargetBlank, Icon: toIcon(b.Icon), Badges: toBadges(b.Badges),
+			})
 		}
 		out.Bookmarks = append(out.Bookmarks, group)
 	}
@@ -75,6 +78,7 @@ func toApp(a dashboard.App) apigen.App {
 		Url:         a.URL,
 		TargetBlank: a.TargetBlank,
 		Icon:        toIcon(a.Icon),
+		Badges:      toBadges(a.Badges),
 		Status: apigen.AppStatus{
 			State: apigen.AppStatusState(a.Status.State),
 			Ready: a.Status.Ready,
@@ -85,6 +89,24 @@ func toApp(a dashboard.App) apigen.App {
 		app.Info = &a.Info
 	}
 	return app
+}
+
+// toBadges are an item's badges in the API's shape, a list even when empty.
+func toBadges(in []badges.Badge) []apigen.Badge {
+	out := make([]apigen.Badge, 0, len(in))
+	for _, b := range in {
+		badge := apigen.Badge{Corner: apigen.BadgeCorner(b.Corner), Label: b.Label, Tone: apigen.BadgeTone(b.Tone)}
+		if b.Icon != nil {
+			icon := toIcon(*b.Icon)
+			badge.Icon = &icon
+		}
+		if b.Text != "" {
+			text := b.Text
+			badge.Text = &text
+		}
+		out = append(out, badge)
+	}
+	return out
 }
 
 func orEmpty(s []string) []string {

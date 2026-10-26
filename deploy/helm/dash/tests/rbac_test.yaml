@@ -186,3 +186,35 @@ tests:
         notMatchRegex:
           path: rules[2].verbs[0]
           pattern: get|create|update|patch|delete
+
+  - it: grants list and watch on IngressClasses while a badge rule exists, in every mode
+    set:
+      discovery.namespaceSelector:
+        any: false
+        matchNames: [media]
+      badges.definitions.home: { icon: "material-symbols:home", label: local }
+      badges.rules: [{ match: { ingressClassNames: [internal] }, badge: home }]
+    asserts:
+      - hasDocuments:
+          count: 4
+      - containsDocument:
+          kind: ClusterRole
+          apiVersion: rbac.authorization.k8s.io/v1
+          name: web-dash-ingressclasses
+          any: true
+      - containsDocument:
+          kind: ClusterRoleBinding
+          apiVersion: rbac.authorization.k8s.io/v1
+          name: web-dash-ingressclasses
+          any: true
+      - containsDocument:
+          kind: Role
+          apiVersion: rbac.authorization.k8s.io/v1
+          name: web-dash
+          namespace: media
+          any: true
+
+  - it: grants nothing on IngressClasses without a badge rule
+    asserts:
+      - hasDocuments:
+          count: 2

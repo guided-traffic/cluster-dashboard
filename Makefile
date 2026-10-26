@@ -236,6 +236,9 @@ integration-rbac: $(HELM_BIN) ## Render the chart's RBAC of each namespace-selec
 	$(RBAC_RENDER) --set discovery.namespaceSelector.any=false --set 'discovery.namespaceSelector.matchNames={team-a,team-b}' > $(RBAC_DIR)/names.yaml
 	$(RBAC_RENDER) --set discovery.namespaceSelector.any=false --set 'discovery.namespaceSelector.matchNames={static}' \
 	  --set discovery.namespaceSelector.labelSelector.matchLabels.dash=listed > $(RBAC_DIR)/labels.yaml
+	$(RBAC_RENDER) --set discovery.namespaceSelector.any=false --set 'discovery.namespaceSelector.matchNames={team-a,team-b}' \
+	  --set badges.definitions.home.text=lan --set badges.definitions.home.label=lan \
+	  --set 'badges.rules[0].badge=home' --set 'badges.rules[0].match.ingressClassNames={internal}' > $(RBAC_DIR)/classes.yaml
 
 INTEGRATION_ENV = $(TEST_ENV) DASH_TEST_ENVTEST_ASSETS=$(ENVTEST_DIR) DASH_TEST_ENVTEST_VERSION=$(ENVTEST_K8S_VERSION) DASH_TEST_RBAC_DIR=$(RBAC_DIR)
 

@@ -4,6 +4,8 @@ import (
 	"regexp"
 	"slices"
 
+	"github.com/guided-traffic/dash/backend/internal/badges"
+
 	discoveryv1 "k8s.io/api/discovery/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 )
@@ -24,9 +26,22 @@ type App struct {
 	// Icon is the dash.gtrfc.com/icon reference as written, "" when unset;
 	// resolving it is the icons package's.
 	Icon string
-	// Badges is dash.gtrfc.com/badges as written; parsing it is the badges
-	// package's.
+	// Badges is dash.gtrfc.com/badges as written.
 	Badges string
+	// OwnBadges are its entries the badge engine kept (Options.OwnBadges).
+	OwnBadges []badges.Entry
+	// IngressClass is the effective IngressClass (docs/adr/0011 D4):
+	// spec.ingressClassName, else the legacy annotation, else the cluster's
+	// default class; IngressController is that class's spec.controller.
+	// Both are filled when the apps are read, the controller and the default
+	// only while IngressClasses are watched.
+	IngressClass      string
+	IngressController string
+	// Annotations are the Ingress's annotations the badge rules read
+	// (Options.KeepAnnotations).
+	Annotations map[string]string
+	// explicitClass is the class the Ingress names itself.
+	explicitClass string
 	// Labels are the Ingress's labels, for auto-match and badge rules.
 	Labels map[string]string
 	// Services are the Services the Ingress sends traffic to.
@@ -104,6 +119,11 @@ func appOf(ing *networkingv1.Ingress, f Filter) (App, *skip, []ignoredKey) {
 		Labels:      ing.Labels,
 		Services:    backendServices(ing.Spec),
 		StatusCheck: orDefault(a.statusCheckEnabled, true),
+	}
+	if c := ing.Spec.IngressClassName; c != nil {
+		app.explicitClass = *c
+	} else {
+		app.explicitClass = ing.Annotations[LegacyIngressClass]
 	}
 	if app.Name == "" {
 		app.Name = ing.Name

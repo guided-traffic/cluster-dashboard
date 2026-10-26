@@ -177,6 +177,59 @@ bookmarks:
 	assert.Contains(t, logs, `"msg":"a remote icon failed to download; its items show their fallback, it is tried again after an hour","url":"https://127.0.0.1:1/logo.png"`)
 }
 
+// A badge definition whose glyph does not resolve refuses the start, as the
+// configuration's other problems do; with one that does, a rule on the
+// IngressClass puts its badge on the discovered app.
+func TestServeDrawsTheBadges(t *testing.T) {
+	d, _, stderr := testDeps(t, map[string]string{"DASH_CONFIG": "/c.yaml"}, map[string]string{"/c.yaml": `
+badges:
+  definitions:
+    world: {icon: "material-symbols:public", label: reachable worldwide}
+`})
+	assert.Equal(t, 1, run(context.Background(), []string{"serve"}, d))
+	assert.Contains(t, stderr.String(), `"msg":"the badges cannot be drawn","error":"badges.definitions.world.icon: names no icon of the bundled catalogues"`)
+
+	d, _, _ = testDeps(t, map[string]string{"DASH_LISTEN_ADDR": "127.0.0.1:0", "DASH_CONFIG": "/c.yaml"}, map[string]string{"/c.yaml": `
+discovery: {defaultEnable: true}
+badges:
+  definitions:
+    home: {icon: "material-symbols:apps", label: local network only}
+  rules:
+    - {match: {ingressControllers: [haproxy-ingress.github.io/controller]}, badge: home}
+`})
+	internal := &networkingv1.IngressClass{
+		ObjectMeta: metav1.ObjectMeta{Name: "internal", Annotations: map[string]string{networkingv1.AnnotationIsDefaultIngressClass: "true"}},
+		Spec:       networkingv1.IngressClassSpec{Controller: "haproxy-ingress.github.io/controller"},
+	}
+	app := &networkingv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{Namespace: "media", Name: "jellyfin"},
+		Spec:       networkingv1.IngressSpec{Rules: []networkingv1.IngressRule{{Host: "jellyfin.home.arpa"}}},
+	}
+	d.clients = func() (clients, error) {
+		return clients{version: answering{}, kube: fake.NewClientset(internal, app)}, nil
+	}
+	base, cancel, exit := serving(t, d)
+	require.Eventually(t, func() bool { return status(t, base+"/readyz") == http.StatusOK }, 5*time.Second, 10*time.Millisecond)
+	res, err := http.Get(base + "/api/v1/dashboard")
+	require.NoError(t, err)
+	var page struct {
+		Groups []struct {
+			Apps []struct {
+				Badges []struct {
+					Corner string `json:"corner"`
+					Label  string `json:"label"`
+				} `json:"badges"`
+			} `json:"apps"`
+		} `json:"groups"`
+	}
+	require.NoError(t, json.NewDecoder(res.Body).Decode(&page))
+	_ = res.Body.Close()
+	stopped(t, cancel, exit)
+	require.Len(t, page.Groups, 1)
+	require.Len(t, page.Groups[0].Apps[0].Badges, 1, "the default class's controller matched")
+	assert.Equal(t, "local network only", page.Groups[0].Apps[0].Badges[0].Label)
+}
+
 func TestServeFailsWhenItCannotListen(t *testing.T) {
 	d, _, stderr := testDeps(t, nil, nil)
 	d.listen = func(string) (net.Listener, error) { return nil, errors.New("address already in use") }

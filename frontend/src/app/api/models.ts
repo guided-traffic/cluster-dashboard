@@ -4,6 +4,7 @@
 export type { App } from './models/app';
 export type { AppGroup } from './models/app-group';
 export type { AppStatus } from './models/app-status';
+export type { Badge } from './models/badge';
 export type { Bookmark } from './models/bookmark';
 export type { BookmarkGroup } from './models/bookmark-group';
 export type { Dashboard } from './models/dashboard';

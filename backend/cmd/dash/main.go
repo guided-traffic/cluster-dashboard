@@ -19,10 +19,12 @@ import (
 	"syscall"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 
 	"github.com/guided-traffic/dash/backend/internal/api"
+	"github.com/guided-traffic/dash/backend/internal/badges"
 	"github.com/guided-traffic/dash/backend/internal/config"
 	"github.com/guided-traffic/dash/backend/internal/dashboard"
 	"github.com/guided-traffic/dash/backend/internal/discovery"
@@ -150,6 +152,11 @@ func serve(ctx context.Context, d deps) int {
 	}
 	defer closeIcons()
 	registerIcons(resolver, cfg.File, logger)
+	engine, err := newBadges(cfg.File.Badges, resolver)
+	if err != nil {
+		logger.Error("the badges cannot be drawn", "error", err)
+		return 1
+	}
 
 	cl, err := d.clients()
 	if err != nil {
@@ -163,7 +170,7 @@ func serve(ctx context.Context, d deps) int {
 
 	var disc *discovery.Discovery
 	if cfg.File.Discovery.Enabled {
-		disc, err = newDiscovery(cl.kube, cfg.File.Discovery, func(ref string) error { return resolver.Register(ref, true) }, logger)
+		disc, err = newDiscovery(cl.kube, cfg.File, resolver, engine, logger)
 		if err != nil {
 			logger.Error("discovery setup failed", "error", err)
 			return 1
@@ -179,7 +186,7 @@ func serve(ctx context.Context, d deps) int {
 
 	apiHandler, err := api.New(api.Options{
 		Logger: logger, Version: version, Commit: commit, BuildTime: buildTime,
-		Dashboard: dashboardSource(disc, cfg.File, resolver),
+		Dashboard: dashboardSource(disc, cfg.File, resolver, engine),
 		Icons:     resolver,
 	})
 	if err != nil {
@@ -202,15 +209,46 @@ func serve(ctx context.Context, d deps) int {
 	return 0
 }
 
-// newDiscovery sets the discovery up as the configuration selects; an
-// Ingress's icon annotation is registered with registerIcon.
-func newDiscovery(client kubernetes.Interface, c config.Discovery, registerIcon func(string) error, logger *slog.Logger) (*discovery.Discovery, error) {
-	opts, err := discovery.OptionsFrom(c)
+// newDiscovery sets the discovery up as the configuration selects: an
+// Ingress's icon is registered with the resolver, its badges parsed by the
+// engine; IngressClasses and the annotations the rules read are kept while
+// badge rules exist.
+func newDiscovery(client kubernetes.Interface, f config.File, r *icons.Resolver, engine *badges.Engine, logger *slog.Logger) (*discovery.Discovery, error) {
+	opts, err := discovery.OptionsFrom(f.Discovery)
 	if err != nil {
 		return nil, err
 	}
-	opts.RegisterIcon = registerIcon
+	opts.RegisterIcon = func(ref string) error { return r.Register(ref, true) }
+	opts.OwnBadges = func(raw string) ([]badges.Entry, []string) { return engine.Own(badges.SplitList(raw)) }
+	opts.IngressClasses = len(f.Badges.Rules) > 0
+	opts.KeepAnnotations = engine.AnnotationKeys()
 	return discovery.New(client, opts, logger)
+}
+
+// newBadges sets the badges up from the configuration: every definition's
+// glyph must resolve, or the backend does not start.
+func newBadges(c config.Badges, glyphs badges.Glyphs) (*badges.Engine, error) {
+	defs := make(map[string]badges.Definition, len(c.Definitions))
+	for name, d := range c.Definitions {
+		defs[name] = badges.Definition{Icon: d.Icon, Text: d.Text, Label: d.Label, Tone: d.Tone}
+	}
+	rules := make([]badges.Rule, 0, len(c.Rules))
+	for i, r := range c.Rules {
+		m := r.Match
+		rule := badges.Rule{Badge: r.Badge, Corner: badges.Corner(r.Corner), Match: badges.Match{
+			IngressClassNames: m.IngressClassNames, IngressControllers: m.IngressControllers, Namespaces: m.Namespaces,
+			Hosts: m.Hosts, Annotations: m.Annotations, Kinds: m.Kinds,
+		}}
+		if !m.Labels.IsEmpty() {
+			sel, err := metav1.LabelSelectorAsSelector(discovery.LabelSelector(m.Labels))
+			if err != nil {
+				return nil, fmt.Errorf("badges.rules[%d].match.labels: %w", i, err)
+			}
+			rule.Match.Labels = sel
+		}
+		rules = append(rules, rule)
+	}
+	return badges.New(defs, rules, glyphs)
 }
 
 // openIcons opens the icon packs and the icon ConfigMaps and sets the
@@ -293,7 +331,7 @@ func once(check func(context.Context) error) func(context.Context) error {
 
 // dashboardSource answers the page's content now: the discovery's apps — once
 // it has listed, not_ready before — and the configuration's, with their icons.
-func dashboardSource(disc *discovery.Discovery, f config.File, ic dashboard.Icons) func(context.Context) (dashboard.Dashboard, error) {
+func dashboardSource(disc *discovery.Discovery, f config.File, ic dashboard.Icons, bg dashboard.Badges) func(context.Context) (dashboard.Dashboard, error) {
 	return func(ctx context.Context) (dashboard.Dashboard, error) {
 		var apps []discovery.App
 		if disc != nil {
@@ -302,7 +340,7 @@ func dashboardSource(disc *discovery.Discovery, f config.File, ic dashboard.Icon
 			}
 			apps = disc.Apps()
 		}
-		return dashboard.Build(apps, f, ic), nil
+		return dashboard.Build(apps, f, ic, bg), nil
 	}
 }
 

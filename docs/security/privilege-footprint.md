@@ -18,13 +18,14 @@ asserts the refusals):
 | `matchNames` only | Role and RoleBinding `<namespace>-<fullname>` in each named namespace | Those namespaces only; nothing cluster-wide |
 | `labelSelector` | The ClusterRole, plus Namespaces | Ingresses and EndpointSlices of every namespace — the filter by label is the backend's, not the API server's — and every Namespace's labels |
 | `discovery.enabled: false` or `rbac.create: false` | None | Nothing; with `rbac.create: false` the administrator grants it |
+| Any, while `badges.rules` holds a rule | ClusterRole and ClusterRoleBinding `<namespace>-<fullname>-ingressclasses` | list, watch on IngressClasses: their names, controllers, parameter references and default marks — `matchNames` alone included |
 
 Never `get`, never a verb that writes, never Secrets or ConfigMaps: icon ConfigMaps will be mounted,
 not read through the API.
 
 **What a taken-over backend pod reads with the token** (plan §12, case 5): every Ingress of the
 scope — hosts, TLS secret names and every annotation, where some controllers keep authentication and
-allowlist settings — and every EndpointSlice — pod addresses and names. The backend itself keeps less:
+allowlist settings — and every EndpointSlice — pod addresses and names; with badge rules every IngressClass. The backend itself keeps less:
 its informers trim each object before the cache holds it, to `dash.gtrfc.com/*` and the legacy class
 annotation, the spec, and the endpoints' addresses, conditions and targets
 ([trim.go](../../backend/internal/discovery/trim.go)). The API it serves will carry derived fields

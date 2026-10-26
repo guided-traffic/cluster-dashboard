@@ -58,6 +58,60 @@ func (e AppStatusState) Valid() bool {
 	}
 }
 
+// Defines values for BadgeCorner.
+const (
+	BadgeCornerBottomLeft  BadgeCorner = "bottom-left"
+	BadgeCornerBottomRight BadgeCorner = "bottom-right"
+	BadgeCornerTopLeft     BadgeCorner = "top-left"
+	BadgeCornerTopRight    BadgeCorner = "top-right"
+)
+
+// Valid indicates whether the value is a known member of the BadgeCorner enum.
+func (e BadgeCorner) Valid() bool {
+	switch e {
+	case BadgeCornerBottomLeft:
+		return true
+	case BadgeCornerBottomRight:
+		return true
+	case BadgeCornerTopLeft:
+		return true
+	case BadgeCornerTopRight:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BadgeTone.
+const (
+	BadgeToneAmber   BadgeTone = "amber"
+	BadgeToneBlue    BadgeTone = "blue"
+	BadgeToneCoral   BadgeTone = "coral"
+	BadgeToneCyan    BadgeTone = "cyan"
+	BadgeToneMint    BadgeTone = "mint"
+	BadgeToneNeutral BadgeTone = "neutral"
+)
+
+// Valid indicates whether the value is a known member of the BadgeTone enum.
+func (e BadgeTone) Valid() bool {
+	switch e {
+	case BadgeToneAmber:
+		return true
+	case BadgeToneBlue:
+		return true
+	case BadgeToneCoral:
+		return true
+	case BadgeToneCyan:
+		return true
+	case BadgeToneMint:
+		return true
+	case BadgeToneNeutral:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for DashboardUIDefaultTheme.
 const (
 	DashboardUIDefaultThemeDark   DashboardUIDefaultTheme = "dark"
@@ -108,6 +162,9 @@ func (e ProblemCode) Valid() bool {
 
 // App A tile
 type App struct {
+	// Badges The pills on the icon, one per corner, in the order top-right, top-left, bottom-right, bottom-left
+	Badges []Badge `json:"badges"`
+
 	// Icon A resolved icon: every app and bookmark has one, the fallbacks decided by the backend. A glyph
 	// (tint) is drawn as a mask in the page's colour; a logo as it is, src_dark in the dark scheme.
 	Icon Icon `json:"icon"`
@@ -150,8 +207,31 @@ type AppStatus struct {
 // AppStatusState defines model for AppStatus.State.
 type AppStatusState string
 
+// Badge A pill on an item's icon, in the style of macOS dock badges: a glyph or a text, filled with its
+// tone. The label is the tooltip and the accessible name.
+type Badge struct {
+	Corner BadgeCorner `json:"corner"`
+
+	// Icon A resolved icon: every app and bookmark has one, the fallbacks decided by the backend. A glyph
+	// (tint) is drawn as a mask in the page's colour; a logo as it is, src_dark in the dark scheme.
+	Icon  *Icon  `json:"icon,omitempty"`
+	Label string `json:"label"`
+
+	// Text The text of a text badge; absent for a glyph
+	Text *string   `json:"text,omitempty"`
+	Tone BadgeTone `json:"tone"`
+}
+
+// BadgeCorner defines model for Badge.Corner.
+type BadgeCorner string
+
+// BadgeTone defines model for Badge.Tone.
+type BadgeTone string
+
 // Bookmark defines model for Bookmark.
 type Bookmark struct {
+	Badges []Badge `json:"badges"`
+
 	// Icon A resolved icon: every app and bookmark has one, the fallbacks decided by the backend. A glyph
 	// (tint) is drawn as a mask in the page's colour; a logo as it is, src_dark in the dark scheme.
 	Icon Icon `json:"icon"`

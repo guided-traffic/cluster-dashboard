@@ -1,6 +1,7 @@
 package discovery
 
 import (
+	"slices"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -14,31 +15,51 @@ import (
 // no managed fields, no last-applied configuration, no status of an Ingress,
 // no ports or topology of an endpoint. The caches of a large cluster stay
 // small, and the backend holds nothing it does not use: of an Ingress's
-// annotations, only Dash's own and the legacy class.
+// annotations, only Dash's own, the legacy class and those the badge rules
+// read; of an IngressClass, its controller and whether it is the default.
 
-// trim is the informers' transform. An object of another type — a deleted
-// object whose last state is unknown — passes unchanged.
-func trim(obj any) (any, error) {
-	switch o := obj.(type) {
-	case *networkingv1.Ingress:
-		return trimIngress(o), nil
-	case *discoveryv1.EndpointSlice:
-		return trimEndpointSlice(o), nil
-	case *corev1.Namespace:
-		return &corev1.Namespace{ObjectMeta: trimMeta(o.ObjectMeta, nil)}, nil
-	default:
-		return obj, nil
+// trimmer is the informers' transform: it keeps of an Ingress's
+// annotations Dash's own, the legacy class and those the badge rules read
+// (keep). An object of another type — a deleted object whose last state is
+// unknown — passes unchanged.
+func trimmer(keep []string) func(obj any) (any, error) {
+	return func(obj any) (any, error) {
+		switch o := obj.(type) {
+		case *networkingv1.Ingress:
+			return trimIngress(o, keep), nil
+		case *discoveryv1.EndpointSlice:
+			return trimEndpointSlice(o), nil
+		case *corev1.Namespace:
+			return &corev1.Namespace{ObjectMeta: trimMeta(o.ObjectMeta, nil)}, nil
+		case *networkingv1.IngressClass:
+			return trimIngressClass(o), nil
+		default:
+			return obj, nil
+		}
 	}
 }
 
-func trimIngress(in *networkingv1.Ingress) *networkingv1.Ingress {
-	keep := map[string]string{}
+// trim is trimmer without keys of the rules.
+var trim = trimmer(nil)
+
+func trimIngress(in *networkingv1.Ingress, keep []string) *networkingv1.Ingress {
+	kept := map[string]string{}
 	for k, v := range in.Annotations {
-		if strings.HasPrefix(k, Prefix) || k == LegacyIngressClass {
-			keep[k] = v
+		if strings.HasPrefix(k, Prefix) || k == LegacyIngressClass || slices.Contains(keep, k) {
+			kept[k] = v
 		}
 	}
-	return &networkingv1.Ingress{ObjectMeta: trimMeta(in.ObjectMeta, keep), Spec: in.Spec}
+	return &networkingv1.Ingress{ObjectMeta: trimMeta(in.ObjectMeta, kept), Spec: in.Spec}
+}
+
+// trimIngressClass keeps a class's name, whether it is the default, and its
+// controller.
+func trimIngressClass(in *networkingv1.IngressClass) *networkingv1.IngressClass {
+	var kept map[string]string
+	if v, ok := in.Annotations[networkingv1.AnnotationIsDefaultIngressClass]; ok {
+		kept = map[string]string{networkingv1.AnnotationIsDefaultIngressClass: v}
+	}
+	return &networkingv1.IngressClass{ObjectMeta: trimMeta(in.ObjectMeta, kept), Spec: networkingv1.IngressClassSpec{Controller: in.Spec.Controller}}
 }
 
 func trimEndpointSlice(in *discoveryv1.EndpointSlice) *discoveryv1.EndpointSlice {

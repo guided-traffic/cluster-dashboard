@@ -6,15 +6,25 @@ package dashboard
 
 import (
 	"fmt"
+	"net/url"
 	"slices"
 	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/guided-traffic/dash/backend/internal/badges"
 	"github.com/guided-traffic/dash/backend/internal/config"
 	"github.com/guided-traffic/dash/backend/internal/discovery"
 	"github.com/guided-traffic/dash/backend/internal/icons"
 )
+
+// Badges puts the badges on each item; badges.Engine does.
+type Badges interface {
+	// Own parses an item's own entries of the configuration.
+	Own(raw []string) ([]badges.Entry, []string)
+	// For is an item's badges.
+	For(item badges.Item) []badges.Badge
+}
 
 // Icons resolves the icon of each item; icons.Resolver does, deciding every
 // fallback.
@@ -79,6 +89,8 @@ type App struct {
 	Status discovery.Status
 	// Icon is resolved: every app has one.
 	Icon icons.Icon
+	// Badges are its pills, one per corner, in the order of badges.Corners.
+	Badges []badges.Badge
 	// Namespace is a discovered app's, empty for a custom one.
 	Namespace string
 }
@@ -97,6 +109,7 @@ type Bookmark struct {
 	URL         string
 	TargetBlank bool
 	Icon        icons.Icon
+	Badges      []badges.Badge
 }
 
 // Scope is what the discovery reads: the empty page names it, so that a
@@ -118,14 +131,14 @@ type Summary struct {
 }
 
 // Build assembles the page from the discovered apps and the configuration,
-// each item with its icon.
-func Build(discovered []discovery.App, f config.File, ic Icons) Dashboard {
+// each item with its icon and its badges.
+func Build(discovered []discovery.App, f config.File, ic Icons, bg Badges) Dashboard {
 	d := Dashboard{UI: f.UI, Scope: scopeOf(f.Discovery)}
 	if f.UI.ShowApps {
-		d.Apps = appGroups(discovered, f, ic)
+		d.Apps = appGroups(discovered, f, ic, bg)
 	}
 	if f.UI.ShowBookmarks {
-		d.Bookmarks = bookmarkGroups(f, ic)
+		d.Bookmarks = bookmarkGroups(f, ic, bg)
 	}
 	for _, g := range d.Apps {
 		for _, a := range g.Apps {
@@ -133,6 +146,22 @@ func Build(discovered []discovery.App, f config.File, ic Icons) Dashboard {
 		}
 	}
 	return d
+}
+
+// configured are the badges of a custom app or a bookmark: its own entries,
+// which config.Load checked, then the rules.
+func configured(bg Badges, kind, link string, entries []string) []badges.Badge {
+	own, _ := bg.Own(entries)
+	return bg.For(badges.Item{Kind: kind, Host: hostOf(link), Own: own})
+}
+
+// hostOf is a URL's host, without its port.
+func hostOf(link string) string {
+	u, err := url.Parse(link)
+	if err != nil {
+		return ""
+	}
+	return u.Hostname()
 }
 
 func scopeOf(c config.Discovery) Scope {
@@ -161,12 +190,17 @@ func (s *Summary) add(state discovery.State) {
 	}
 }
 
-func appGroups(discovered []discovery.App, f config.File, ic Icons) []AppGroup {
+func appGroups(discovered []discovery.App, f config.File, ic Icons, bg Badges) []AppGroup {
 	byName := map[string][]App{}
 	for _, a := range discovered {
 		app := App{
 			ID: "ingress/" + a.Key(), Kind: KindIngress, Name: a.Name, URL: a.URL, Info: a.Info,
 			TargetBlank: a.TargetBlank, Status: a.Status, Namespace: a.Namespace, Icon: ic.App(a.Icon, a.Names),
+			Badges: bg.For(badges.Item{
+				Kind: config.KindIngress, Host: hostOf(a.URL), Namespace: a.Namespace, Labels: a.Labels,
+				Annotations: a.Annotations, IngressClass: a.IngressClass, IngressController: a.IngressController,
+				Own: a.OwnBadges,
+			}),
 		}
 		byName[a.Group] = append(byName[a.Group], app)
 	}
@@ -175,7 +209,8 @@ func appGroups(discovered []discovery.App, f config.File, ic Icons) []AppGroup {
 			app := App{
 				ID: fmt.Sprintf("app/%d/%d", gi, ai), Kind: KindApp, Name: a.Name, URL: a.URL, Info: a.Info,
 				TargetBlank: a.TargetBlank, Status: discovery.Status{State: discovery.Unknown},
-				Icon: ic.App(a.Icon, []string{a.Name}),
+				Icon:   ic.App(a.Icon, []string{a.Name}),
+				Badges: configured(bg, config.KindApp, a.URL, a.Badges),
 			}
 			byName[g.Group] = append(byName[g.Group], app)
 		}
@@ -227,7 +262,7 @@ func byNameThen(a, b, tieA, tieB string) int {
 	return strings.Compare(tieA, tieB)
 }
 
-func bookmarkGroups(f config.File, ic Icons) []BookmarkGroup {
+func bookmarkGroups(f config.File, ic Icons, bg Badges) []BookmarkGroup {
 	groups := make([]BookmarkGroup, 0, len(f.Bookmarks))
 	for gi, g := range f.Bookmarks {
 		group := BookmarkGroup{Name: g.Group, Bookmarks: make([]Bookmark, 0, len(g.Bookmarks))}
@@ -238,6 +273,7 @@ func bookmarkGroups(f config.File, ic Icons) []BookmarkGroup {
 				URL:         b.URL,
 				TargetBlank: b.TargetBlank || f.UI.AlwaysTargetBlank,
 				Icon:        ic.Bookmark(b.Icon),
+				Badges:      configured(bg, config.KindBookmark, b.URL, b.Badges),
 			})
 		}
 		groups = append(groups, group)

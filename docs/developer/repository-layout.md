@@ -15,7 +15,7 @@ dash/
 │   ├── internal/
 │   │   ├── api/                  # the request pipeline and the handlers
 │   │   │   └── apigen/           # oapi-codegen output (generated)
-│   │   ├── badges/               # corners, tones, the grammar of a badge entry
+│   │   ├── badges/               # corners, tones, the entry grammar, the engine: definitions, rules, corners
 │   │   ├── config/               # DASH_* variables and the strict YAML file → Config, validated
 │   │   ├── dashboard/            # groups, order, summary: the page's model
 │   │   ├── discovery/            # informers, annotations, selection, URL, status

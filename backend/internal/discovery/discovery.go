@@ -42,6 +42,8 @@ type Discovery struct {
 	slices map[string]cache.Indexer
 	// namespaces is the Namespace cache, for a label selector only.
 	namespaces cache.Indexer
+	// classes is the IngressClass cache, while badge rules exist.
+	classes cache.Indexer
 
 	mu   sync.RWMutex
 	apps map[string]App
@@ -62,7 +64,7 @@ func New(client kubernetes.Interface, opts Options, logger *slog.Logger) (*Disco
 		scopes = opts.Namespaces.Names
 	}
 	for _, ns := range scopes {
-		f := informers.NewSharedInformerFactoryWithOptions(client, 0, informers.WithNamespace(ns), informers.WithTransform(trim))
+		f := informers.NewSharedInformerFactoryWithOptions(client, 0, informers.WithNamespace(ns), informers.WithTransform(trimmer(opts.KeepAnnotations)))
 		ingresses := f.Networking().V1().Ingresses().Informer()
 		endpointSlices := f.Discovery().V1().EndpointSlices().Informer()
 		if err := endpointSlices.AddIndexers(cache.Indexers{serviceIndex: byService}); err != nil {
@@ -92,6 +94,14 @@ func New(client kubernetes.Interface, opts Options, logger *slog.Logger) (*Disco
 			return nil, err
 		}
 		d.namespaces = namespaces.GetIndexer()
+	}
+	if opts.IngressClasses {
+		// IngressClasses are cluster-scoped: any of the factories lists them.
+		classes := d.factories[0].Networking().V1().IngressClasses().Informer()
+		if err := d.watchErrors(classes, "ingressclasses", ""); err != nil {
+			return nil, err
+		}
+		d.classes = classes.GetIndexer()
 	}
 	return d, nil
 }
@@ -168,11 +178,8 @@ func (d *Discovery) upsert(obj any) {
 		return
 	}
 	app, why, ignored := appOf(ing, d.opts.Filter)
-	if app.Icon != "" && d.opts.RegisterIcon != nil {
-		if err := d.opts.RegisterIcon(app.Icon); err != nil {
-			ignored = append(ignored, ignoredKey{key: KeyIcon, reason: err.Error()})
-			app.Icon = ""
-		}
+	if why == nil {
+		ignored = append(ignored, d.enrich(&app, ing)...)
 	}
 	// An Ingress of a namespace the selector does not take is no business
 	// of the log; with a label selector it is read all the same, in case
@@ -195,6 +202,35 @@ func (d *Discovery) upsert(obj any) {
 		return
 	}
 	d.apps[app.Key()] = app
+}
+
+// enrich adds to an app what the icons and badges make of its Ingress:
+// its icon registered, its own badges parsed, the annotations the rules
+// read. It returns the keys it ignored.
+func (d *Discovery) enrich(app *App, ing *networkingv1.Ingress) []ignoredKey {
+	var ignored []ignoredKey
+	if app.Icon != "" && d.opts.RegisterIcon != nil {
+		if err := d.opts.RegisterIcon(app.Icon); err != nil {
+			ignored = append(ignored, ignoredKey{key: KeyIcon, reason: err.Error()})
+			app.Icon = ""
+		}
+	}
+	if app.Badges != "" && d.opts.OwnBadges != nil {
+		var problems []string
+		app.OwnBadges, problems = d.opts.OwnBadges(app.Badges)
+		for _, p := range problems {
+			ignored = append(ignored, ignoredKey{key: KeyBadges, reason: p})
+		}
+	}
+	for _, k := range d.opts.KeepAnnotations {
+		if v, ok := ing.Annotations[k]; ok {
+			if app.Annotations == nil {
+				app.Annotations = map[string]string{}
+			}
+			app.Annotations[k] = v
+		}
+	}
+	return ignored
 }
 
 // remove forgets a deleted Ingress.
@@ -238,9 +274,11 @@ func (d *Discovery) Apps() []App {
 	d.mu.RUnlock()
 
 	apps = slices.DeleteFunc(apps, func(a App) bool { return !d.selected(a.Namespace) })
+	defaultClass := d.defaultClass()
 	for i, a := range apps {
 		endpointSlices := d.endpointSlices(a.Namespace, a.Services)
 		apps[i].Names = knownAs(a, endpointSlices)
+		apps[i].IngressClass, apps[i].IngressController = d.classOf(a.explicitClass, defaultClass)
 		apps[i].Status = Status{State: Unknown}
 		if a.StatusCheck {
 			apps[i].Status = statusOf(endpointSlices)
@@ -248,6 +286,42 @@ func (d *Discovery) Apps() []App {
 	}
 	slices.SortFunc(apps, func(a, b App) int { return strings.Compare(a.Key(), b.Key()) })
 	return apps
+}
+
+// defaultClass is the cluster's default IngressClass: the one class
+// annotated as the default; none while IngressClasses are not watched, and
+// none where several claim it, as the API server then admits no Ingress
+// without a class.
+func (d *Discovery) defaultClass() string {
+	if d.classes == nil {
+		return ""
+	}
+	var found []string
+	for _, obj := range d.classes.List() {
+		if c, ok := obj.(*networkingv1.IngressClass); ok && c.Annotations[networkingv1.AnnotationIsDefaultIngressClass] == "true" {
+			found = append(found, c.Name)
+		}
+	}
+	if len(found) != 1 {
+		return ""
+	}
+	return found[0]
+}
+
+// classOf is an app's effective IngressClass and its controller.
+func (d *Discovery) classOf(explicit, defaultClass string) (string, string) {
+	name := explicit
+	if name == "" {
+		name = defaultClass
+	}
+	if name == "" || d.classes == nil {
+		return name, ""
+	}
+	obj, ok, _ := d.classes.GetByKey(name)
+	if c, isClass := obj.(*networkingv1.IngressClass); ok && isClass {
+		return name, c.Spec.Controller
+	}
+	return name, ""
 }
 
 // endpointSlices are the cached EndpointSlices of a namespace's Services.

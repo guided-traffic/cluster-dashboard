@@ -7,6 +7,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 
+	"github.com/guided-traffic/dash/backend/internal/badges"
 	"github.com/guided-traffic/dash/backend/internal/config"
 )
 
@@ -59,6 +60,16 @@ func (s NamespaceSelector) selects(name string, nsLabels map[string]string) bool
 type Options struct {
 	Filter     Filter
 	Namespaces NamespaceSelector
+	// IngressClasses watches the cluster's IngressClasses, for the
+	// effective class's default and controller: on while badge rules
+	// exist, which the chart's RBAC follows.
+	IngressClasses bool
+	// KeepAnnotations are annotation keys the badge rules read; the cache
+	// keeps them beside Dash's own.
+	KeepAnnotations []string
+	// OwnBadges parses an Ingress's dash.gtrfc.com/badges when the Ingress
+	// is read and names the entries it drops; nil keeps none.
+	OwnBadges func(raw string) ([]badges.Entry, []string)
 	// RegisterIcon makes an Ingress's dash.gtrfc.com/icon known when the
 	// Ingress is read — a URL starts its download — and tells why it will
 	// not resolve: such an annotation is ignored with a log line, and the

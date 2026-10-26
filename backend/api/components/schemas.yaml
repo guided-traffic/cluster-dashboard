@@ -80,6 +80,8 @@ Dashboard:
             target_blank: false
             status: {state: healthy, ready: 2, total: 2}
             icon: {src: /api/v1/icons/sh@1d65d45a42e6/grafana.svg, tint: false}
+            badges:
+              - {corner: top-right, icon: {src: /api/v1/icons/material-symbols@1.2.96/home.svg, tint: true}, label: local network only, tone: neutral}
           - id: ingress/monitoring/prometheus
             kind: ingress
             name: Prometheus
@@ -87,10 +89,13 @@ Dashboard:
             target_blank: false
             status: {state: degraded, ready: 1, total: 2}
             icon: {src: /api/v1/icons/sh@1d65d45a42e6/prometheus.svg, tint: false}
+            badges:
+              - {corner: top-right, icon: {src: /api/v1/icons/material-symbols@1.2.96/home.svg, tint: true}, label: local network only, tone: neutral}
+              - {corner: bottom-left, text: beta, label: beta release, tone: amber}
     bookmarks:
       - name: docs
         bookmarks:
-          - {id: bookmark/0/0, name: Kubernetes, url: 'https://kubernetes.io/docs', target_blank: true, icon: {src: /api/v1/icons/si@1.2.101/kubernetes.svg, tint: true}}
+          - {id: bookmark/0/0, name: Kubernetes, url: 'https://kubernetes.io/docs', target_blank: true, icon: {src: /api/v1/icons/si@1.2.101/kubernetes.svg, tint: true}, badges: []}
 DashboardUI:
   type: object
   description: The ui settings the page applies itself
@@ -157,11 +162,17 @@ AppGroup:
 App:
   type: object
   description: A tile
-  required: [id, kind, name, url, target_blank, status, icon]
+  required: [id, kind, name, url, target_blank, status, icon, badges]
   properties:
     id: {type: string, description: 'Unique on the page: ingress/<namespace>/<name> or app/<group>/<index>'}
     icon:
       $ref: '#/Icon'
+    badges:
+      type: array
+      description: The pills on the icon, one per corner, in the order top-right, top-left, bottom-right, bottom-left
+      maxItems: 4
+      items:
+        $ref: '#/Badge'
     kind:
       type: string
       enum: [ingress, app]
@@ -193,10 +204,15 @@ BookmarkGroup:
         $ref: '#/Bookmark'
 Bookmark:
   type: object
-  required: [id, name, url, target_blank, icon]
+  required: [id, name, url, target_blank, icon, badges]
   properties:
     icon:
       $ref: '#/Icon'
+    badges:
+      type: array
+      maxItems: 4
+      items:
+        $ref: '#/Badge'
     id: {type: string, description: 'bookmark/<group>/<index>'}
     name: {type: string}
     url: {type: string}
@@ -211,3 +227,20 @@ Icon:
     src: {type: string, description: 'The icon on the dashboard''s origin, under /api/v1/icons/'}
     src_dark: {type: string, description: 'The variant the dark scheme shows; absent when it is the same'}
     tint: {type: boolean, description: 'A monochrome glyph, drawn in the colour of the page'}
+Badge:
+  type: object
+  description: |
+    A pill on an item's icon, in the style of macOS dock badges: a glyph or a text, filled with its
+    tone. The label is the tooltip and the accessible name.
+  required: [corner, label, tone]
+  properties:
+    corner:
+      type: string
+      enum: [top-right, top-left, bottom-right, bottom-left]
+    icon:
+      $ref: '#/Icon'
+    text: {type: string, maxLength: 8, description: 'The text of a text badge; absent for a glyph'}
+    label: {type: string}
+    tone:
+      type: string
+      enum: [neutral, blue, cyan, mint, amber, coral]

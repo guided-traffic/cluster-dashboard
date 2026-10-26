@@ -24,6 +24,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/utils/ptr"
 
+	"github.com/guided-traffic/dash/backend/internal/badges"
 	"github.com/guided-traffic/dash/backend/internal/config"
 )
 
@@ -195,6 +196,88 @@ func TestAnIconThatDoesNotResolveIsIgnored(t *testing.T) {
 	assert.Equal(t, []string{"a"}, apps[0].Names, "the name, which is the Ingress's")
 }
 
+func ingressClass(name, controller string, isDefault bool) *networkingv1.IngressClass {
+	c := &networkingv1.IngressClass{ObjectMeta: metav1.ObjectMeta{Name: name}, Spec: networkingv1.IngressClassSpec{Controller: controller}}
+	if isDefault {
+		c.Annotations = map[string]string{networkingv1.AnnotationIsDefaultIngressClass: "true"}
+	}
+	return c
+}
+
+func classed(name string) func(*networkingv1.Ingress) {
+	return func(ing *networkingv1.Ingress) { ing.Spec.IngressClassName = ptr.To(name) }
+}
+
+// The effective IngressClass (docs/adr/0011 D4): the field, else the legacy
+// annotation, else the cluster's one default class; its controller from the
+// IngressClass.
+func TestTheEffectiveIngressClass(t *testing.T) {
+	client := fake.NewClientset(
+		ingressClass("internal", "haproxy-ingress.github.io/controller", true),
+		ingressClass("external", "k8s.io/ingress-nginx", false),
+		in("media", "field", classed("external"), annotate(LegacyIngressClass, "internal")),
+		in("media", "legacy", annotate(LegacyIngressClass, "external")),
+		in("media", "default"),
+		in("media", "unknown", classed("gone")),
+	)
+	opts := anyNamespace
+	opts.IngressClasses = true
+	d, _ := start(t, client, opts)
+	eventually(t, d, []string{"media/default", "media/field", "media/legacy", "media/unknown"})
+	got := map[string][2]string{}
+	for _, a := range d.Apps() {
+		got[a.Ingress] = [2]string{a.IngressClass, a.IngressController}
+	}
+	assert.Equal(t, map[string][2]string{
+		"field":   {"external", "k8s.io/ingress-nginx"},
+		"legacy":  {"external", "k8s.io/ingress-nginx"},
+		"default": {"internal", "haproxy-ingress.github.io/controller"},
+		"unknown": {"gone", ""},
+	}, got)
+
+	// A second default class: the API server admits no Ingress without a
+	// class then, and the discovery takes none.
+	_, err := client.NetworkingV1().IngressClasses().Create(t.Context(), ingressClass("lan", "x", true), metav1.CreateOptions{})
+	require.NoError(t, err)
+	assert.Eventually(t, func() bool {
+		for _, a := range d.Apps() {
+			if a.Ingress == "default" {
+				return a.IngressClass == ""
+			}
+		}
+		return false
+	}, within, 10*time.Millisecond)
+}
+
+// Without badge rules no IngressClass is read: the explicit class only.
+func TestIngressClassesAreReadOnlyForRules(t *testing.T) {
+	client := fake.NewClientset(ingressClass("internal", "c", true), in("media", "a", classed("external")), in("media", "b"))
+	d, _ := start(t, client, anyNamespace)
+	eventually(t, d, []string{"media/a", "media/b"})
+	assert.Equal(t, "external", d.Apps()[0].IngressClass)
+	assert.Empty(t, d.Apps()[0].IngressController)
+	assert.Empty(t, d.Apps()[1].IngressClass)
+	for _, action := range client.Actions() {
+		assert.NotEqual(t, "ingressclasses", action.GetResource().Resource)
+	}
+}
+
+func TestBadgesAndTheAnnotationsTheRulesRead(t *testing.T) {
+	client := fake.NewClientset(in("media", "a", annotate(KeyBadges, "beta,nope", "example.com/tier", "gold", "example.com/other", "x")))
+	opts := anyNamespace
+	opts.KeepAnnotations = []string{"example.com/tier"}
+	opts.OwnBadges = func(raw string) ([]badges.Entry, []string) {
+		assert.Equal(t, "beta,nope", raw)
+		return []badges.Entry{{Name: "beta", Corner: badges.TopRight}}, []string{"entry 2 names no badge definition"}
+	}
+	d, logs := start(t, client, opts)
+	eventually(t, d, []string{"media/a"})
+	a := d.Apps()[0]
+	assert.Equal(t, []badges.Entry{{Name: "beta", Corner: badges.TopRight}}, a.OwnBadges)
+	assert.Equal(t, map[string]string{"example.com/tier": "gold"}, a.Annotations)
+	assert.Contains(t, logs.String(), `msg="an annotation is ignored" namespace=media ingress=a key=dash.gtrfc.com/badges reason="entry 2 names no badge definition"`)
+}
+
 // With a label selector the Ingresses of every namespace are read; those of
 // a namespace it does not select are not the log's business.
 func TestUnselectedNamespacesAreNotLogged(t *testing.T) {
@@ -273,6 +356,23 @@ func TestTrim(t *testing.T) {
 	assert.Nil(t, outSlice.Endpoints[0].NodeName)
 	assert.Equal(t, &corev1.ObjectReference{Kind: "Pod", Name: "p1"}, outSlice.Endpoints[0].TargetRef)
 	assert.Equal(t, "grafana", outSlice.Labels[discoveryv1.LabelServiceName])
+
+	class := ingressClass("internal", "c", true)
+	class.Labels = map[string]string{"x": "y"}
+	class.Spec.Parameters = &networkingv1.IngressClassParametersReference{Kind: "ConfigMap", Name: "p"}
+	got, err = trim(class)
+	require.NoError(t, err)
+	assert.Equal(t, &networkingv1.IngressClass{
+		ObjectMeta: metav1.ObjectMeta{Name: "internal", Labels: map[string]string{"x": "y"}, Annotations: class.Annotations},
+		Spec:       networkingv1.IngressClassSpec{Controller: "c"},
+	}, got)
+	got, err = trim(ingressClass("plain", "c", false))
+	require.NoError(t, err)
+	assert.Nil(t, got.(*networkingv1.IngressClass).Annotations)
+
+	got, err = trimmer([]string{"example.com/tier"})(in("media", "a", annotate("example.com/tier", "gold", "example.com/x", "y")))
+	require.NoError(t, err)
+	assert.Equal(t, map[string]string{"example.com/tier": "gold"}, got.(*networkingv1.Ingress).Annotations)
 
 	got, err = trim(namespace("media", map[string]string{"a": "b"}))
 	require.NoError(t, err)

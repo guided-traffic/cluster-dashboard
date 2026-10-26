@@ -6,10 +6,18 @@ interface Icon {
   tint: boolean;
 }
 
+interface Badge {
+  corner: string;
+  icon?: Icon;
+  text?: string;
+  label: string;
+  tone: string;
+}
+
 interface DashboardBody {
   discovery: { enabled: boolean };
-  groups: { name: string; apps: { id: string; name: string; icon: Icon }[] }[];
-  bookmarks: { name: string; bookmarks: { name: string; icon: Icon }[] }[];
+  groups: { name: string; apps: { id: string; name: string; icon: Icon; badges: Badge[] }[] }[];
+  bookmarks: { name: string; bookmarks: { name: string; icon: Icon; badges: Badge[] }[] }[];
 }
 
 async function dashboard(request: import('@playwright/test').APIRequestContext): Promise<DashboardBody> {
@@ -46,4 +54,17 @@ test('icons come from the image packs and the icon ConfigMap, immutable and iner
     expect(response.headers()['x-content-type-options']).toBe('nosniff');
     expect(await response.text()).toContain('<svg');
   }
+});
+
+test('badges come from a rule and from an item of its own', async ({ request }) => {
+  const body = await dashboard(request);
+  const grafana = body.groups.flatMap((group) => group.apps).find((app) => app.name === 'Grafana');
+  expect(grafana?.badges).toHaveLength(1);
+  expect(grafana?.badges[0]).toMatchObject({ corner: 'top-right', label: 'reachable worldwide', tone: 'cyan' });
+  expect(grafana?.badges[0].icon?.tint).toBe(true);
+  const glyph = await request.get(grafana!.badges[0].icon!.src);
+  expect(glyph.status()).toBe(200);
+
+  const bookmark = body.bookmarks.flatMap((group) => group.bookmarks).find((b) => b.name === 'ConfigMap icon');
+  expect(bookmark?.badges).toEqual([{ corner: 'bottom-left', text: 'cm', label: 'cm', tone: 'neutral' }]);
 });

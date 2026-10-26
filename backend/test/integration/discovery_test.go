@@ -34,9 +34,10 @@ import (
 )
 
 // rbacModes are the files make integration-rbac renders: the chart's RBAC
-// for every namespace, for two named namespaces, and for a named namespace
-// united with a label selector.
-var rbacModes = []string{"any", "names", "labels"}
+// for every namespace, for two named namespaces, for a named namespace
+// united with a label selector, and for two named namespaces with a badge
+// rule, which adds the IngressClasses.
+var rbacModes = []string{"any", "names", "labels", "classes"}
 
 // within bounds how long the discovery may take to follow a change.
 const within = 15 * time.Second
@@ -261,6 +262,38 @@ func TestTheDiscoveryUnderTheChartsRBAC(t *testing.T) {
 			_, err := c.CoreV1().Secrets("team-a").List(ctx, metav1.ListOptions{})
 			return err
 		}, "secrets of a named namespace")
+	})
+
+	t.Run("badge rules read the IngressClasses", func(t *testing.T) {
+		for _, c := range []*networkingv1.IngressClass{
+			{ObjectMeta: metav1.ObjectMeta{Name: "internal", Annotations: map[string]string{networkingv1.AnnotationIsDefaultIngressClass: "true"}},
+				Spec: networkingv1.IngressClassSpec{Controller: "haproxy-ingress.github.io/controller"}},
+		} {
+			_, err := admin.NetworkingV1().IngressClasses().Create(t.Context(), c, metav1.CreateOptions{})
+			if !apierrors.IsAlreadyExists(err) {
+				require.NoError(t, err)
+			}
+		}
+		applyRBAC(t, "classes")
+		d := runDiscovery(t, discovery.Options{
+			Filter: filter, Namespaces: discovery.NamespaceSelector{Names: []string{"team-a", "team-b"}}, IngressClasses: true,
+		})
+		eventuallyApps(t, d, "team-a/web", "team-b/web")
+		assert.Eventually(t, func() bool {
+			a := d.Apps()[0]
+			return a.IngressClass == "internal" && a.IngressController == "haproxy-ingress.github.io/controller"
+		}, within, 50*time.Millisecond, "the default class and its controller")
+
+		c, err := kubernetes.NewForConfig(asBackend())
+		require.NoError(t, err)
+		forbidden(t, func(ctx context.Context) error {
+			_, err := c.NetworkingV1().Ingresses("").List(ctx, metav1.ListOptions{})
+			return err
+		}, "ingresses cluster-wide, a ClusterRole on IngressClasses notwithstanding")
+		forbidden(t, func(ctx context.Context) error {
+			_, err := c.NetworkingV1().IngressClasses().Get(ctx, "internal", metav1.GetOptions{})
+			return err
+		}, "get on IngressClasses")
 	})
 
 	t.Run("a label selector", func(t *testing.T) {

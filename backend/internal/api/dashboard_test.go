@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/guided-traffic/dash/backend/internal/badges"
 	"github.com/guided-traffic/dash/backend/internal/config"
 	"github.com/guided-traffic/dash/backend/internal/dashboard"
 	"github.com/guided-traffic/dash/backend/internal/discovery"
@@ -58,6 +59,20 @@ func (stubIcons) CatalogIcon(pack, file string) ([]byte, error) {
 	return nil, icons.ErrNoIcon
 }
 
+// Glyph resolves every badge glyph to the material-symbols home.
+func (stubIcons) Glyph(string) (icons.Icon, error) {
+	return icons.Icon{Src: "/api/v1/icons/material-symbols@1.2.96/home.svg", Tint: true}, nil
+}
+
+// noBadges is an engine without definitions or rules.
+var noBadges = func() *badges.Engine {
+	e, err := badges.New(nil, nil, stubIcons{})
+	if err != nil {
+		panic(err)
+	}
+	return e
+}()
+
 // withDashboard is the API, every response held to the document, answering
 // the dashboard source gives.
 func withDashboard(t *testing.T, source func(context.Context) (dashboard.Dashboard, error)) http.Handler {
@@ -73,11 +88,17 @@ func TestGetDashboardAnswersThePage(t *testing.T) {
 	f.UI.GroupOrder = []string{"tools"}
 	f.Apps = []config.AppGroup{{Group: "tools", Apps: []config.App{{Name: "Router", URL: "https://192.168.1.1", Icon: "mdi:web", TargetBlank: true}}}}
 	f.Bookmarks = []config.BookmarkGroup{{Group: "docs", Bookmarks: []config.Bookmark{{Name: "Kubernetes", URL: "https://kubernetes.io/docs"}}}}
+	engine, err := badges.New(map[string]badges.Definition{
+		"home": {Icon: "material-symbols:home", Label: "local network only"},
+		"beta": {Text: "beta", Label: "beta release", Tone: "amber"},
+	}, []badges.Rule{{Match: badges.Match{IngressClassNames: []string{"internal"}}, Badge: "home"}}, stubIcons{})
+	require.NoError(t, err)
+	f.Apps[0].Apps[0].Badges = []string{"beta@bottom-left"}
 	d := dashboard.Build([]discovery.App{{
 		Namespace: "monitoring", Ingress: "grafana", Name: "Grafana", Group: "monitoring",
-		URL: "https://grafana.example.com/", Info: "Dashboards",
+		URL: "https://grafana.example.com/", Info: "Dashboards", IngressClass: "internal",
 		Status: discovery.Status{State: discovery.Degraded, Ready: 1, Total: 2},
-	}}, f, stubIcons{})
+	}}, f, stubIcons{}, engine)
 	h := withDashboard(t, func(context.Context) (dashboard.Dashboard, error) { return d, nil })
 
 	rec := get(t, h, http.MethodGet, "/api/v1/dashboard")
@@ -95,17 +116,20 @@ func TestGetDashboardAnswersThePage(t *testing.T) {
 			{"name": "tools", "apps": [
 				{"id": "app/0/0", "kind": "app", "name": "Router", "url": "https://192.168.1.1", "target_blank": true,
 				 "status": {"state": "unknown", "ready": 0, "total": 0},
-				 "icon": {"src": "/api/v1/icons/mdi@1.2.3/web.svg", "tint": true}}
+				 "icon": {"src": "/api/v1/icons/mdi@1.2.3/web.svg", "tint": true},
+				 "badges": [{"corner": "bottom-left", "text": "beta", "label": "beta release", "tone": "amber"}]}
 			]},
 			{"name": "monitoring", "apps": [
 				{"id": "ingress/monitoring/grafana", "kind": "ingress", "name": "Grafana", "url": "https://grafana.example.com/",
 				 "info": "Dashboards", "target_blank": false, "status": {"state": "degraded", "ready": 1, "total": 2},
-				 "icon": {"src": "/api/v1/icons/sh@abc/grafana.svg", "src_dark": "/api/v1/icons/sh@abc/grafana-light.svg", "tint": false}}
+				 "icon": {"src": "/api/v1/icons/sh@abc/grafana.svg", "src_dark": "/api/v1/icons/sh@abc/grafana-light.svg", "tint": false},
+				 "badges": [{"corner": "top-right", "icon": {"src": "/api/v1/icons/material-symbols@1.2.96/home.svg", "tint": true},
+				   "label": "local network only", "tone": "neutral"}]}
 			]}
 		],
 		"bookmarks": [
 			{"name": "docs", "bookmarks": [{"id": "bookmark/0/0", "name": "Kubernetes", "url": "https://kubernetes.io/docs", "target_blank": false,
-			  "icon": {"src": "/api/v1/icons/material-symbols@1.2.96/bookmark.svg", "tint": true}}]}
+			  "icon": {"src": "/api/v1/icons/material-symbols@1.2.96/bookmark.svg", "tint": true}, "badges": []}]}
 		]
 	}`, rec.Body.String())
 }
@@ -115,7 +139,9 @@ func TestAnEmptyDashboardHasEmptyLists(t *testing.T) {
 	f := config.DefaultFile()
 	f.Discovery.NamespaceSelector = config.NamespaceSelector{}
 	f.Discovery.Enabled = false
-	h := withDashboard(t, func(context.Context) (dashboard.Dashboard, error) { return dashboard.Build(nil, f, stubIcons{}), nil })
+	h := withDashboard(t, func(context.Context) (dashboard.Dashboard, error) {
+		return dashboard.Build(nil, f, stubIcons{}, noBadges), nil
+	})
 	rec := get(t, h, http.MethodGet, "/api/v1/dashboard")
 	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
 	assert.Contains(t, rec.Body.String(), `"groups":[]`)
@@ -153,7 +179,7 @@ func TestAFailingSourceIsAnInternalError(t *testing.T) {
 
 func TestGetDashboardRefusesAnUnknownParameter(t *testing.T) {
 	h := withDashboard(t, func(context.Context) (dashboard.Dashboard, error) {
-		return dashboard.Build(nil, config.DefaultFile(), stubIcons{}), nil
+		return dashboard.Build(nil, config.DefaultFile(), stubIcons{}, noBadges), nil
 	})
 	rec := get(t, h, http.MethodGet, "/api/v1/dashboard?namespace=kube-system")
 	require.Equal(t, http.StatusBadRequest, rec.Code)
