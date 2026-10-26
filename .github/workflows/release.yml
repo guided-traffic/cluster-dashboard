@@ -434,7 +434,7 @@ jobs:
           severity: 'CRITICAL,HIGH'
           scanners: 'vuln,secret,misconfig'
 
-      # Distroless (docs/adr/0001 D5): no shell starts, none is among the files.
+      # Distroless (docs/adr/0001 D3): no shell starts, none is among the files.
       - name: Prove the image has no shell
         run: hack/no-shell.sh guidedtraffic/dash-${{ matrix.component }}:scan-${{ github.sha }}
 

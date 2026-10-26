@@ -760,6 +760,20 @@ storage key `dash.theme`; the API under `/api/v1/`; the annotation prefix
 
 ### Phase 1 — Skeleton, CI and release pipeline
 
+**Status 2026-10-26: built on branch `phase-1/skeleton`, verified locally, waiting for GitHub.**
+Every local target ran green on the owner's darwin-arm64 machine: `make lint generate-check gosec
+vuln cyclo test-unit-coverage test-integration-coverage coverage-report` (Go coverage 85.2 %, both
+modules), `make frontend-lint frontend-test-coverage frontend-build frontend-generate-check`
+(148 tests, 100 % of the frontend's statements), `make helm-lint helm-template helm-unittest
+helm-kubeconform` (21 chart tests), `make docker-build` (both images distroless, no shell),
+`make test-release-tooling`, and `make e2e` — 24 Playwright tests in Chromium and WebKit, both
+schemes, in kind behind haproxy-ingress 0.16.2 with cert-manager v1.21.3. That run settled two
+questions of this phase: haproxy-ingress merges the two Ingress objects of one host, and cert-manager
+issues the shared certificate from the annotation on the frontend's object alone. **Not verified
+until the first pull request runs:** the workflows on the runners, Renovate, the release, the push to
+Docker Hub (the repositories do not exist yet), the chart on Pages; the ruleset on `main` follows the
+first run.
+
 **Goal:** every gate of cowork's pipeline runs on a walking skeleton, a release publishes both
 images and the chart, and the two-Ingress routing is proven in a real cluster on every pull request.
 

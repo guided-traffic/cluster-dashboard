@@ -76,7 +76,7 @@ An image reference: the tag, or the chart's appVersion. Call with (dict "root" .
 {{- end }}
 
 {{/*
-The pod's security context (docs/adr/0001 D5): distroless nonroot, by number.
+The pod's security context (docs/adr/0001 D3): distroless nonroot, by number.
 */}}
 {{- define "dash.podSecurityContext" -}}
 runAsNonRoot: true

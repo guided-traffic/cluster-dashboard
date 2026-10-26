@@ -1,0 +1,30 @@
+# Testing
+
+The tiers are [ADR 0003](../adr/0003-test-and-ci-policy.md)'s. No `-short`, no skip on a missing
+dependency; a fix comes with the test that failed without it.
+
+| Tier | Target | Where | Proves today |
+|---|---|---|---|
+| Go unit | `make test-unit` | `backend/**/*_test.go`, `frontend/server/server_test.go` | Configuration (every invalid key at once), the HTTP server (health, readiness, request id, recovery, the log line), the API against its document, problem bodies, the probe, the generators; the file server's rules (router paths, cache headers, CSP, the `/api/` problem, no listing, no path outside the bundle, ranges, gzip) |
+| Backend integration | `make test-integration` | `backend/test/integration/` | The backend's client reaches a real kube-apiserver (envtest `ENVTEST_K8S_VERSION`) |
+| Frontend unit | `make frontend-test` | `frontend/src/**/*.spec.ts` | The theme service, the theme control, the version service, the shell, `theme-init.js`, the tokens |
+| Chart | `make helm-unittest` and friends | `deploy/helm/dash/tests/`, `ci/*-values.yaml` | Both Ingress objects and their annotations, the opt-out, the hardening, the ServiceAccount, the configuration checksum; the schema refusing invalid values |
+| Container | CI's container scan, `make docker-build` | `hack/no-shell.sh` | Each image builds from its directory, passes Trivy, holds no shell |
+| End to end | `make e2e` | `hack/e2e.sh`, `frontend/e2e/` | In kind behind haproxy-ingress with cert-manager: the shell and its headers through the frontend object, the version through the backend object, a deep link, both colour schemes, a chosen scheme surviving a reload, the served certificate being the one cert-manager issued — Chromium and WebKit |
+| Release tooling | `make test-release-tooling` | `hack/verify-release-tooling.mjs` | semantic-release still renders notes |
+
+## Fixtures and environment
+
+- Go tests run with `KUBECONFIG=/dev/null` and without `KUBERNETES_SERVICE_*` (`TEST_ENV`), so code
+  falling back to client-go's defaults finds no cluster.
+- envtest: `hack/envtest/fetch.sh` downloads `envtest-v<version>-<platform>.tar.gz` and refuses it
+  unless its SHA-512 is the Makefile's pin (darwin-arm64, linux-amd64).
+- The e2e cluster: `hack/kind/cluster.yaml` maps the node's 443 to `127.0.0.1:18443`;
+  `hack/kind/dash-values.yaml` installs the loaded images with `pullPolicy: Never` and TLS on
+  `localhost`; `hack/e2e.sh` passes the certificate's SHA-256 fingerprint to the suite.
+
+## Coverage
+
+Measured, shown on every pull request, not gated: `make test-unit-coverage test-integration-coverage
+coverage-report` merges both modules' profiles (`hack/coverage.py`); `make frontend-test-coverage`
+writes the frontend's. The generated client and `main.ts` are excluded from the frontend's.
