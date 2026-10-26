@@ -1,6 +1,6 @@
 # Project plan
 
-How cluster-dashboard goes from an empty repository to the dashboard that replaces Hajimari in the
+How Dash goes from an empty repository to the dashboard that replaces Hajimari in the
 owner's clusters. Phases, not dates: each phase names what it delivers, how that is verified and
 what has to be decided first. A phase that closes moves its facts into their homes — the README
 reference, `docs/developer/`, `docs/security/`, an ADR — and is deleted from this file; the plan is
@@ -28,7 +28,7 @@ The owner's brief, 2026-10-26:
 - Light, dark or system scheme, chosen in the UI and remembered by the browser.
 - Every discovered app and every bookmark has an icon: from an icon library, or provided
   externally — through ConfigMaps (base64 images such as JPEG) or through a URL, which
-  cluster-dashboard downloads at start and serves itself.
+  Dash downloads at start and serves itself.
 - **The look is Cogpit's.** Hajimari is the reference for what discovery does, never for how
   anything looks, and its icon set is not the limit of what we offer (the owner, same day).
 - CI with broad test coverage and Renovate as in cowork. Backend Go 1.27.3, frontend Angular
@@ -111,7 +111,7 @@ flowchart LR
 |---|---|
 | Backend (`backend/`) | Watches Ingresses, EndpointSlices and — for badge rules — IngressClasses through informers; reads the configuration file; resolves and serves every icon and badge; answers `/api/v1/*`, `/healthz`, `/readyz`. It serves no UI. A static binary in a distroless image. |
 | Frontend (`frontend/`) | The Angular bundle, served by a small Go file server (`frontend/server/`, standard library only) in a distroless image: every path the router owns resolved to `index.html` (never cached), hashed bundles immutable, the shell's Content-Security-Policy on everything it serves, its own `/healthz`, and a `404` problem for an `/api/` path that reaches it by mistake — the rules of cowork's nginx configuration (ADR 0001 D3 as amended 2026-10-04), without nginx. It loads the bundle into memory at start, takes no configuration and never reaches the backend. |
-| Chart (`deploy/helm/cluster-dashboard/`) | Both Deployments and Services, **two Ingress objects**, the configuration, RBAC that follows the namespace selector ([§9](#9-the-helm-chart)). |
+| Chart (`deploy/helm/dash/`) | Both Deployments and Services, **two Ingress objects**, the configuration, RBAC that follows the namespace selector ([§9](#9-the-helm-chart)). |
 
 **Two Ingress objects, the controller as the only hop.** The owner's brief. cowork renders one
 Ingress object with three paths; here `<fullname>-frontend` takes `/` and `<fullname>-backend`
@@ -137,7 +137,7 @@ alone. A pod without a shell is debugged through an ephemeral container.
 
 ### Where this differs from cowork
 
-| cowork | cluster-dashboard | Why |
+| cowork | Dash | Why |
 |---|---|---|
 | One Ingress object, three paths | Two Ingress objects | The brief; and per-object annotations (a timeout or rate limit on the API alone) |
 | Frontend in `nginxinc/nginx-unprivileged` (Alpine, with a shell and `apk`) | A Go file server in `frontend/server/` on distroless | The distroless aim; unit tests for what nginx's configuration did |
@@ -157,12 +157,12 @@ alone. A pod without a shell is debugged through an ephemeral container.
 
 Hajimari's behaviour is read from its source (`internal/annotations/annotations.go`,
 `internal/kube/wrappers/ingress.go`, `internal/hajimari/ingressapps/filters.go`). Its website lists
-eight annotations; the code has nine. cluster-dashboard reads the same keys under `dash.gtrfc.com/`
+eight annotations; the code has nine. Dash reads the same keys under `dash.gtrfc.com/`
 and nothing under `hajimari.io/` — the owner's decision
 ([Q1](#q1--which-annotation-keys-does-discovery-read)) — so a manifest migrates by replacing the
 prefix.
 
-| Key | Hajimari (verified in source) | cluster-dashboard |
+| Key | Hajimari (verified in source) | Dash |
 |---|---|---|
 | `enable` | With `defaultEnable: false` only `"true"` shows an Ingress; with `true` only `"false"` hides it | Same |
 | `appName` | The name shown; else the Ingress name | Same |
@@ -190,7 +190,7 @@ first path of the first rule without its trailing slash. That breaks on a wildca
 block whose hosts are ordered differently from the rules, on a regular-expression path and on a
 rule without a host.
 
-cluster-dashboard takes the first rule with a concrete host; `https` when that host is listed in
+Dash takes the first rule with a concrete host; `https` when that host is listed in
 any TLS block; the rule's first `Prefix` or `Exact` path when it holds no regular-expression
 characters, else `/`. An Ingress with nothing usable and no `url` key is skipped with a log line
 naming the reason.
@@ -203,7 +203,7 @@ or 100 (`internal/kube/util/replicastatusgetter.go`). It sums every slice, so a 
 — one slice per address family — counts each pod twice; that follows from the code and was not
 run.
 
-cluster-dashboard counts ready endpoints over all endpoints of those Services, each pod once
+Dash counts ready endpoints over all endpoints of those Services, each pod once
 (deduplicated by the endpoint's `targetRef`). A tile is **healthy**, **degraded** (some ready),
 **down** (none ready) or **unknown** (no endpoints, or the status switched off).
 
@@ -211,7 +211,7 @@ cluster-dashboard counts ready endpoints over all endpoints of those Services, e
 
 Hajimari re-lists every Ingress and every EndpointSlice every 60 seconds and serves the result from
 memory (`internal/services/app.go`: a hard-coded ticker, "todo: make time configurable").
-cluster-dashboard runs shared informers for Ingresses and EndpointSlices — Namespaces only for a
+Dash runs shared informers for Ingresses and EndpointSlices — Namespaces only for a
 label selector — trimmed by a transform to the fields it uses, as Cogpit's cache trims objects
 (`internal/cache/trim.go`). A change shows on the UI's next poll.
 
@@ -222,7 +222,7 @@ label selector — trimmed by a transform to the fields it uses, as Cogpit's cac
 
 Defaults are those of Hajimari's `internal/config/config.go`, which wins where the website differs.
 
-| Hajimari | cluster-dashboard |
+| Hajimari | Dash |
 |---|---|
 | `instanceName` | `discovery.instanceName` |
 | `defaultEnable` (false) | `discovery.defaultEnable` (false) |
@@ -259,12 +259,12 @@ Defaults are those of Hajimari's `internal/config/config.go`, which wins where t
   checked) and `engine.CheckIcon` (PNG and JPEG decoded under bounds and re-encoded; an SVG only
   as one self-contained document).
 
-Cogpit has no icon catalogue of its own. What cluster-dashboard takes from it is the glyph family
+Cogpit has no icon catalogue of its own. What Dash takes from it is the glyph family
 (Material) and the fetcher.
 
 ### 7.2 Catalogues: far more than Hajimari's
 
-Hajimari offers MDI glyphs and whatever URL a user types. cluster-dashboard bundles five
+Hajimari offers MDI glyphs and whatever URL a user types. Dash bundles five
 catalogues, so no browser request ever leaves the dashboard's origin:
 
 | Prefix | Catalogue | Entries | Kind | Licence | Why |
@@ -338,7 +338,7 @@ Exact matching keeps it rare; an explicit icon always wins, and auto-match can b
 
 ### 7.6 Remote icons
 
-The brief's rule: a URL is downloaded at start and served by cluster-dashboard. Concretely:
+The brief's rule: a URL is downloaded at start and served by Dash. Concretely:
 
 - **When:** every URL known at start — the values, and every annotation of the informers' first sync —
   is fetched before `/readyz` turns ready (failures do not block readiness). A URL first seen later,
@@ -487,7 +487,7 @@ error `#d23b45`, success `#138a52`, warning `#c4570e`), the lights deepened for 
 | Typography | Self-hosted from npm, no font CDN: Inter, Cogpit's own typography proposal (Cogpit itself still draws Fyne's bundled font) |
 
 **The theme preference** — cowork's ADR 0052 D3 model: `system`, `light` or `dark`, stored in
-`localStorage` under `cluster-dashboard.theme`; without a stored choice `ui.defaultTheme` applies;
+`localStorage` under `dash.theme`; without a stored choice `ui.defaultTheme` applies;
 `system` follows `prefers-color-scheme` live. A one-kilobyte `theme-init.js`, loaded from the origin
 in `<head>`, applies the stored choice before the first paint (the CSP refuses inline scripts). Where
 storage throws — a private window, blocked site data — the choice falls back to `system` and the
@@ -541,7 +541,7 @@ both schemes, which also become the README's `<picture>` pairs (`docs/images/<sc
 
 ```yaml
 backend:
-  image: { repository: guidedtraffic/cluster-dashboard-backend, tag: "", pullPolicy: IfNotPresent }
+  image: { repository: guidedtraffic/dash-backend, tag: "", pullPolicy: IfNotPresent }
   replicas: 1
   logLevel: info
   resources: {}
@@ -551,7 +551,7 @@ backend:
   tolerations: []
   affinity: {}
 frontend:
-  image: { repository: guidedtraffic/cluster-dashboard-frontend, tag: "", pullPolicy: IfNotPresent }
+  image: { repository: guidedtraffic/dash-frontend, tag: "", pullPolicy: IfNotPresent }
   replicas: 1
   resources: {}
   podLabels: {}
@@ -580,7 +580,7 @@ discovery:
   # annotations: dash.gtrfc.com/<key> only; hajimari.io/* is ignored
 
 ui:
-  title: Cluster Dashboard
+  title: Dash
   greeting: { enabled: true, name: You }
   defaultTheme: system     # system | light | dark
   refreshSeconds: 60
@@ -645,8 +645,8 @@ modules, `backend/` and `frontend/server/`.
 | Semantic Release | — | `needs:` every job above; GitHub App token, so the release starts the next workflow |
 
 - **`build.yml`** ("Release Docker & Helm", on a published release): both images to Docker Hub as
-  `guidedtraffic/cluster-dashboard-backend` and `-frontend` (SBOM, provenance, Docker Scout); the
-  chart to GitHub Pages at `https://guided-traffic.github.io/cluster-dashboard/`. `linux/amd64` as
+  `guidedtraffic/dash-backend` and `-frontend` (SBOM, provenance, Docker Scout); the
+  chart to GitHub Pages at `https://guided-traffic.github.io/dash/`. `linux/amd64` as
   cowork builds.
 - **`renovate.yml`**: self-hosted Renovate, daily at 02:00 Europe/Berlin, the GitHub App's token,
   filtered to this repository.
@@ -709,10 +709,10 @@ hosts) with these cases on it.
 The target tree; phase 1 creates it, phase 2 fills it.
 
 ```text
-cluster-dashboard/
-├── backend/                         # Go module github.com/guided-traffic/cluster-dashboard/backend
+dash/
+├── backend/                         # Go module github.com/guided-traffic/dash/backend
 │   ├── api/                         # openapi.yaml, components/, oapi-codegen.yaml, openapi.gen.json (generated), embed.go
-│   ├── cmd/cluster-dashboard/       # serve, version
+│   ├── cmd/dash/                    # serve, version
 │   ├── internal/
 │   │   ├── api/  (apigen/)          # handlers; the generated strict server
 │   │   ├── config/                  # the file and three variables → Config, every invalid key at once
@@ -733,7 +733,7 @@ cluster-dashboard/
 │   ├── server/                      # Go module …/frontend/server, standard library only: the image's file server
 │   ├── proxy.conf.mjs               # ng serve → backend for /api: the developer's stand-in for the Ingress
 │   └── Containerfile                # node:26-alpine (bundle) → golang:1.27.3-alpine (server) → distroless/static-debian13:nonroot
-├── deploy/helm/cluster-dashboard/   # Chart.yaml, values.yaml, values.schema.json, templates/, ci/*-values.yaml, tests/
+├── deploy/helm/dash/                # Chart.yaml, values.yaml, values.schema.json, templates/, ci/*-values.yaml, tests/
 ├── hack/
 │   ├── kind/                        # cluster.yaml; haproxy-ingress and cert-manager values; seed manifests
 │   ├── envtest/fetch.sh             # from Cogpit
@@ -748,12 +748,12 @@ cluster-dashboard/
 └── AGENTS.md, README.md, SECURITY.md, ATTRIBUTION.md, LICENSE
 ```
 
-Names the README's naming table will carry: images `guidedtraffic/cluster-dashboard-{backend,frontend}`;
-chart `cluster-dashboard` at `https://guided-traffic.github.io/cluster-dashboard/`; resources
+Names the README's naming table will carry: images `guidedtraffic/dash-{backend,frontend}`;
+chart `dash` at `https://guided-traffic.github.io/dash/`; resources
 `<fullname>-backend`, `<fullname>-frontend`, `<fullname>-config`, `<fullname>-icons`; variables
-`CLUSTER_DASHBOARD_CONFIG` (default `/etc/cluster-dashboard/config.yaml`),
-`CLUSTER_DASHBOARD_LISTEN_ADDR` (`:8080`), `CLUSTER_DASHBOARD_LOG_LEVEL` (`info`); the browser's
-storage key `cluster-dashboard.theme`; the API under `/api/v1/`; the annotation prefix
+`DASH_CONFIG` (default `/etc/dash/config.yaml`),
+`DASH_LISTEN_ADDR` (`:8080`), `DASH_LOG_LEVEL` (`info`); the browser's
+storage key `dash.theme`; the API under `/api/v1/`; the annotation prefix
 `dash.gtrfc.com/`.
 
 ## 14. Phases
@@ -775,7 +775,7 @@ images and the chart, and the two-Ingress routing is proven in a real cluster on
   plan consumed; test and CI policy; configuration as one validated file; design language and no
   component library; toolchains and Renovate; discovery semantics; icon sources, packs and
   resolution; the remote fetch policy; annotations under `dash.gtrfc.com/` only (Q1).
-- **Backend:** the module; `cluster-dashboard serve | version`; configuration; `/healthz`, `/readyz`,
+- **Backend:** the module; `dash serve | version`; configuration; `/healthz`, `/readyz`,
   `GET /api/v1/version`, `GET /api/v1/openapi.json`; spec-first with oapi-codegen's strict server and
   kin-openapi validation (cowork ADR 0046); RFC 9457 problems (ADR 0047); the request log without
   query, headers or bodies; graceful shutdown; the Containerfile.
@@ -859,7 +859,7 @@ its page; coverage is on every pull request.
 
 ### Phase 3 — Cut-over and 1.0
 
-**Goal:** cluster-dashboard replaces Hajimari in the owner's clusters.
+**Goal:** Dash replaces Hajimari in the owner's clusters.
 
 **Delivers:**
 
@@ -874,7 +874,7 @@ its page; coverage is on every pull request.
   their Hajimari is located; then the `hajimari.io/*` annotations leave the manifests.
 - Every `H-<n>` closed or accepted by the owner; `1.0.0` on the owner's word.
 
-**Verified when:** the owner's clusters run cluster-dashboard only and no manifest carries
+**Verified when:** the owner's clusters run Dash only and no manifest carries
 `hajimari.io/*` any more; at the cut-over its app list matched Hajimari's apart from named
 differences; what runs is a published release.
 
@@ -919,7 +919,7 @@ What follows:
 - The keys keep Hajimari's names — `enable`, `appName`, `group`, `icon`, `url`, `info`,
   `targetBlank`, `instance`, `statusCheckEnabled` — plus `badges`, so a manifest migrates by
   replacing the prefix; bare MDI names stay valid for the same reason ([§7.3](#73-the-icon-reference)).
-- About thirty manifests in three repositories get the new keys before cluster-dashboard shows the
+- About thirty manifests in three repositories get the new keys before Dash shows the
   owner's apps correctly; until the fifteen opt-outs are carried over, a dashboard with
   `defaultEnable: true` shows the Ingresses they hide.
 - Phase 3 still runs both dashboards side by side: each manifest carries both sets during the
