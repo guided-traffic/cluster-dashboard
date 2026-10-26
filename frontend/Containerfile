@@ -1,0 +1,58 @@
+# The frontend image (docs/adr/0001 D4): the Angular bundle and the Go file server of server/ on
+# distroless static, pinned by digest — no shell, no package manager, no libc, no nginx. Built from
+# frontend/ as its context.
+#
+# Both build stages run on the builder's platform; the bundle is platform-free and the server is
+# cross-compiled, so an arm64 image is a platform in build.yml, not a slower emulated build.
+
+# Stage 1: the production bundle.
+FROM --platform=$BUILDPLATFORM node:26-alpine AS bundle
+
+WORKDIR /src
+
+# The dependency install is its own layer, cached until the lockfile changes.
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund
+
+COPY angular.json tsconfig.json tsconfig.app.json ng-openapi-gen.json ./
+COPY public ./public
+COPY src ./src
+RUN npx ng build --configuration production
+
+# Stage 2: the file server, standard library only.
+FROM --platform=$BUILDPLATFORM golang:1.27.3-alpine AS server
+
+ARG TARGETOS
+ARG TARGETARCH
+
+WORKDIR /src
+COPY server/ ./
+RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} \
+    go build -trimpath -ldflags="-w -s" -o /out/server .
+
+# gcr.io/distroless/static-debian13:nonroot, the image index's digest (verified 2026-10-26);
+# Renovate moves the digest (renovate.json, :automergeDigest). The same base as the backend.
+FROM gcr.io/distroless/static-debian13:nonroot@sha256:18f4cc26c9ffa7f20a359298be7deadac5c607c8e03a02b8119f1a5fc2f82c99
+
+ARG BUILD_NUMBER
+ARG GIT_COMMIT
+
+LABEL org.opencontainers.image.title="dash-frontend" \
+      org.opencontainers.image.description="Dash frontend - the Angular UI of the Kubernetes start page, served by a Go file server" \
+      org.opencontainers.image.vendor="Guided Traffic" \
+      org.opencontainers.image.licenses="Apache-2.0" \
+      org.opencontainers.image.documentation="https://github.com/guided-traffic/dash" \
+      org.opencontainers.image.source="https://github.com/guided-traffic/dash" \
+      org.opencontainers.image.version="${BUILD_NUMBER:-dev}" \
+      org.opencontainers.image.revision="${GIT_COMMIT:-unknown}"
+
+COPY --from=server /out/server /server
+COPY --from=bundle /src/dist/frontend/browser/ /app/www/
+
+# The nonroot user of distroless, by number, so the kubelet can check runAsNonRoot.
+USER 65532:65532
+
+# HTTP: the UI and its own health endpoint.
+EXPOSE 8080
+
+ENTRYPOINT ["/server"]
