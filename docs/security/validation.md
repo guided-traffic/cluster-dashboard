@@ -36,6 +36,7 @@ the key's default applies ([backend/internal/discovery](../../backend/internal/d
 |---|---|---|
 | `dash.gtrfc.com/url` | An absolute `http` or `https` URL with a host, without a user or password; else the URL derived from the rules | The `javascript:` link Hajimari's `url.ParseRequestURI` admits (read in its source at `b07024d`, [plan](../planning/project-plan.md) §6.1), and a credential shown to every viewer |
 | `enable`, `targetBlank`, `statusCheckEnabled` | What `strconv.ParseBool` reads; else the default | A typo flipping the opposite way |
+| `dash.gtrfc.com/icon` | The icon grammar; a reference that does not resolve — an unknown prefix, an icon no pack holds, a missing ConfigMap key, a URL while remote icons or annotation URLs are off — is ignored, and the app falls back | An empty tile; a fetch the configuration did not allow ([remote-icons.md](remote-icons.md)) |
 | A key under `hajimari.io/` | Not read at all ([ADR 0010](../adr/0010-annotations-are-read-under-dash-gtrfc-com-only.md)) | Two sources for one setting |
 
 The derived URL is built from the rule's host and path, never from free text: `http` or `https`, a
@@ -48,8 +49,7 @@ concrete host, a path without regular-expression characters.
 An `http` URL to any host passes: whoever writes the values decides where a click goes. The rules
 above refuse what runs code on the dashboard's origin, not what the operator chose to link.
 
-### H-3 The icon and badge annotations are not checked yet
+### H-3 The badge annotation is not checked yet
 
-`dash.gtrfc.com/icon` and `dash.gtrfc.com/badges` are kept as written and not used yet: their
-grammar is applied when icons and badges are resolved (phase 2, steps 4 and 5). An unknown badge
-name will be ignored with a log line; an icon that does not resolve will fall back.
+`dash.gtrfc.com/badges` is kept as written and not used yet: its grammar is applied when badges are
+resolved (phase 2, step 5). An unknown badge name will be ignored with a log line.

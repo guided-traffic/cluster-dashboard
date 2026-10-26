@@ -56,6 +56,9 @@
       "App": {
         "description": "A tile",
         "properties": {
+          "icon": {
+            "$ref": "#/components/schemas/Icon"
+          },
           "id": {
             "description": "Unique on the page: ingress/\u003cnamespace\u003e/\u003cname\u003e or app/\u003cgroup\u003e/\u003cindex\u003e",
             "type": "string"
@@ -92,7 +95,8 @@
           "name",
           "url",
           "target_blank",
-          "status"
+          "status",
+          "icon"
         ],
         "type": "object"
       },
@@ -145,6 +149,9 @@
       },
       "Bookmark": {
         "properties": {
+          "icon": {
+            "$ref": "#/components/schemas/Icon"
+          },
           "id": {
             "description": "bookmark/\u003cgroup\u003e/\u003cindex\u003e",
             "type": "string"
@@ -163,7 +170,8 @@
           "id",
           "name",
           "url",
-          "target_blank"
+          "target_blank",
+          "icon"
         ],
         "type": "object"
       },
@@ -192,6 +200,10 @@
             {
               "bookmarks": [
                 {
+                  "icon": {
+                    "src": "/api/v1/icons/si@1.2.101/kubernetes.svg",
+                    "tint": true
+                  },
                   "id": "bookmark/0/0",
                   "name": "Kubernetes",
                   "target_blank": true,
@@ -214,6 +226,10 @@
             {
               "apps": [
                 {
+                  "icon": {
+                    "src": "/api/v1/icons/sh@1d65d45a42e6/grafana.svg",
+                    "tint": false
+                  },
                   "id": "ingress/monitoring/grafana",
                   "kind": "ingress",
                   "name": "Grafana",
@@ -226,6 +242,10 @@
                   "url": "https://grafana.example.com/"
                 },
                 {
+                  "icon": {
+                    "src": "/api/v1/icons/sh@1d65d45a42e6/prometheus.svg",
+                    "tint": false
+                  },
                   "id": "ingress/monitoring/prometheus",
                   "kind": "ingress",
                   "name": "Prometheus",
@@ -394,6 +414,28 @@
         "required": [
           "enabled",
           "name"
+        ],
+        "type": "object"
+      },
+      "Icon": {
+        "description": "A resolved icon: every app and bookmark has one, the fallbacks decided by the backend. A glyph\n(tint) is drawn as a mask in the page's colour; a logo as it is, src_dark in the dark scheme.\n",
+        "properties": {
+          "src": {
+            "description": "The icon on the dashboard's origin, under /api/v1/icons/",
+            "type": "string"
+          },
+          "src_dark": {
+            "description": "The variant the dark scheme shows; absent when it is the same",
+            "type": "string"
+          },
+          "tint": {
+            "description": "A monochrome glyph, drawn in the colour of the page",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "src",
+          "tint"
         ],
         "type": "object"
       },
@@ -576,6 +618,144 @@
         ]
       }
     },
+    "/api/v1/icons/blob/{file}": {
+      "get": {
+        "description": "An icon from an icon ConfigMap or downloaded from a URL, as the backend checked it: a PNG it\nencoded again, or an SVG it found self-contained. Named by the SHA-256 of what is served, so\nimmutable; the addresses come from the dashboard's `icon.src`.\n",
+        "operationId": "getBlobIcon",
+        "parameters": [
+          {
+            "description": "\u003csha256\u003e.png or \u003csha256\u003e.svg",
+            "in": "path",
+            "name": "file",
+            "required": true,
+            "schema": {
+              "pattern": "^[0-9a-f]{64}\\.(png|svg)$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "image/png": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              },
+              "image/svg+xml": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The icon",
+            "headers": {
+              "Cache-Control": {
+                "description": "public, max-age=31536000, immutable",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Security-Policy": {
+                "description": "default-src 'none'; style-src 'unsafe-inline'; sandbox",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "description": "nosniff",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "summary": "An icon of a ConfigMap or a URL",
+        "tags": [
+          "icons"
+        ]
+      }
+    },
+    "/api/v1/icons/{pack}/{file}": {
+      "get": {
+        "description": "The SVG of an icon of a bundled catalogue (mdi, material-symbols, si, sh, di) at the version the\nbackend carries; the addresses come from the dashboard's `icon.src`. Immutable: another version\nis no icon. Served with a policy that runs nothing, so an SVG opened on its own cannot act on\nthe dashboard's origin.\n",
+        "operationId": "getCatalogIcon",
+        "parameters": [
+          {
+            "description": "\u003ccatalogue\u003e@\u003cversion\u003e, such as mdi@1.2.3",
+            "in": "path",
+            "name": "pack",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-z-]+@[0-9A-Za-z][0-9A-Za-z.+-]{0,63}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "\u003cname\u003e.svg",
+            "in": "path",
+            "name": "file",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-z0-9]+([._-][a-z0-9]+)*\\.svg$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "image/svg+xml": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The icon",
+            "headers": {
+              "Cache-Control": {
+                "description": "public, max-age=31536000, immutable",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Security-Policy": {
+                "description": "default-src 'none'; style-src 'unsafe-inline'; sandbox",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "description": "nosniff",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "summary": "An icon of a bundled catalogue",
+        "tags": [
+          "icons"
+        ]
+      }
+    },
     "/api/v1/openapi.json": {
       "get": {
         "description": "The bundled OpenAPI document the backend validates every request against; `info.version` is the backend version.",
@@ -668,6 +848,10 @@
     {
       "description": "What the page shows",
       "name": "dashboard"
+    },
+    {
+      "description": "Every icon the page shows, from the dashboard's own origin",
+      "name": "icons"
     }
   ]
 }

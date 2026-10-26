@@ -3,6 +3,7 @@ package discovery
 import (
 	"bytes"
 	"context"
+	"errors"
 	"log/slog"
 	"sync"
 	"testing"
@@ -172,6 +173,26 @@ func TestTheLogNamesWhatWasIgnored(t *testing.T) {
 	assert.Contains(t, out, `level=WARN msg="an annotation is ignored" namespace=media ingress=badurl key=dash.gtrfc.com/url reason="not an absolute http or https URL"`)
 	assert.Contains(t, out, `level=DEBUG msg="an Ingress is no app" namespace=media ingress=off`)
 	assert.NotContains(t, out, "alert(1)")
+}
+
+// An icon annotation that does not resolve is ignored with a warning that
+// names the key and why; the app falls back to auto-match and the default.
+func TestAnIconThatDoesNotResolveIsIgnored(t *testing.T) {
+	client := fake.NewClientset(in("media", "a", annotate(KeyIcon, "fa:home")), in("media", "b", annotate(KeyIcon, "mdi:web")))
+	opts := anyNamespace
+	opts.RegisterIcon = func(ref string) error {
+		if ref == "mdi:web" {
+			return nil
+		}
+		return errors.New("names no catalogue")
+	}
+	d, logs := start(t, client, opts)
+	eventually(t, d, []string{"media/a", "media/b"})
+	apps := d.Apps()
+	assert.Empty(t, apps[0].Icon)
+	assert.Equal(t, "mdi:web", apps[1].Icon)
+	assert.Contains(t, logs.String(), `msg="an annotation is ignored" namespace=media ingress=a key=dash.gtrfc.com/icon reason="names no catalogue"`)
+	assert.Equal(t, []string{"a"}, apps[0].Names, "the name, which is the Ingress's")
 }
 
 // With a label selector the Ingresses of every namespace are read; those of

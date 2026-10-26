@@ -1,0 +1,16 @@
+{{- if .Values.icons.configMap.files }}
+# The icons of icons.configMap.files (docs/adr/0008 D4): each key one icon, referenced as
+# configmap:<key>, its content base64 as binaryData holds it. The backend mounts it under
+# /etc/dash-icons/<name> and checks every icon at start; its pods carry this file's checksum.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "dash.icons.fullname" . }}
+  labels:
+    {{- include "dash.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+binaryData:
+  {{- range $key, $content := .Values.icons.configMap.files }}
+  {{ $key }}: {{ $content | nospace | quote }}
+  {{- end }}
+{{- end }}

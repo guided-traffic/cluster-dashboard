@@ -10,7 +10,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+
+	"github.com/oapi-codegen/runtime"
 )
 
 // Defines values for AppKind.
@@ -105,6 +108,10 @@ func (e ProblemCode) Valid() bool {
 
 // App A tile
 type App struct {
+	// Icon A resolved icon: every app and bookmark has one, the fallbacks decided by the backend. A glyph
+	// (tint) is drawn as a mask in the page's colour; a logo as it is, src_dark in the dark scheme.
+	Icon Icon `json:"icon"`
+
 	// Id Unique on the page: ingress/<namespace>/<name> or app/<group>/<index>
 	Id string `json:"id"`
 
@@ -145,6 +152,10 @@ type AppStatusState string
 
 // Bookmark defines model for Bookmark.
 type Bookmark struct {
+	// Icon A resolved icon: every app and bookmark has one, the fallbacks decided by the backend. A glyph
+	// (tint) is drawn as a mask in the page's colour; a logo as it is, src_dark in the dark scheme.
+	Icon Icon `json:"icon"`
+
 	// Id bookmark/<group>/<index>
 	Id          string `json:"id"`
 	Name        string `json:"name"`
@@ -219,6 +230,19 @@ type Greeting struct {
 	Name    string `json:"name"`
 }
 
+// Icon A resolved icon: every app and bookmark has one, the fallbacks decided by the backend. A glyph
+// (tint) is drawn as a mask in the page's colour; a logo as it is, src_dark in the dark scheme.
+type Icon struct {
+	// Src The icon on the dashboard's origin, under /api/v1/icons/
+	Src string `json:"src"`
+
+	// SrcDark The variant the dark scheme shows; absent when it is the same
+	SrcDark *string `json:"src_dark,omitempty"`
+
+	// Tint A monochrome glyph, drawn in the colour of the page
+	Tint bool `json:"tint"`
+}
+
 // NamespaceScope The namespace selector: every namespace, or the names united with the label selector's matches
 type NamespaceScope struct {
 	Any bool `json:"any"`
@@ -278,6 +302,12 @@ type ServerInterface interface {
 	// GetDashboard The page's content
 	// (GET /api/v1/dashboard)
 	GetDashboard(w http.ResponseWriter, r *http.Request)
+	// GetBlobIcon An icon of a ConfigMap or a URL
+	// (GET /api/v1/icons/blob/{file})
+	GetBlobIcon(w http.ResponseWriter, r *http.Request, file string)
+	// GetCatalogIcon An icon of a bundled catalogue
+	// (GET /api/v1/icons/{pack}/{file})
+	GetCatalogIcon(w http.ResponseWriter, r *http.Request, pack string, file string)
 	// GetOpenAPI This document
 	// (GET /api/v1/openapi.json)
 	GetOpenAPI(w http.ResponseWriter, r *http.Request)
@@ -300,6 +330,67 @@ func (siw *ServerInterfaceWrapper) GetDashboard(w http.ResponseWriter, r *http.R
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetDashboard(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetBlobIcon operation middleware
+func (siw *ServerInterfaceWrapper) GetBlobIcon(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "file" -------------
+	var file string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "file", r.PathValue("file"), &file, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "file", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetBlobIcon(w, r, file)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetCatalogIcon operation middleware
+func (siw *ServerInterfaceWrapper) GetCatalogIcon(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "pack" -------------
+	var pack string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "pack", r.PathValue("pack"), &pack, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "pack", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "file" -------------
+	var file string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "file", r.PathValue("file"), &file, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "file", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetCatalogIcon(w, r, pack, file)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -458,6 +549,8 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	}
 
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/dashboard", wrapper.GetDashboard)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/icons/blob/{file}", wrapper.GetBlobIcon)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/icons/{pack}/{file}", wrapper.GetCatalogIcon)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/openapi.json", wrapper.GetOpenAPI)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/version", wrapper.GetVersion)
 
@@ -524,6 +617,213 @@ type GetDashboarddefaultApplicationProblemPlusJSONResponse struct {
 }
 
 func (response GetDashboarddefaultApplicationProblemPlusJSONResponse) VisitGetDashboardResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XRequestId != nil {
+		w.Header().Set("X-Request-Id", fmt.Sprint(*response.Headers.XRequestId))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetBlobIconRequestObject struct {
+	File string `json:"file"`
+}
+
+type GetBlobIconResponseObject interface {
+	VisitGetBlobIconResponse(w http.ResponseWriter) error
+}
+
+type GetBlobIcon200ResponseHeaders struct {
+	CacheControl          *string
+	ContentSecurityPolicy *string
+	XContentTypeOptions   *string
+}
+
+type GetBlobIcon200ImagepngResponse struct {
+	Body          io.Reader
+	Headers       GetBlobIcon200ResponseHeaders
+	ContentLength int64
+}
+
+func (response GetBlobIcon200ImagepngResponse) VisitGetBlobIconResponse(w http.ResponseWriter) error {
+
+	w.Header().Set("Content-Type", "image/png")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	if response.Headers.CacheControl != nil {
+		w.Header().Set("Cache-Control", fmt.Sprint(*response.Headers.CacheControl))
+	}
+	if response.Headers.ContentSecurityPolicy != nil {
+		w.Header().Set("Content-Security-Policy", fmt.Sprint(*response.Headers.ContentSecurityPolicy))
+	}
+	if response.Headers.XContentTypeOptions != nil {
+		w.Header().Set("X-Content-Type-Options", fmt.Sprint(*response.Headers.XContentTypeOptions))
+	}
+	w.WriteHeader(200)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	_, err := io.Copy(w, response.Body)
+	return err
+}
+
+type GetBlobIcon200ImagesvgXmlResponse struct {
+	Body          io.Reader
+	Headers       GetBlobIcon200ResponseHeaders
+	ContentLength int64
+}
+
+func (response GetBlobIcon200ImagesvgXmlResponse) VisitGetBlobIconResponse(w http.ResponseWriter) error {
+
+	w.Header().Set("Content-Type", "image/svg+xml")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	if response.Headers.CacheControl != nil {
+		w.Header().Set("Cache-Control", fmt.Sprint(*response.Headers.CacheControl))
+	}
+	if response.Headers.ContentSecurityPolicy != nil {
+		w.Header().Set("Content-Security-Policy", fmt.Sprint(*response.Headers.ContentSecurityPolicy))
+	}
+	if response.Headers.XContentTypeOptions != nil {
+		w.Header().Set("X-Content-Type-Options", fmt.Sprint(*response.Headers.XContentTypeOptions))
+	}
+	w.WriteHeader(200)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	_, err := io.Copy(w, response.Body)
+	return err
+}
+
+type GetBlobIcon404ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetBlobIcon404ApplicationProblemPlusJSONResponse) VisitGetBlobIconResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XRequestId != nil {
+		w.Header().Set("X-Request-Id", fmt.Sprint(*response.Headers.XRequestId))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetBlobIcondefaultResponseHeaders struct {
+	XRequestId *string
+}
+
+type GetBlobIcondefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    GetBlobIcondefaultResponseHeaders
+	StatusCode int
+}
+
+func (response GetBlobIcondefaultApplicationProblemPlusJSONResponse) VisitGetBlobIconResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XRequestId != nil {
+		w.Header().Set("X-Request-Id", fmt.Sprint(*response.Headers.XRequestId))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCatalogIconRequestObject struct {
+	Pack string `json:"pack"`
+	File string `json:"file"`
+}
+
+type GetCatalogIconResponseObject interface {
+	VisitGetCatalogIconResponse(w http.ResponseWriter) error
+}
+
+type GetCatalogIcon200ResponseHeaders struct {
+	CacheControl          *string
+	ContentSecurityPolicy *string
+	XContentTypeOptions   *string
+}
+
+type GetCatalogIcon200ImagesvgXmlResponse struct {
+	Body          io.Reader
+	Headers       GetCatalogIcon200ResponseHeaders
+	ContentLength int64
+}
+
+func (response GetCatalogIcon200ImagesvgXmlResponse) VisitGetCatalogIconResponse(w http.ResponseWriter) error {
+
+	w.Header().Set("Content-Type", "image/svg+xml")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	if response.Headers.CacheControl != nil {
+		w.Header().Set("Cache-Control", fmt.Sprint(*response.Headers.CacheControl))
+	}
+	if response.Headers.ContentSecurityPolicy != nil {
+		w.Header().Set("Content-Security-Policy", fmt.Sprint(*response.Headers.ContentSecurityPolicy))
+	}
+	if response.Headers.XContentTypeOptions != nil {
+		w.Header().Set("X-Content-Type-Options", fmt.Sprint(*response.Headers.XContentTypeOptions))
+	}
+	w.WriteHeader(200)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	_, err := io.Copy(w, response.Body)
+	return err
+}
+
+type GetCatalogIcon404ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetCatalogIcon404ApplicationProblemPlusJSONResponse) VisitGetCatalogIconResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XRequestId != nil {
+		w.Header().Set("X-Request-Id", fmt.Sprint(*response.Headers.XRequestId))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCatalogIcondefaultResponseHeaders struct {
+	XRequestId *string
+}
+
+type GetCatalogIcondefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    GetCatalogIcondefaultResponseHeaders
+	StatusCode int
+}
+
+func (response GetCatalogIcondefaultApplicationProblemPlusJSONResponse) VisitGetCatalogIconResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -627,6 +927,12 @@ type StrictServerInterface interface {
 	// GetDashboard The page's content
 	// (GET /api/v1/dashboard)
 	GetDashboard(ctx context.Context, request GetDashboardRequestObject) (GetDashboardResponseObject, error)
+	// GetBlobIcon An icon of a ConfigMap or a URL
+	// (GET /api/v1/icons/blob/{file})
+	GetBlobIcon(ctx context.Context, request GetBlobIconRequestObject) (GetBlobIconResponseObject, error)
+	// GetCatalogIcon An icon of a bundled catalogue
+	// (GET /api/v1/icons/{pack}/{file})
+	GetCatalogIcon(ctx context.Context, request GetCatalogIconRequestObject) (GetCatalogIconResponseObject, error)
 	// GetOpenAPI This document
 	// (GET /api/v1/openapi.json)
 	GetOpenAPI(ctx context.Context, request GetOpenAPIRequestObject) (GetOpenAPIResponseObject, error)
@@ -691,6 +997,59 @@ func (sh *strictHandler) GetDashboard(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetDashboardResponseObject); ok {
 		if err := validResponse.VisitGetDashboardResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetBlobIcon operation middleware
+func (sh *strictHandler) GetBlobIcon(w http.ResponseWriter, r *http.Request, file string) {
+	var request GetBlobIconRequestObject
+
+	request.File = file
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetBlobIcon(ctx, request.(GetBlobIconRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetBlobIcon")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetBlobIconResponseObject); ok {
+		if err := validResponse.VisitGetBlobIconResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetCatalogIcon operation middleware
+func (sh *strictHandler) GetCatalogIcon(w http.ResponseWriter, r *http.Request, pack string, file string) {
+	var request GetCatalogIconRequestObject
+
+	request.Pack = pack
+	request.File = file
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetCatalogIcon(ctx, request.(GetCatalogIconRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetCatalogIcon")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetCatalogIconResponseObject); ok {
+		if err := validResponse.VisitGetCatalogIconResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

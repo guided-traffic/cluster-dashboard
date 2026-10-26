@@ -11,10 +11,11 @@ not. Installed by one Helm chart, configured entirely through it, no login.
 
 > **Phase 2 of 3, in progress.** Built: both images, the chart with its two Ingress objects, the
 > pipeline, the shell with its colour scheme, the dashboard's complete configuration — validated by
-> the chart and the backend — and the discovery, which watches the cluster's Ingresses under the
-> chart's RBAC, served at `/api/v1/dashboard`. **The page does not show apps yet**: icons, badges and
-> the tiles arrive step by step, as phase 2 of the [project plan](docs/planning/project-plan.md) lists
-> them; until then `icons`, `badges` and the icon and badge annotations are validated but not used.
+> the chart and the backend — the discovery, which watches the cluster's Ingresses under the chart's
+> RBAC, and every icon source, all served at `/api/v1/dashboard` and `/api/v1/icons/`. **The page does
+> not show apps yet**: badges and the tiles arrive step by step, as phase 2 of the
+> [project plan](docs/planning/project-plan.md) lists them; until then `badges` and the badge
+> annotation are validated but not used.
 
 ```mermaid
 flowchart LR
@@ -27,6 +28,7 @@ flowchart LR
 
 - 🔎 Apps found through their Ingresses with Hajimari's annotation keys under `dash.gtrfc.com/`, watched, not polled.
 - 🚦 Readiness counted from EndpointSlices, each pod once: healthy, degraded, down or unknown.
+- 🖼️ An icon for every app: ~28,000 glyphs and ~5,100 app logos bundled, a logo found by the app's name, your own images from ConfigMaps or URLs — all served from the dashboard's origin, checked and inert.
 - 🔐 Read-only RBAC that follows the namespace selector: cluster-wide, or a Role per named namespace.
 - 🧭 One origin, two Ingress objects: the UI on `/`, the API on `/api/`, the controller the only hop.
 - 🛡️ Distroless images, non-root, read-only, no shell — proven in CI for each image.
@@ -40,11 +42,14 @@ flowchart LR
 |---|---|
 | Images | `guidedtraffic/dash-backend`, `guidedtraffic/dash-frontend` |
 | Chart, repository | `dash`, `https://guided-traffic.github.io/dash/` |
-| Resources | `<fullname>-backend` (Deployment, Service, Ingress, ServiceAccount), `<fullname>-frontend` (Deployment, Service, Ingress), `<fullname>-config` (ConfigMap) |
+| Resources | `<fullname>-backend` (Deployment, Service, Ingress, ServiceAccount), `<fullname>-frontend` (Deployment, Service, Ingress), `<fullname>-config` (ConfigMap), `<fullname>-icons` (ConfigMap, when `icons.configMap.files` holds a file) |
 | RBAC | `<release namespace>-<fullname>`: the ClusterRole and ClusterRoleBinding, or the Role and RoleBinding in each named namespace |
 | Annotations | `dash.gtrfc.com/<key>` ([the keys](#annotations)); the chart puts `dash.gtrfc.com/enable: "false"` on its own Ingress objects |
-| Backend variables | `DASH_CONFIG`, `DASH_LISTEN_ADDR`, `DASH_LOG_LEVEL` |
+| Backend variables | `DASH_CONFIG`, `DASH_ICON_PACKS`, `DASH_ICON_CONFIGMAPS`, `DASH_LISTEN_ADDR`, `DASH_LOG_LEVEL` |
 | Configuration file | `/etc/dash/config.yaml` |
+| Icon packs in the image | `/usr/share/dash/icons/<catalogue>.zip` |
+| Icon ConfigMaps in the backend pod | `/etc/dash-icons/<configmap>/<key>`, referenced as `configmap:<key>` |
+| Icon addresses | `/api/v1/icons/<catalogue>@<version>/<name>.svg`, `/api/v1/icons/blob/<sha256>.<png\|svg>` |
 | Browser storage | `dash.theme` |
 | API | `/api/v1/` |
 
@@ -277,11 +282,47 @@ a warning naming the Ingress and the key, and the default applies.
 terminating endpoints not counted: **healthy** (all ready), **degraded** (some), **down** (none, a
 Deployment scaled to zero included), **unknown** (no EndpointSlice, or the check off).
 
+### Icons
+
+Every app and every bookmark has an icon; the backend decides every fallback. An icon reference —
+`icon` in the values, `dash.gtrfc.com/icon` on an Ingress, `icons.defaultAppIcon` — is read in this
+order:
+
+| Form | Example | Means |
+|---|---|---|
+| Contains `//` | `https://example.com/logo.png` | Downloaded by the backend and served from the dashboard's origin ([remote rules](docs/security/remote-icons.md)) |
+| `configmap:<key>` | `configmap:billing.jpg` | A key of `icons.configMap.files` or of a ConfigMap in `icons.existingConfigMaps` |
+| `<prefix>:<name>` | `material-symbols:apps`, `sh:grafana` | A bundled catalogue; `simple-icons:`, `selfhst:` and `dashboard-icons:` are accepted for `si:`, `sh:`, `di:` |
+| A bare name | `web` | `mdi:web`, as Hajimari read it |
+
+**Resolution.** An app's own icon; when it has none, or it does not resolve, the logo of the first of
+its names that `icons.autoMatch.catalogs` knows — its name, the Ingress's, `app.kubernetes.io/name`
+of the Ingress and of its Service, `helm.sh/chart` without the version; exact matches, punctuation
+aside — else `icons.defaultAppIcon`. A bookmark: its own, else `icons.defaultBookmarkIcon`. A glyph
+takes the page's colour; a logo shows as it is, a dark logo as its light variant in the dark scheme.
+
+| Prefix | Catalogue | Kind | Licence |
+|---|---|---|---|
+| `mdi` | [Material Design Icons](https://pictogrammers.com/library/mdi/) | Glyphs | Apache-2.0 |
+| `material-symbols` | [Material Symbols](https://fonts.google.com/icons) (outlined, rounded, sharp) | Glyphs | Apache-2.0 |
+| `si` | [Simple Icons](https://simpleicons.org) | Brand marks, as glyphs | CC0-1.0 |
+| `sh` | [selfh.st icons](https://selfh.st/icons) | App logos | CC-BY-4.0 |
+| `di` | [Dashboard Icons](https://github.com/homarr-labs/dashboard-icons) | App logos | Apache-2.0 |
+
+The pinned versions are in [backend/icons/](backend/icons/); credits in [ATTRIBUTION.md](ATTRIBUTION.md).
+**Your own images:** base64 content under `icons.configMap.files` (rendered into `<fullname>-icons`),
+or ConfigMaps of the release namespace under `icons.existingConfigMaps`; keys must be unique across
+them. PNG, JPEG, GIF and WebP are encoded again as a PNG of at most 256 pixels a side; an SVG is kept
+only as one self-contained document ([served icons](docs/security/served-icons.md)). A changed
+existing ConfigMap arrives with the backend's next start.
+
 ### Backend configuration
 
 | Variable | Default | Meaning |
 |---|---|---|
 | `DASH_CONFIG` | `/etc/dash/config.yaml` | The YAML file. Missing at the default path: the defaults apply; missing where the variable points: the backend refuses to start |
+| `DASH_ICON_PACKS` | `/usr/share/dash/icons` | The folder of the icon packs the image carries; `make run` points it at `.cache/icons/packs` |
+| `DASH_ICON_CONFIGMAPS` | `/etc/dash-icons` | The folder the chart mounts the icon ConfigMaps in, one folder each; missing: none |
 | `DASH_LISTEN_ADDR` | `:8080` | `host:port` the server binds |
 | `DASH_LOG_LEVEL` | `info` | `debug`, `info`, `warn` or `error` |
 
@@ -304,6 +345,8 @@ dash: invalid configuration:
 | Path | Served by | Answer |
 |---|---|---|
 | `/api/v1/dashboard` | backend | The page's content: `ui` (the settings the page applies), `discovery` (what it reads), `summary` (apps by state), `groups` (apps: `id`, `kind`, `name`, `url`, `info`, `target_blank`, `status`), `bookmarks`; `503 not_ready` until the discovery has listed. What `ui.showApps`, `ui.showBookmarks`, `ui.showAppInfo` and `ui.showAppStatus` hide is not in it. Schema: `/api/v1/openapi.json` |
+| `/api/v1/icons/<catalogue>@<version>/<name>.svg` | backend | An icon of a bundled catalogue; only the version the backend carries |
+| `/api/v1/icons/blob/<sha256>.<png\|svg>` | backend | An icon of a ConfigMap or a URL, as checked |
 | `/api/v1/version` | backend | `{"version","commit","build_time"}` |
 | `/api/v1/openapi.json` | backend | The API document |
 | `/healthz` | backend, frontend | `200 {"status":"ok"}` while the process serves |

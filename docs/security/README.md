@@ -10,6 +10,9 @@ the page whose mechanism has it. Reporting a vulnerability: [SECURITY.md](../../
 | [privilege-footprint.md](privilege-footprint.md) | What the pods may do in the cluster and on their node |
 | [exposure.md](exposure.md) | Who can reach Dash without a login, and what they see |
 | [validation.md](validation.md) | What the configuration may put on the page: link schemes, credentials, badge text |
+| [served-icons.md](served-icons.md) | Every icon served from the dashboard's origin: the content check, the headers |
+| [remote-icons.md](remote-icons.md) | Icons downloaded from URLs: the address rules, the bounds |
+| [supply-chain.md](supply-chain.md) | The icon catalogues in the image: pins and their verification |
 
 The pages describe what is built. The cases the dashboard adds — remote icons, served SVG, links and
 badge text from annotations, the discovery's read — get their pages, or their sections, with the

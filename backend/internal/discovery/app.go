@@ -1,8 +1,10 @@
 package discovery
 
 import (
+	"regexp"
 	"slices"
 
+	discoveryv1 "k8s.io/api/discovery/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 )
 
@@ -29,6 +31,12 @@ type App struct {
 	Labels map[string]string
 	// Services are the Services the Ingress sends traffic to.
 	Services []string
+	// Names are what the app is known by, the most specific first, for
+	// auto-match: its name, the Ingress's, app.kubernetes.io/name of the
+	// Ingress and of its Services' EndpointSlices (which carry the Service's
+	// labels), and helm.sh/chart without its version. Filled when the apps
+	// are read.
+	Names []string
 	// StatusCheck is dash.gtrfc.com/statusCheckEnabled, true by default.
 	StatusCheck bool
 	// Status is the readiness at the moment the app was read.
@@ -104,4 +112,34 @@ func appOf(ing *networkingv1.Ingress, f Filter) (App, *skip, []ignoredKey) {
 		app.Group = ing.Namespace
 	}
 	return app, nil, a.ignored
+}
+
+// The labels auto-match reads names from.
+const (
+	labelName  = "app.kubernetes.io/name"
+	labelChart = "helm.sh/chart"
+)
+
+// chartVersion is the version helm.sh/chart ends in: grafana-8.5.1.
+var chartVersion = regexp.MustCompile(`-v?[0-9]+(\.[0-9]+)*([-+][0-9A-Za-z.-]*)?$`)
+
+// knownAs are the names an app is known by, the most specific first, each once.
+func knownAs(a App, endpointSlices []*discoveryv1.EndpointSlice) []string {
+	out := make([]string, 0, 4+2*len(endpointSlices))
+	out = append(out, a.Name, a.Ingress, a.Labels[labelName])
+	for _, s := range endpointSlices {
+		out = append(out, s.Labels[labelName])
+	}
+	out = append(out, chartVersion.ReplaceAllString(a.Labels[labelChart], ""))
+	for _, s := range endpointSlices {
+		out = append(out, chartVersion.ReplaceAllString(s.Labels[labelChart], ""))
+	}
+	seen := map[string]bool{"": true}
+	return slices.DeleteFunc(out, func(n string) bool {
+		if seen[n] {
+			return true
+		}
+		seen[n] = true
+		return false
+	})
 }

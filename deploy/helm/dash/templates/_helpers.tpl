@@ -37,6 +37,29 @@ The component names: <fullname>-backend, <fullname>-frontend, <fullname>-config.
 {{- printf "%s-config" (include "dash.fullname" .) | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
+{{- define "dash.icons.fullname" -}}
+{{- printf "%s-icons" (include "dash.fullname" .) | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{/*
+The icon ConfigMaps the backend mounts, one folder each under /etc/dash-icons (docs/adr/0008 D4):
+the chart's own <fullname>-icons when icons.configMap.files holds a file, then
+icons.existingConfigMaps. A name in both is refused: the folder would be mounted twice.
+*/}}
+{{- define "dash.iconConfigMaps" -}}
+{{- $names := list }}
+{{- if .Values.icons.configMap.files }}
+{{- $names = append $names (include "dash.icons.fullname" .) }}
+{{- end }}
+{{- range .Values.icons.existingConfigMaps }}
+{{- if has . $names }}
+{{- fail (printf "icons.existingConfigMaps names %s, the ConfigMap the chart renders from icons.configMap.files" .) }}
+{{- end }}
+{{- $names = append $names . }}
+{{- end }}
+{{- toJson $names }}
+{{- end }}
+
 {{/*
 The name of the discovery's RBAC objects: <namespace>-<fullname>. Cluster-scoped objects carry the
 release namespace, so two releases of one name in two namespaces — two dashboards with their own

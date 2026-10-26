@@ -19,6 +19,9 @@ spec:
         {{- end }}
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- if .Values.icons.configMap.files }}
+        checksum/icons: {{ include (print $.Template.BasePath "/icons-configmap.yaml") . | sha256sum }}
+        {{- end }}
         {{- with .Values.backend.podAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -40,6 +43,8 @@ spec:
           env:
             - name: DASH_CONFIG
               value: /etc/dash/config.yaml
+            - name: DASH_ICON_CONFIGMAPS
+              value: /etc/dash-icons
             - name: DASH_LISTEN_ADDR
               value: ":8080"
             - name: DASH_LOG_LEVEL
@@ -77,14 +82,26 @@ spec:
           {{- end }}
           securityContext:
             {{- include "dash.containerSecurityContext" . | nindent 12 }}
+          {{- $iconMaps := include "dash.iconConfigMaps" . | fromJsonArray }}
           volumeMounts:
             - name: config
               mountPath: /etc/dash
               readOnly: true
+            {{- range $i, $name := $iconMaps }}
+            # The icon ConfigMap {{ $name }}: each key an icon, configmap:<key>.
+            - name: icons-{{ $i }}
+              mountPath: /etc/dash-icons/{{ $name }}
+              readOnly: true
+            {{- end }}
       volumes:
         - name: config
           configMap:
             name: {{ include "dash.config.fullname" . }}
+        {{- range $i, $name := $iconMaps }}
+        - name: icons-{{ $i }}
+          configMap:
+            name: {{ $name }}
+        {{- end }}
       {{- with .Values.backend.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

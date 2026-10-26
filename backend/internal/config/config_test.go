@@ -40,7 +40,7 @@ func problemsOf(t *testing.T, err error) []string {
 func TestDefaultsWithoutVariablesOrFile(t *testing.T) {
 	cfg, err := Load(env(nil), files(nil))
 	require.NoError(t, err)
-	assert.Equal(t, Config{ListenAddr: ":8080", LogLevel: slog.LevelInfo, File: DefaultFile()}, cfg,
+	assert.Equal(t, Config{IconPacks: "/usr/share/dash/icons", IconConfigMaps: "/etc/dash-icons", ListenAddr: ":8080", LogLevel: slog.LevelInfo, File: DefaultFile()}, cfg,
 		"no file at the default path is no error: the defaults apply")
 }
 
@@ -52,12 +52,17 @@ func TestTheDefaultPathIsReadWhenItExists(t *testing.T) {
 
 func TestVariablesAreRead(t *testing.T) {
 	cfg, err := Load(env(map[string]string{
-		EnvListenAddr: "127.0.0.1:9090",
-		EnvLogLevel:   "debug",
-		EnvConfig:     "/tmp/cd.yaml",
+		EnvListenAddr:     "127.0.0.1:9090",
+		EnvLogLevel:       "debug",
+		EnvConfig:         "/tmp/cd.yaml",
+		EnvIconPacks:      "/opt/icons",
+		EnvIconConfigMaps: "/opt/icon-configmaps",
 	}), files(map[string]string{"/tmp/cd.yaml": ""}))
 	require.NoError(t, err)
-	assert.Equal(t, Config{ConfigPath: "/tmp/cd.yaml", ListenAddr: "127.0.0.1:9090", LogLevel: slog.LevelDebug, File: DefaultFile()}, cfg)
+	assert.Equal(t, Config{
+		ConfigPath: "/tmp/cd.yaml", IconPacks: "/opt/icons", IconConfigMaps: "/opt/icon-configmaps",
+		ListenAddr: "127.0.0.1:9090", LogLevel: slog.LevelDebug, File: DefaultFile(),
+	}, cfg)
 }
 
 func TestEveryLogLevel(t *testing.T) {
@@ -106,8 +111,12 @@ func TestAnExplicitFileMustExist(t *testing.T) {
 }
 
 func TestAnEmptyFileVariableIsRefused(t *testing.T) {
-	_, err := Load(env(map[string]string{EnvConfig: ""}), files(nil))
-	assert.Equal(t, []string{"DASH_CONFIG: must name a file when it is set"}, problemsOf(t, err))
+	_, err := Load(env(map[string]string{EnvConfig: "", EnvIconPacks: "", EnvIconConfigMaps: ""}), files(nil))
+	assert.Equal(t, []string{
+		"DASH_ICON_CONFIGMAPS: must name a folder when it is set",
+		"DASH_ICON_PACKS: must name a folder when it is set",
+		"DASH_CONFIG: must name a file when it is set",
+	}, problemsOf(t, err))
 }
 
 func TestAnUnreadableDefaultFileIsAProblem(t *testing.T) {

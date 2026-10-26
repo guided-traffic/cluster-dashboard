@@ -3,6 +3,12 @@
 
 export type { GetDashboard$Params as GetDashboard$Params } from './fn/dashboard/get-dashboard';
 export { getDashboard as getDashboard } from './fn/dashboard/get-dashboard';
+export type { GetBlobIcon$Png$Params as GetBlobIcon$Png$Params } from './fn/icons/get-blob-icon-png';
+export { getBlobIcon$Png as getBlobIcon$Png } from './fn/icons/get-blob-icon-png';
+export type { GetBlobIcon$Xml$Params as GetBlobIcon$Xml$Params } from './fn/icons/get-blob-icon-xml';
+export { getBlobIcon$Xml as getBlobIcon$Xml } from './fn/icons/get-blob-icon-xml';
+export type { GetCatalogIcon$Params as GetCatalogIcon$Params } from './fn/icons/get-catalog-icon';
+export { getCatalogIcon as getCatalogIcon } from './fn/icons/get-catalog-icon';
 export type { GetOpenApi$Params as GetOpenApi$Params } from './fn/meta/get-open-api';
 export { getOpenApi as getOpenApi } from './fn/meta/get-open-api';
 export type { GetVersion$Params as GetVersion$Params } from './fn/meta/get-version';

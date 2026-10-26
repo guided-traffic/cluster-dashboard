@@ -7,12 +7,15 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"maps"
 	"math"
 	"net"
 	"os"
 	"os/signal"
 	"runtime/debug"
+	"slices"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -24,6 +27,7 @@ import (
 	"github.com/guided-traffic/dash/backend/internal/dashboard"
 	"github.com/guided-traffic/dash/backend/internal/discovery"
 	"github.com/guided-traffic/dash/backend/internal/httpserver"
+	"github.com/guided-traffic/dash/backend/internal/icons"
 	"github.com/guided-traffic/dash/backend/internal/kube"
 	"github.com/guided-traffic/dash/backend/internal/problem"
 )
@@ -132,12 +136,6 @@ func serve(ctx context.Context, d deps) int {
 	klog.SetSlogLogger(logger)
 	logger.Info("starting", "version", version, "commit", commit, "config", configSource(cfg), "memory_limit", memoryLimit())
 
-	cl, err := d.clients()
-	if err != nil {
-		logger.Error("no Kubernetes client", "error", err)
-		return 1
-	}
-
 	// serve returns once the work it started in the background has stopped:
 	// the deferred stop ends it, then this wait — deferred first, run last.
 	var background sync.WaitGroup
@@ -145,13 +143,27 @@ func serve(ctx context.Context, d deps) int {
 	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
+	resolver, closeIcons, err := openIcons(ctx, cfg, logger)
+	if err != nil {
+		logger.Error("the icons cannot be served", "error", err)
+		return 1
+	}
+	defer closeIcons()
+	registerIcons(resolver, cfg.File, logger)
+
+	cl, err := d.clients()
+	if err != nil {
+		logger.Error("no Kubernetes client", "error", err)
+		return 1
+	}
+
 	probe := kube.NewProbe(cl.version)
 	background.Go(func() { probe.Run(ctx, logger) })
 	ready := []func(context.Context) error{probe.Ready}
 
 	var disc *discovery.Discovery
 	if cfg.File.Discovery.Enabled {
-		disc, err = newDiscovery(cl.kube, cfg.File.Discovery, logger)
+		disc, err = newDiscovery(cl.kube, cfg.File.Discovery, func(ref string) error { return resolver.Register(ref, true) }, logger)
 		if err != nil {
 			logger.Error("discovery setup failed", "error", err)
 			return 1
@@ -161,10 +173,14 @@ func serve(ctx context.Context, d deps) int {
 	} else {
 		logger.Info("the discovery is off: the dashboard shows the configured apps and bookmarks only")
 	}
+	// Last: the downloads of the URLs known by now, the discovery's first
+	// list included, have ended — downloaded or failed.
+	ready = append(ready, once(func(context.Context) error { return resolver.Settled() }))
 
 	apiHandler, err := api.New(api.Options{
 		Logger: logger, Version: version, Commit: commit, BuildTime: buildTime,
-		Dashboard: dashboardSource(disc, cfg.File),
+		Dashboard: dashboardSource(disc, cfg.File, resolver),
+		Icons:     resolver,
 	})
 	if err != nil {
 		logger.Error("API setup failed", "error", err)
@@ -186,18 +202,98 @@ func serve(ctx context.Context, d deps) int {
 	return 0
 }
 
-// newDiscovery sets the discovery up as the configuration selects.
-func newDiscovery(client kubernetes.Interface, c config.Discovery, logger *slog.Logger) (*discovery.Discovery, error) {
+// newDiscovery sets the discovery up as the configuration selects; an
+// Ingress's icon annotation is registered with registerIcon.
+func newDiscovery(client kubernetes.Interface, c config.Discovery, registerIcon func(string) error, logger *slog.Logger) (*discovery.Discovery, error) {
 	opts, err := discovery.OptionsFrom(c)
 	if err != nil {
 		return nil, err
 	}
+	opts.RegisterIcon = registerIcon
 	return discovery.New(client, opts, logger)
 }
 
+// openIcons opens the icon packs and the icon ConfigMaps and sets the
+// resolution up: the defaults must resolve, or the backend does not start.
+// Downloads end with ctx. It returns what closes the packs.
+func openIcons(ctx context.Context, cfg config.Config, logger *slog.Logger) (*icons.Resolver, func(), error) {
+	packs, err := icons.OpenPacks(cfg.IconPacks)
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, catalog := range slices.Sorted(maps.Keys(packs)) {
+		p := packs[catalog]
+		logger.Info("an icon pack is open", "catalog", catalog, "version", p.Version, "icons", p.Count)
+	}
+	var autoMatch []string
+	if cfg.File.Icons.AutoMatch.Enabled {
+		for _, name := range cfg.File.Icons.AutoMatch.Catalogs {
+			autoMatch = append(autoMatch, icons.AutoMatchCatalogs[name])
+		}
+	}
+	remote := cfg.File.Icons.Remote
+	r, err := icons.NewResolver(icons.Options{
+		Packs: packs, AutoMatch: autoMatch,
+		DefaultApp: cfg.File.Icons.DefaultAppIcon, DefaultBookmark: cfg.File.Icons.DefaultBookmarkIcon,
+		ConfigMaps: cfg.IconConfigMaps,
+		Remote: icons.RemoteOptions{
+			Enabled: remote.Enabled, FromAnnotations: remote.FromAnnotations, MaxEntries: remote.MaxEntries,
+			Fetch: icons.FetchOptions{
+				AllowPrivateNetworks: remote.AllowPrivateNetworks, AllowedHosts: remote.AllowedHosts,
+				MaxBytes: remote.MaxBytes, Timeout: remote.Timeout,
+			},
+		},
+		Context: ctx, Logger: logger,
+	})
+	if err != nil {
+		packs.Close()
+		return nil, nil, fmt.Errorf("%w (icon packs in %s)", err, cfg.IconPacks)
+	}
+	return r, packs.Close, nil
+}
+
+// registerIcons makes the configuration's icons known at start: a URL starts
+// its download, so the backend turns ready once it arrived or failed; an
+// icon that does not resolve is a warning, and its item falls back.
+func registerIcons(r *icons.Resolver, f config.File, logger *slog.Logger) {
+	register := func(key, ref string) {
+		if ref == "" {
+			return
+		}
+		if err := r.Register(ref, false); err != nil {
+			logger.Warn("an icon of the configuration does not resolve; its item falls back", "key", key, "reason", err.Error())
+		}
+	}
+	for gi, g := range f.Apps {
+		for ai, a := range g.Apps {
+			register(fmt.Sprintf("apps[%d].apps[%d].icon", gi, ai), a.Icon)
+		}
+	}
+	for gi, g := range f.Bookmarks {
+		for bi, b := range g.Bookmarks {
+			register(fmt.Sprintf("bookmarks[%d].bookmarks[%d].icon", gi, bi), b.Icon)
+		}
+	}
+}
+
+// once is ready from the first time check is, and stays ready.
+func once(check func(context.Context) error) func(context.Context) error {
+	var ok atomic.Bool
+	return func(ctx context.Context) error {
+		if ok.Load() {
+			return nil
+		}
+		if err := check(ctx); err != nil {
+			return err
+		}
+		ok.Store(true)
+		return nil
+	}
+}
+
 // dashboardSource answers the page's content now: the discovery's apps — once
-// it has listed, not_ready before — and the configuration's.
-func dashboardSource(disc *discovery.Discovery, f config.File) func(context.Context) (dashboard.Dashboard, error) {
+// it has listed, not_ready before — and the configuration's, with their icons.
+func dashboardSource(disc *discovery.Discovery, f config.File, ic dashboard.Icons) func(context.Context) (dashboard.Dashboard, error) {
 	return func(ctx context.Context) (dashboard.Dashboard, error) {
 		var apps []discovery.App
 		if disc != nil {
@@ -206,7 +302,7 @@ func dashboardSource(disc *discovery.Discovery, f config.File) func(context.Cont
 			}
 			apps = disc.Apps()
 		}
-		return dashboard.Build(apps, f), nil
+		return dashboard.Build(apps, f, ic), nil
 	}
 }
 

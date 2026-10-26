@@ -17,8 +17,11 @@ For contributors and agents. Read [AGENTS.md](../../AGENTS.md) for the rules in 
    ([configuration.md](configuration.md)).
 6. **The cluster is the state**: the discovery watches Ingresses and EndpointSlices through trimmed
    informers and answers from their caches; nothing is stored ([discovery.md](discovery.md)).
-7. **Phase 2 is in progress**: configuration and discovery are built; the API, icons, badges and
-   the tiles follow, step by step, as the [plan](../planning/project-plan.md) lists them.
+7. **Every icon from the dashboard's origin**: five catalogues packed into the backend image from
+   pins, ConfigMap and remote images checked and kept in memory; the backend decides every fallback
+   ([icons.md](icons.md)).
+8. **Phase 2 is in progress**: configuration, discovery, the dashboard API and the icons are built;
+   badges and the tiles follow, as the [plan](../planning/project-plan.md) lists them.
 
 ## Pages
 
@@ -31,6 +34,7 @@ For contributors and agents. Read [AGENTS.md](../../AGENTS.md) for the rules in 
 | [conventions.md](conventions.md) | Commits, errors, logs, generated code, Kubernetes safety |
 | [configuration.md](configuration.md) | From the chart's values to the backend's `File`, validated twice; adding a key |
 | [discovery.md](discovery.md) | Ingresses to apps: informers, selection, URL, status, RBAC per mode; the dashboard model; adding an annotation key |
+| [icons.md](icons.md) | The packs and their pins, resolution and auto-match, ConfigMap and remote icons, serving; adding a catalogue |
 
 Decisions: [docs/adr/](../adr/README.md). Security architecture: [docs/security/](../security/README.md).
 

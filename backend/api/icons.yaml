@@ -1,0 +1,79 @@
+# Icons: the bundled catalogues, served from the dashboard's own origin.
+catalog:
+  get:
+    operationId: getCatalogIcon
+    tags: [icons]
+    summary: An icon of a bundled catalogue
+    description: |
+      The SVG of an icon of a bundled catalogue (mdi, material-symbols, si, sh, di) at the version the
+      backend carries; the addresses come from the dashboard's `icon.src`. Immutable: another version
+      is no icon. Served with a policy that runs nothing, so an SVG opened on its own cannot act on
+      the dashboard's origin.
+    parameters:
+      - name: pack
+        in: path
+        required: true
+        description: '<catalogue>@<version>, such as mdi@1.2.3'
+        schema: {type: string, pattern: '^[a-z-]+@[0-9A-Za-z][0-9A-Za-z.+-]{0,63}$'}
+      - name: file
+        in: path
+        required: true
+        description: '<name>.svg'
+        schema: {type: string, pattern: '^[a-z0-9]+([._-][a-z0-9]+)*\.svg$'}
+    responses:
+      '200':
+        description: The icon
+        headers:
+          Cache-Control:
+            description: 'public, max-age=31536000, immutable'
+            schema: {type: string}
+          Content-Security-Policy:
+            description: "default-src 'none'; style-src 'unsafe-inline'; sandbox"
+            schema: {type: string}
+          X-Content-Type-Options:
+            description: nosniff
+            schema: {type: string}
+        content:
+          image/svg+xml:
+            schema: {type: string, format: binary}
+      '404':
+        $ref: './components/responses.yaml#/Problem'
+      default:
+        $ref: './components/responses.yaml#/Problem'
+blob:
+  get:
+    operationId: getBlobIcon
+    tags: [icons]
+    summary: An icon of a ConfigMap or a URL
+    description: |
+      An icon from an icon ConfigMap or downloaded from a URL, as the backend checked it: a PNG it
+      encoded again, or an SVG it found self-contained. Named by the SHA-256 of what is served, so
+      immutable; the addresses come from the dashboard's `icon.src`.
+    parameters:
+      - name: file
+        in: path
+        required: true
+        description: '<sha256>.png or <sha256>.svg'
+        schema: {type: string, pattern: '^[0-9a-f]{64}\.(png|svg)$'}
+    responses:
+      '200':
+        description: The icon
+        headers:
+          Cache-Control:
+            description: 'public, max-age=31536000, immutable'
+            schema: {type: string}
+          Content-Security-Policy:
+            description: "default-src 'none'; style-src 'unsafe-inline'; sandbox"
+            schema: {type: string}
+          X-Content-Type-Options:
+            description: nosniff
+            schema: {type: string}
+        content:
+          image/png:
+            schema: {type: string, format: binary}
+          image/svg+xml:
+            schema: {type: string, format: binary}
+      '404':
+        $ref: './components/responses.yaml#/Problem'
+      default:
+        $ref: './components/responses.yaml#/Problem'

@@ -11,6 +11,7 @@ export type { DashboardUi } from './models/dashboard-ui';
 export type { DiscoveryScope } from './models/discovery-scope';
 export type { FieldError } from './models/field-error';
 export type { Greeting } from './models/greeting';
+export type { Icon } from './models/icon';
 export type { NamespaceScope } from './models/namespace-scope';
 export type { Problem } from './models/problem';
 export type { ProblemCode } from './models/problem-code';

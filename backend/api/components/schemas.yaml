@@ -79,16 +79,18 @@ Dashboard:
             url: https://grafana.example.com/
             target_blank: false
             status: {state: healthy, ready: 2, total: 2}
+            icon: {src: /api/v1/icons/sh@1d65d45a42e6/grafana.svg, tint: false}
           - id: ingress/monitoring/prometheus
             kind: ingress
             name: Prometheus
             url: https://prometheus.example.com/
             target_blank: false
             status: {state: degraded, ready: 1, total: 2}
+            icon: {src: /api/v1/icons/sh@1d65d45a42e6/prometheus.svg, tint: false}
     bookmarks:
       - name: docs
         bookmarks:
-          - {id: bookmark/0/0, name: Kubernetes, url: 'https://kubernetes.io/docs', target_blank: true}
+          - {id: bookmark/0/0, name: Kubernetes, url: 'https://kubernetes.io/docs', target_blank: true, icon: {src: /api/v1/icons/si@1.2.101/kubernetes.svg, tint: true}}
 DashboardUI:
   type: object
   description: The ui settings the page applies itself
@@ -155,9 +157,11 @@ AppGroup:
 App:
   type: object
   description: A tile
-  required: [id, kind, name, url, target_blank, status]
+  required: [id, kind, name, url, target_blank, status, icon]
   properties:
     id: {type: string, description: 'Unique on the page: ingress/<namespace>/<name> or app/<group>/<index>'}
+    icon:
+      $ref: '#/Icon'
     kind:
       type: string
       enum: [ingress, app]
@@ -189,9 +193,21 @@ BookmarkGroup:
         $ref: '#/Bookmark'
 Bookmark:
   type: object
-  required: [id, name, url, target_blank]
+  required: [id, name, url, target_blank, icon]
   properties:
+    icon:
+      $ref: '#/Icon'
     id: {type: string, description: 'bookmark/<group>/<index>'}
     name: {type: string}
     url: {type: string}
     target_blank: {type: boolean}
+Icon:
+  type: object
+  description: |
+    A resolved icon: every app and bookmark has one, the fallbacks decided by the backend. A glyph
+    (tint) is drawn as a mask in the page's colour; a logo as it is, src_dark in the dark scheme.
+  required: [src, tint]
+  properties:
+    src: {type: string, description: 'The icon on the dashboard''s origin, under /api/v1/icons/'}
+    src_dark: {type: string, description: 'The variant the dark scheme shows; absent when it is the same'}
+    tint: {type: boolean, description: 'A monochrome glyph, drawn in the colour of the page'}

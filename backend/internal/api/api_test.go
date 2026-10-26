@@ -27,8 +27,9 @@ func newAPI(t *testing.T) http.Handler {
 	h, err := New(Options{
 		Version: "1.2.3", Commit: "abc1234", BuildTime: "1793000000", ValidateResponses: true,
 		Dashboard: func(context.Context) (dashboard.Dashboard, error) {
-			return dashboard.Build(nil, config.DefaultFile()), nil
+			return dashboard.Build(nil, config.DefaultFile(), stubIcons{}), nil
 		},
+		Icons: stubIcons{},
 	})
 	require.NoError(t, err)
 	return h
@@ -188,9 +189,11 @@ func TestEveryOperationOfTheDocumentHasAHandler(t *testing.T) {
 	h := newAPI(t)
 	doc, _, err := loadDocument(mustDocument(t), "")
 	require.NoError(t, err)
+	// A path's parameters, filled with values the stub serves.
+	params := strings.NewReplacer("{pack}", "mdi@1.2.3", "blob/{file}", "blob/"+blobPNG, "{file}", "web.svg")
 	for path, item := range doc.Paths.Map() {
 		for method := range item.Operations() {
-			rec := get(t, h, method, path)
+			rec := get(t, h, method, params.Replace(path))
 			assert.NotEqual(t, http.StatusNotFound, rec.Code, "%s %s has no handler", method, path)
 			assert.Less(t, rec.Code, 500, "%s %s: %s", method, path, strings.TrimSpace(rec.Body.String()))
 		}

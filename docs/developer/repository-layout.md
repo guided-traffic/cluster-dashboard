@@ -20,12 +20,14 @@ dash/
 │   │   ├── dashboard/            # groups, order, summary: the page's model
 │   │   ├── discovery/            # informers, annotations, selection, URL, status
 │   │   ├── httpserver/           # health, readiness, request id, recovery, request log, lifecycle
-│   │   ├── icons/                # the grammar of an icon reference
+│   │   ├── icons/                # references, packs, resolution, ConfigMap and remote icons, the content check
 │   │   ├── kube/                 # the REST configuration and the API server probe
 │   │   ├── problem/              # RFC 9457 bodies and the code catalogue
 │   │   └── requestid/            # the request id in the context
+│   ├── icons/                    # the pins of the icon packs: package.json + lock, sources.yaml, required.txt
 │   ├── test/integration/         # build tag integration: envtest; the discovery under the chart's RBAC
 │   ├── tools/configcheck/        # holds the chart's rendered config.yaml to the backend's validation
+│   ├── tools/iconpack/           # builds the icon packs from the pins (image build, make icon-packs)
 │   ├── tools/problemdoc/         # writes problem-codes.yaml and the README table
 │   ├── tools/specbundle/         # bundles api/ into openapi.gen.json
 │   ├── Containerfile             # golang:1.27.3-alpine → distroless static nonroot

@@ -24,9 +24,15 @@ tags:
     description: What the backend is
   - name: dashboard
     description: What the page shows
+  - name: icons
+    description: Every icon the page shows, from the dashboard's own origin
 paths:
   /api/v1/dashboard:
     $ref: './dashboard.yaml#/dashboard'
+  /api/v1/icons/blob/{file}:
+    $ref: './icons.yaml#/blob'
+  /api/v1/icons/{pack}/{file}:
+    $ref: './icons.yaml#/catalog'
   /api/v1/version:
     $ref: './meta.yaml#/version'
   /api/v1/openapi.json:

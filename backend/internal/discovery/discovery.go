@@ -35,6 +35,8 @@ type Discovery struct {
 	opts      Options
 	logger    *slog.Logger
 	factories []informers.SharedInformerFactory
+	// handled tells whether the Ingress handlers have read the first list.
+	handled []cache.InformerSynced
 	// slices are the EndpointSlice caches by namespace; "" is the one cache
 	// of every namespace.
 	slices map[string]cache.Indexer
@@ -66,13 +68,15 @@ func New(client kubernetes.Interface, opts Options, logger *slog.Logger) (*Disco
 		if err := endpointSlices.AddIndexers(cache.Indexers{serviceIndex: byService}); err != nil {
 			return nil, err
 		}
-		if _, err := ingresses.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		reg, err := ingresses.AddEventHandler(cache.ResourceEventHandlerFuncs{
 			AddFunc:    d.upsert,
 			UpdateFunc: func(_, obj any) { d.upsert(obj) },
 			DeleteFunc: d.remove,
-		}); err != nil {
+		})
+		if err != nil {
 			return nil, err
 		}
+		d.handled = append(d.handled, reg.HasSynced)
 		if err := d.watchErrors(ingresses, "ingresses", ns); err != nil {
 			return nil, err
 		}
@@ -121,8 +125,9 @@ func (d *Discovery) watchErrors(informer cache.SharedIndexInformer, resource, na
 	})
 }
 
-// Run starts the informers, marks the discovery ready once each has listed,
-// and stops them when ctx ends.
+// Run starts the informers, marks the discovery ready once each has listed
+// and the Ingress handlers have read the first list — every app, and every
+// icon its annotation names, is known then — and stops them when ctx ends.
 func (d *Discovery) Run(ctx context.Context) {
 	for _, f := range d.factories {
 		f.Start(ctx.Done())
@@ -138,6 +143,9 @@ func (d *Discovery) Run(ctx context.Context) {
 				return // ctx ended first
 			}
 		}
+	}
+	if !cache.WaitForCacheSync(ctx.Done(), d.handled...) {
+		return
 	}
 	d.synced.Store(true)
 	d.logger.Info("the discovery listed every Ingress", "apps", len(d.Apps()))
@@ -160,6 +168,12 @@ func (d *Discovery) upsert(obj any) {
 		return
 	}
 	app, why, ignored := appOf(ing, d.opts.Filter)
+	if app.Icon != "" && d.opts.RegisterIcon != nil {
+		if err := d.opts.RegisterIcon(app.Icon); err != nil {
+			ignored = append(ignored, ignoredKey{key: KeyIcon, reason: err.Error()})
+			app.Icon = ""
+		}
+	}
 	// An Ingress of a namespace the selector does not take is no business
 	// of the log; with a label selector it is read all the same, in case
 	// its namespace's labels change.
@@ -225,9 +239,11 @@ func (d *Discovery) Apps() []App {
 
 	apps = slices.DeleteFunc(apps, func(a App) bool { return !d.selected(a.Namespace) })
 	for i, a := range apps {
+		endpointSlices := d.endpointSlices(a.Namespace, a.Services)
+		apps[i].Names = knownAs(a, endpointSlices)
 		apps[i].Status = Status{State: Unknown}
 		if a.StatusCheck {
-			apps[i].Status = statusOf(d.endpointSlices(a.Namespace, a.Services))
+			apps[i].Status = statusOf(endpointSlices)
 		}
 	}
 	slices.SortFunc(apps, func(a, b App) int { return strings.Compare(a.Key(), b.Key()) })

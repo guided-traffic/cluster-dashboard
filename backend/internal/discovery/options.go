@@ -59,6 +59,11 @@ func (s NamespaceSelector) selects(name string, nsLabels map[string]string) bool
 type Options struct {
 	Filter     Filter
 	Namespaces NamespaceSelector
+	// RegisterIcon makes an Ingress's dash.gtrfc.com/icon known when the
+	// Ingress is read — a URL starts its download — and tells why it will
+	// not resolve: such an annotation is ignored with a log line, and the
+	// app falls back. nil takes every reference.
+	RegisterIcon func(ref string) error
 }
 
 // OptionsFrom reads the discovery's options from the configuration, which

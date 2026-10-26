@@ -39,6 +39,8 @@ type Options struct {
 	// An error that is a *problem.Error is answered as it is — not_ready
 	// while the discovery has not listed. nil answers not_ready.
 	Dashboard func(ctx context.Context) (dashboard.Dashboard, error)
+	// Icons serves /api/v1/icons/; nil answers every icon 404.
+	Icons IconSource
 	// ValidateResponses checks every response against the document and
 	// answers 500 when one does not match: on in the tests, so a handler that
 	// drifts from the document fails a test.

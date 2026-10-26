@@ -1,0 +1,97 @@
+suite: the icon ConfigMaps
+templates:
+  - templates/icons-configmap.yaml
+  - templates/backend-deployment.yaml
+  - templates/configmap.yaml
+release:
+  name: dash
+tests:
+  - it: renders no icon ConfigMap and mounts none by default
+    asserts:
+      - template: templates/icons-configmap.yaml
+        hasDocuments:
+          count: 0
+      - template: templates/backend-deployment.yaml
+        lengthEqual:
+          path: spec.template.spec.volumes
+          count: 1
+      - template: templates/backend-deployment.yaml
+        notExists:
+          path: spec.template.metadata.annotations["checksum/icons"]
+      - template: templates/backend-deployment.yaml
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DASH_ICON_CONFIGMAPS
+            value: /etc/dash-icons
+
+  - it: renders the chart's icons as binaryData, without white space in the base64
+    set:
+      icons.configMap.files:
+        logo.svg: "PHN2Zy8+\n"
+        billing.jpg: "/9j/ 4AAQ"
+    asserts:
+      - template: templates/icons-configmap.yaml
+        equal:
+          path: metadata.name
+          value: dash-icons
+      - template: templates/icons-configmap.yaml
+        equal:
+          path: binaryData
+          value:
+            billing.jpg: /9j/4AAQ
+            logo.svg: PHN2Zy8+
+
+  - it: mounts the chart's icons and the existing ConfigMaps, one folder each, read-only
+    set:
+      icons.configMap.files:
+        logo.svg: PHN2Zy8+
+      icons.existingConfigMaps: [team-icons, brand-icons]
+    template: templates/backend-deployment.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: icons-0
+            configMap:
+              name: dash-icons
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: icons-2
+            configMap:
+              name: brand-icons
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: icons-1
+            mountPath: /etc/dash-icons/team-icons
+            readOnly: true
+      - matchRegex:
+          path: spec.template.metadata.annotations["checksum/icons"]
+          pattern: ^[0-9a-f]{64}$
+
+  - it: mounts existing ConfigMaps without rendering one
+    set:
+      icons.existingConfigMaps: [team-icons]
+    asserts:
+      - template: templates/icons-configmap.yaml
+        hasDocuments:
+          count: 0
+      - template: templates/backend-deployment.yaml
+        contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: icons-0
+            mountPath: /etc/dash-icons/team-icons
+            readOnly: true
+
+  - it: refuses an existing ConfigMap of the name the chart renders
+    set:
+      icons.configMap.files:
+        logo.svg: PHN2Zy8+
+      icons.existingConfigMaps: [dash-icons]
+    template: templates/backend-deployment.yaml
+    asserts:
+      - failedTemplate:
+          errorMessage: icons.existingConfigMaps names dash-icons, the ConfigMap the chart renders from icons.configMap.files

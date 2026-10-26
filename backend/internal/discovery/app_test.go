@@ -357,3 +357,24 @@ func TestStatus(t *testing.T) {
 		})
 	}
 }
+
+func TestKnownAs(t *testing.T) {
+	slice := endpointSlice("a")
+	slice.Labels["app.kubernetes.io/name"] = "grafana"
+	slice.Labels["helm.sh/chart"] = "kube-prometheus-stack-61.3.2"
+	app := App{Name: "Dashboards", Ingress: "grafana-ui", Labels: map[string]string{
+		"app.kubernetes.io/name": "grafana", "helm.sh/chart": "grafana-8.5.1",
+	}}
+	assert.Equal(t, []string{"Dashboards", "grafana-ui", "grafana", "kube-prometheus-stack"},
+		knownAs(app, []*discoveryv1.EndpointSlice{slice}), "each once, the most specific first; the chart without its version")
+	assert.Equal(t, []string{"web"}, knownAs(App{Name: "web", Ingress: "web"}, nil))
+	for chart, want := range map[string]string{
+		"grafana-8.5.1":            "grafana",
+		"app-template-v3.2.1":      "app-template",
+		"loki-6.0.0-rc.1":          "loki",
+		"cert-manager-v1.21.3+abc": "cert-manager",
+		"no-version":               "no-version",
+	} {
+		assert.Equal(t, want, chartVersion.ReplaceAllString(chart, ""), chart)
+	}
+}

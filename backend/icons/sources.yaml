@@ -1,0 +1,21 @@
+# The two logo catalogues publish no release, tag or package (checked 2026-10-26): each is pinned to
+# a commit of its repository and the SHA-256 of the files a pack is built from — svg/ and the index —
+# as `find svg <index> -type f | LC_ALL=C sort | xargs sha256sum | sha256sum` prints it in a
+# checkout (docs/adr/0008). Renovate moves the commits weekly (renovate.json); its pull request fails
+# the image build until `make icon-pins` has printed the new SHA-256 and it is put here.
+selfhst:
+  name: selfh.st icons
+  repository: https://github.com/selfhst/icons
+  # renovate: datasource=git-refs depName=https://github.com/selfhst/icons branch=main
+  commit: 1d65d45a42e6323b54b8096967b1ea4b65321f97
+  sha256: 52db133fec7a044f7c66261da92c5b414c1bd4c992423a6e6837e2f7cf344ede
+  index: index.json
+  license: CC-BY-4.0
+dashboard-icons:
+  name: Dashboard Icons
+  repository: https://github.com/homarr-labs/dashboard-icons
+  # renovate: datasource=git-refs depName=https://github.com/homarr-labs/dashboard-icons branch=main
+  commit: d3b9234dd56f3af5862f06741f0dce101193b3df
+  sha256: 7673e82352f587d59376a3ec962b39db7891b067f499ddb6f3405020d749d847
+  index: metadata.json
+  license: Apache-2.0

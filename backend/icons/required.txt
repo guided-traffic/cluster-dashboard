@@ -1,0 +1,63 @@
+# What the icon packs must resolve: a catalogue update that drops one of these fails the image build
+# (backend/tools/iconpack checks it after building the packs). One reference per line; "match <name>"
+# must find a logo by auto-match in selfhst or dashboard-icons.
+
+# The 26 MDI names the owner's manifests carry as hajimari.io/icon, bare as Hajimari wrote them
+# (wds18-k8s-apps, wds18-flux-apps, sutor-k8s-flux-artifacts; collected 2026-10-26): they must keep
+# working once the prefix is replaced.
+api
+ansible
+bell-alert-outline
+chart-line
+database-outline
+developer-board
+email-fast-outline
+eye-outline
+face-agent
+file-pdf-box
+folder-image
+food-drumstick-outline
+git
+home-automation
+key-chain
+monitor-dashboard
+pail
+scale-balance
+search-web
+shield-key
+shield-key-outline
+text-box-check-outline
+train-car-container
+video-vintage
+web
+wikipedia
+
+# The defaults and the examples of the README and the chart.
+material-symbols:apps
+material-symbols:bookmark
+material-symbols:public
+material-symbols:home
+material-symbols:router
+si:kubernetes
+si:grafana
+
+# The owner's apps that auto-match finds a logo for (measured 2026-10-26; Mailu and AppDaemon have
+# no SVG logo in either catalogue).
+match Grafana
+match Prometheus
+match Alertmanager
+match GitLab
+match Harbor
+match Headlamp
+match Immich
+match Keycloak
+match pgAdmin
+match Home Assistant
+match Jellyfin
+match Vaultwarden
+match Mealie
+match Wiki.js
+match Flowise
+match Stirling-PDF
+match SearXNG
+match TeddyCloud

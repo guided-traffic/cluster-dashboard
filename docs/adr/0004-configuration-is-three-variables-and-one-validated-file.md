@@ -1,10 +1,11 @@
-# ADR 0004: The Configuration Is Three Variables and One Strict YAML File, Validated Twice
+# ADR 0004: The Configuration Is Few Variables and One Strict YAML File, Validated Twice
 
 ## Status
 
 Accepted 2026-10-26. **Built** in `backend/internal/config` with unit tests. Amended 2026-10-26 (phase
 2, step 1): the file holds the dashboard's keys — `discovery`, `ui`, `apps`, `bookmarks`, `icons`,
-`badges` — and D5 and D6 are added. Verified by the unit tests of `backend/internal/config`, the
+`badges` — and D5 and D6 are added. Amended 2026-10-26 (phase 2, step 4): D1 names five variables —
+the two icon folders are paths of the image and the chart, like the file's. Verified by the unit tests of `backend/internal/config`, the
 chart's `tests/configmap_test.yaml`, and `make helm-template`, which hands the `config.yaml` rendered
 from every `ci/*-values.yaml` to the backend's validation (`backend/tools/configcheck`).
 
@@ -16,8 +17,11 @@ does not fit here.
 
 ## Decision
 
-**D1 — Three variables**: `DASH_CONFIG` (the file, default `/etc/dash/config.yaml`), `DASH_LISTEN_ADDR`
-(default `:8080`), `DASH_LOG_LEVEL` (`debug`, `info`, `warn`, `error`; default `info`).
+**D1 — Five variables**: `DASH_CONFIG` (the file, default `/etc/dash/config.yaml`), `DASH_ICON_PACKS`
+(the icon packs, default `/usr/share/dash/icons`, where the image carries them), `DASH_ICON_CONFIGMAPS`
+(the mounted icon ConfigMaps, default `/etc/dash-icons`, where the chart mounts them),
+`DASH_LISTEN_ADDR` (default `:8080`), `DASH_LOG_LEVEL` (`debug`, `info`, `warn`, `error`; default
+`info`). A variable names where the image or the chart put something; a setting is a key of the file.
 
 **D2 — One YAML file for everything else**, decoded strictly: an unknown key is refused. A missing file
 at the default path means the defaults; a missing file `DASH_CONFIG` names is an error.

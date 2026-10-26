@@ -1,0 +1,11 @@
+{
+  "name": "dash-icon-packs",
+  "private": true,
+  "description": "The Iconify icon sets the backend image bundles (docs/adr/0008): backend/tools/iconpack reads each set's tarball and integrity from package-lock.json. Never installed; Renovate moves the pins.",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@iconify-json/material-symbols": "1.2.96",
+    "@iconify-json/mdi": "1.2.3",
+    "@iconify-json/simple-icons": "1.2.101"
+  }
+}

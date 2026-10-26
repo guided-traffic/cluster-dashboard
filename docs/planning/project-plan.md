@@ -848,7 +848,15 @@ server with RBAC authorisation for the impersonation test.
   Angular client regenerated; facts in the README's endpoint table, `docs/security/exposure.md`,
   `docs/developer/discovery.md`. `GET /api/v1/icons/…` moves to step 4: without the packs there is
   nothing to serve.
-- Steps 4 to 8 open.
+- Step 4 (icons) built: the pack builder and the five packs, the grammar, resolution with auto-match,
+  ConfigMap icons, the fetcher and its table, the serving; facts in ADRs 0004 (D1), 0008 (D4–D8), 0009
+  (D4), `docs/developer/icons.md`, `docs/security/{served-icons,remote-icons,supply-chain}.md`, the
+  README. `GET /api/v1/icons/…` came with it. Corrections of this plan's measurements: the owner's
+  manifests carry 26 distinct MDI names, not 27; auto-match finds 18 of the 20 apps §7.4 counts —
+  Mailu and AppDaemon exist in Dashboard Icons as PNG only, and the packs hold SVG (ADR 0008 D5). §7.7's
+  open question is answered: `-light` is the variant for dark backgrounds in both catalogues, used only
+  for a logo that is dark itself (ADR 0008 D6).
+- Steps 5 to 8 open.
 
 **Goal:** the brief end to end — discovery, custom apps, bookmarks, every icon source, Cogpit's
 look, every setting through the chart.

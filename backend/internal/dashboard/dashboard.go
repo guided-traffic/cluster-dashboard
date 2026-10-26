@@ -13,7 +13,18 @@ import (
 
 	"github.com/guided-traffic/dash/backend/internal/config"
 	"github.com/guided-traffic/dash/backend/internal/discovery"
+	"github.com/guided-traffic/dash/backend/internal/icons"
 )
+
+// Icons resolves the icon of each item; icons.Resolver does, deciding every
+// fallback.
+type Icons interface {
+	// App is an app's icon: its own reference, else the logo one of its
+	// names matches, else the default.
+	App(ref string, names []string) icons.Icon
+	// Bookmark is a bookmark's icon: its own reference, else the default.
+	Bookmark(ref string) icons.Icon
+}
 
 // Kind is where an item comes from; badge rules match on it
 // (docs/adr/0011).
@@ -66,6 +77,8 @@ type App struct {
 	// Status is unknown for a custom app, and for every app while
 	// ui.showAppStatus is off.
 	Status discovery.Status
+	// Icon is resolved: every app has one.
+	Icon icons.Icon
 	// Namespace is a discovered app's, empty for a custom one.
 	Namespace string
 }
@@ -83,6 +96,7 @@ type Bookmark struct {
 	Name        string
 	URL         string
 	TargetBlank bool
+	Icon        icons.Icon
 }
 
 // Scope is what the discovery reads: the empty page names it, so that a
@@ -103,14 +117,15 @@ type Summary struct {
 	Total, Healthy, Degraded, Down, Unknown int
 }
 
-// Build assembles the page from the discovered apps and the configuration.
-func Build(discovered []discovery.App, f config.File) Dashboard {
+// Build assembles the page from the discovered apps and the configuration,
+// each item with its icon.
+func Build(discovered []discovery.App, f config.File, ic Icons) Dashboard {
 	d := Dashboard{UI: f.UI, Scope: scopeOf(f.Discovery)}
 	if f.UI.ShowApps {
-		d.Apps = appGroups(discovered, f)
+		d.Apps = appGroups(discovered, f, ic)
 	}
 	if f.UI.ShowBookmarks {
-		d.Bookmarks = bookmarkGroups(f)
+		d.Bookmarks = bookmarkGroups(f, ic)
 	}
 	for _, g := range d.Apps {
 		for _, a := range g.Apps {
@@ -146,12 +161,12 @@ func (s *Summary) add(state discovery.State) {
 	}
 }
 
-func appGroups(discovered []discovery.App, f config.File) []AppGroup {
+func appGroups(discovered []discovery.App, f config.File, ic Icons) []AppGroup {
 	byName := map[string][]App{}
 	for _, a := range discovered {
 		app := App{
 			ID: "ingress/" + a.Key(), Kind: KindIngress, Name: a.Name, URL: a.URL, Info: a.Info,
-			TargetBlank: a.TargetBlank, Status: a.Status, Namespace: a.Namespace,
+			TargetBlank: a.TargetBlank, Status: a.Status, Namespace: a.Namespace, Icon: ic.App(a.Icon, a.Names),
 		}
 		byName[a.Group] = append(byName[a.Group], app)
 	}
@@ -160,6 +175,7 @@ func appGroups(discovered []discovery.App, f config.File) []AppGroup {
 			app := App{
 				ID: fmt.Sprintf("app/%d/%d", gi, ai), Kind: KindApp, Name: a.Name, URL: a.URL, Info: a.Info,
 				TargetBlank: a.TargetBlank, Status: discovery.Status{State: discovery.Unknown},
+				Icon: ic.App(a.Icon, []string{a.Name}),
 			}
 			byName[g.Group] = append(byName[g.Group], app)
 		}
@@ -211,7 +227,7 @@ func byNameThen(a, b, tieA, tieB string) int {
 	return strings.Compare(tieA, tieB)
 }
 
-func bookmarkGroups(f config.File) []BookmarkGroup {
+func bookmarkGroups(f config.File, ic Icons) []BookmarkGroup {
 	groups := make([]BookmarkGroup, 0, len(f.Bookmarks))
 	for gi, g := range f.Bookmarks {
 		group := BookmarkGroup{Name: g.Group, Bookmarks: make([]Bookmark, 0, len(g.Bookmarks))}
@@ -221,6 +237,7 @@ func bookmarkGroups(f config.File) []BookmarkGroup {
 				Name:        b.Name,
 				URL:         b.URL,
 				TargetBlank: b.TargetBlank || f.UI.AlwaysTargetBlank,
+				Icon:        ic.Bookmark(b.Icon),
 			})
 		}
 		groups = append(groups, group)

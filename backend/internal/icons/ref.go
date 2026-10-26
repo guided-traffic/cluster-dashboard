@@ -118,9 +118,15 @@ func ParseRef(raw string) (Ref, error) {
 	return catalogRef(catalog, name)
 }
 
+// ValidIconName reports whether name can name a catalogue's icon: lower
+// case letters and digits, single '-', '_' or '.' between them.
+func ValidIconName(name string) bool {
+	return len(name) <= maxNameLength && iconName.MatchString(name)
+}
+
 func catalogRef(catalog, name string) (Ref, error) {
 	name = strings.ToLower(name)
-	if len(name) > maxNameLength || !iconName.MatchString(name) {
+	if !ValidIconName(name) {
 		return Ref{}, ErrRefName
 	}
 	return Ref{Kind: RefCatalog, Catalog: catalog, Name: name}, nil

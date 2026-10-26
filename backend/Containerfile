@@ -18,6 +18,15 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
+
+# The icon packs (docs/adr/0008 D1), built from the pins in icons/: the Iconify sets from npm's
+# tarballs, verified against their integrity; the two logo catalogues by a sparse git fetch of the
+# pinned commit, verified against the pinned SHA-256. git is the build stage's only; the cache
+# mount keeps the sources between builds, and each is verified again when it is read.
+RUN apk add --no-cache git
+RUN --mount=type=cache,target=/root/.cache/dash-icons \
+    go run ./tools/iconpack -pins icons -cache /root/.cache/dash-icons -out /out/icons
+
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} \
     go build -trimpath \
     -ldflags="-w -s -X main.version=${BUILD_NUMBER:-dev} -X main.commit=${GIT_COMMIT:-unknown} -X main.buildTime=${BUILD_TIME:-unknown}" \
@@ -40,6 +49,8 @@ LABEL org.opencontainers.image.title="dash-backend" \
       org.opencontainers.image.revision="${GIT_COMMIT:-unknown}"
 
 COPY --from=build /out/dash /dash
+# DASH_ICON_PACKS's default.
+COPY --from=build /out/icons /usr/share/dash/icons
 
 # The nonroot user of distroless, by number, so the kubelet can check runAsNonRoot.
 USER 65532:65532

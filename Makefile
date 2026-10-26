@@ -267,8 +267,24 @@ build-frontend-server: ## Build bin/frontend-server, the frontend image's file s
 RUN_KUBECONFIG ?= $(KIND_KUBECONFIG)
 
 .PHONY: run
-run: ## Run the backend from source on :8080 against the kind cluster of make e2e-up (RUN_KUBECONFIG= for another).
-	cd $(BACKEND_DIR) && env -u KUBERNETES_SERVICE_HOST -u KUBERNETES_SERVICE_PORT KUBECONFIG=$(RUN_KUBECONFIG) DASH_LOG_LEVEL=$${DASH_LOG_LEVEL:-debug} go run -ldflags="$(LDFLAGS)" ./cmd/dash serve
+run: icon-packs ## Run the backend from source on :8080 against the kind cluster of make e2e-up (RUN_KUBECONFIG= for another).
+	cd $(BACKEND_DIR) && env -u KUBERNETES_SERVICE_HOST -u KUBERNETES_SERVICE_PORT KUBECONFIG=$(RUN_KUBECONFIG) DASH_LOG_LEVEL=$${DASH_LOG_LEVEL:-debug} \
+	  DASH_ICON_PACKS=$(ICON_PACKS) go run -ldflags="$(LDFLAGS)" ./cmd/dash serve
+
+## The icon packs (docs/adr/0008 D1): the image builds them in its build stage; these targets build
+# the same packs from the same pins (backend/icons/) into .cache for make run, and print the
+# SHA-256 of a logo catalogue's pinned commit for backend/icons/sources.yaml. They need git and the
+# network; every download is verified against its pin.
+ICON_CACHE := $(CACHE)/icons/src
+ICON_PACKS := $(CACHE)/icons/packs
+
+.PHONY: icon-packs
+icon-packs: ## Build the five icon packs from backend/icons/ into .cache/icons/packs.
+	cd $(BACKEND_DIR) && go run ./tools/iconpack -pins icons -cache $(ICON_CACHE) -out $(ICON_PACKS)
+
+.PHONY: icon-pins
+icon-pins: ## Print the SHA-256 of the files of each logo catalogue's pinned commit, for backend/icons/sources.yaml.
+	cd $(BACKEND_DIR) && go run ./tools/iconpack -pins icons -cache $(ICON_CACHE) -sums
 
 ##@ Frontend
 

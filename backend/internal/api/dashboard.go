@@ -60,7 +60,7 @@ func toDashboard(d dashboard.Dashboard) apigen.Dashboard {
 	for _, g := range d.Bookmarks {
 		group := apigen.BookmarkGroup{Name: g.Name, Bookmarks: make([]apigen.Bookmark, 0, len(g.Bookmarks))}
 		for _, b := range g.Bookmarks {
-			group.Bookmarks = append(group.Bookmarks, apigen.Bookmark{Id: b.ID, Name: b.Name, Url: b.URL, TargetBlank: b.TargetBlank})
+			group.Bookmarks = append(group.Bookmarks, apigen.Bookmark{Id: b.ID, Name: b.Name, Url: b.URL, TargetBlank: b.TargetBlank, Icon: toIcon(b.Icon)})
 		}
 		out.Bookmarks = append(out.Bookmarks, group)
 	}
@@ -74,6 +74,7 @@ func toApp(a dashboard.App) apigen.App {
 		Name:        a.Name,
 		Url:         a.URL,
 		TargetBlank: a.TargetBlank,
+		Icon:        toIcon(a.Icon),
 		Status: apigen.AppStatus{
 			State: apigen.AppStatusState(a.Status.State),
 			Ready: a.Status.Ready,

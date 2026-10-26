@@ -262,6 +262,10 @@ func TestEveryValidationRule(t *testing.T) {
 			content:  "icons:\n  autoMatch:\n    catalogs: []\n",
 			problems: []string{"line 3: icons.autoMatch.catalogs: must name a catalogue while icons.autoMatch.enabled is true"},
 		},
+		"a URL icon while remote icons are off": {
+			content:  "icons:\n  remote: {enabled: false}\nbookmarks:\n  - group: g\n    bookmarks:\n      - {name: n, url: \"https://x\", icon: \"https://x/a.png\"}\n",
+			problems: []string{"line 6: bookmarks[0].bookmarks[0].icon: is a URL, and icons.remote.enabled is false"},
+		},
 		"auto-match off without a catalogue": {
 			content: "icons:\n  autoMatch: {enabled: false, catalogs: []}\n",
 		},

@@ -39,6 +39,8 @@ type validator struct {
 	lines    lines
 	failed   map[string]bool
 	problems []problem
+	// remoteOff refuses an icon URL: icons.remote.enabled is false.
+	remoteOff bool
 }
 
 // validate checks f, which d decoded (nil: no file was read).
@@ -49,6 +51,7 @@ func validate(f *File, d *decoder) []problem {
 	}
 	v.discovery(&f.Discovery)
 	v.ui(&f.UI)
+	v.remoteOff = !f.Icons.Remote.Enabled
 	v.apps(f.Apps, f.Badges.Definitions)
 	v.bookmarks(f.Bookmarks, f.Badges.Definitions)
 	v.icons(&f.Icons)
@@ -220,8 +223,12 @@ func (v *validator) item(p, name, link, icon string, entries []string, defs map[
 	v.text(p+".name", name, true)
 	v.link(p+".url", link)
 	if icon != "" {
-		if _, err := icons.ParseRef(icon); err != nil {
+		ref, err := icons.ParseRef(icon)
+		switch {
+		case err != nil:
 			v.add(p+".icon", err.Error())
+		case ref.Kind == icons.RefRemote && v.remoteOff:
+			v.add(p+".icon", "is a URL, and icons.remote.enabled is false")
 		}
 	}
 	v.itemBadges(p+".badges", entries, defs)

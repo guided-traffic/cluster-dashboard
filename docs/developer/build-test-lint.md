@@ -20,7 +20,8 @@ kubeconform, helm-unittest and the Go linters come from the Makefile — never f
 | Integration tests | `make test-integration` (fetches envtest's binaries once) |
 | Frontend tests | `make frontend-test` |
 | Chart | `make helm-lint helm-template helm-unittest helm-kubeconform`; `helm-template` also runs the backend's validation on each rendered `config.yaml` (needs Go) |
-| Images | `make docker-build` (both, then the no-shell proof) |
+| Images | `make docker-build` (both, then the no-shell proof); the backend's build stage builds the icon packs |
+| Icon packs | `make icon-packs` (into `.cache/icons/packs`, for `make run`), `make icon-pins` (the SHA-256 of a logo catalogue's commit) |
 | End to end | `make e2e` (a kind cluster of its own, deleted afterwards) |
 | Release tooling | `npm ci && make test-release-tooling` |
 

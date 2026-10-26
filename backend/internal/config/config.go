@@ -1,6 +1,7 @@
-// Package config loads the backend's configuration: three environment
-// variables — the file's path, the listen address and the log level — and one
-// YAML file for everything else (docs/adr/0004). Load reports every invalid
+// Package config loads the backend's configuration: five environment
+// variables — the file's path, the folders of the icon packs and of the icon
+// ConfigMaps, the listen address and the log level — and one YAML file for
+// everything else (docs/adr/0004). Load reports every invalid
 // variable and every invalid key at once, so a broken configuration is fixed
 // in one round, not one key per restart.
 //
@@ -21,16 +22,24 @@ import (
 
 // The environment variables the backend reads.
 const (
-	EnvConfig     = "DASH_CONFIG"
-	EnvListenAddr = "DASH_LISTEN_ADDR"
-	EnvLogLevel   = "DASH_LOG_LEVEL"
+	EnvConfig         = "DASH_CONFIG"
+	EnvIconPacks      = "DASH_ICON_PACKS"
+	EnvIconConfigMaps = "DASH_ICON_CONFIGMAPS"
+	EnvListenAddr     = "DASH_LISTEN_ADDR"
+	EnvLogLevel       = "DASH_LOG_LEVEL"
 )
 
 // The defaults.
 const (
 	DefaultConfigPath = "/etc/dash/config.yaml"
-	DefaultListenAddr = ":8080"
-	DefaultLogLevel   = "info"
+	// DefaultIconPacks is where the backend image carries its icon packs
+	// (backend/Containerfile).
+	DefaultIconPacks = "/usr/share/dash/icons"
+	// DefaultIconConfigMaps is where the chart mounts the icon ConfigMaps,
+	// one folder each (deploy/helm/dash/templates/backend-deployment.yaml).
+	DefaultIconConfigMaps = "/etc/dash-icons"
+	DefaultListenAddr     = ":8080"
+	DefaultLogLevel       = "info"
 )
 
 // logLevels are the accepted values of DASH_LOG_LEVEL.
@@ -46,6 +55,10 @@ type Config struct {
 	// ConfigPath is the file that was read; empty when none was: the
 	// variable unset and nothing at DefaultConfigPath.
 	ConfigPath string
+	// IconPacks is the folder of the icon packs.
+	IconPacks string
+	// IconConfigMaps is the folder of the mounted icon ConfigMaps.
+	IconConfigMaps string
 	// ListenAddr is the address the HTTP server binds, host:port.
 	ListenAddr string
 	// LogLevel is the lowest level the log writes.
@@ -67,9 +80,13 @@ func (e *Error) Error() string {
 // Load reads the configuration through lookup (os.LookupEnv) and readFile
 // (os.ReadFile). It returns an *Error that lists every problem at once.
 func Load(lookup func(string) (string, bool), readFile func(string) ([]byte, error)) (Config, error) {
-	cfg := Config{ListenAddr: DefaultListenAddr, LogLevel: slog.LevelInfo, File: DefaultFile()}
+	cfg := Config{
+		IconPacks: DefaultIconPacks, IconConfigMaps: DefaultIconConfigMaps,
+		ListenAddr: DefaultListenAddr, LogLevel: slog.LevelInfo, File: DefaultFile(),
+	}
 	var problems []string
 
+	problems = append(problems, folders(lookup, map[string]*string{EnvIconPacks: &cfg.IconPacks, EnvIconConfigMaps: &cfg.IconConfigMaps})...)
 	if v, ok := lookup(EnvListenAddr); ok {
 		if err := validateListenAddr(v); err != nil {
 			problems = append(problems, fmt.Sprintf("%s: %v", EnvListenAddr, err))
@@ -111,6 +128,22 @@ func Load(lookup func(string) (string, bool), readFile func(string) ([]byte, err
 		return Config{}, &Error{Problems: problems}
 	}
 	return cfg, nil
+}
+
+// folders reads the variables that name a folder into their fields; an
+// empty one is a problem.
+func folders(lookup func(string) (string, bool), vars map[string]*string) []string {
+	var problems []string
+	for name, into := range vars {
+		if v, ok := lookup(name); ok {
+			if v == "" {
+				problems = append(problems, fmt.Sprintf("%s: must name a folder when it is set", name))
+			}
+			*into = v
+		}
+	}
+	slices.Sort(problems)
+	return problems
 }
 
 // Parse decodes the YAML file's content into f, which holds the defaults the
