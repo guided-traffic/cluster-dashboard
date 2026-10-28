@@ -20,8 +20,8 @@ For contributors and agents. Read [AGENTS.md](../../AGENTS.md) for the rules in 
 7. **Every icon from the dashboard's origin**: five catalogues packed into the backend image from
    pins, ConfigMap and remote images checked and kept in memory; the backend decides every fallback
    ([icons.md](icons.md)).
-8. **Phase 2 is done** (0.4.0); phase 3 is the cut-over in the owner's clusters
-   ([plan](../planning/project-plan.md)).
+8. **Phase 2 is done** (0.4.0); the [plan](../planning/project-plan.md) holds only phase 1's open
+   checks on GitHub.
 
 ## Pages
 

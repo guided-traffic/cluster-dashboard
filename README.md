@@ -14,9 +14,8 @@ not. Installed by one Helm chart, configured entirely through it, no login.
   <img alt="The dashboard: apps in groups as tiles with their logos and badges, one degraded with an amber spine and the words 1 of 2 ready, one down in coral, a summary of a token per app above them, bookmarks below." src="docs/images/dashboard_light.png">
 </picture>
 
-> **Phase 2 of 3: done, released in 0.4.0.** The dashboard is complete — discovery, icons, badges,
-> the page — and replaces Hajimari in phase 3, the cut-over in the owner's clusters
-> ([project plan](docs/planning/project-plan.md)).
+> **Released: 0.4.0.** The dashboard is complete — discovery, icons, badges, the page. How a cluster
+> switches over is the section *Moving from Hajimari* below.
 
 ```mermaid
 flowchart LR

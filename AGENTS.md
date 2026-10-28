@@ -5,7 +5,7 @@ apps through their Ingresses, in the look of Cogpit. Two images — a Go backend
 and a Go file server with the Angular bundle (`frontend/`) — both distroless; one Helm chart with two
 Ingress objects, `/` to the frontend and `/api/` to the backend.
 **Status: phase 2 (the dashboard: discovery, icons, bookmarks, badges, the page) is done,
-released in 0.4.0; phase 3 (the cut-over in the owner's clusters) is next** — the plan is
+released in 0.4.0; the plan holds only phase 1's open checks on GitHub** — the plan is
 [docs/planning/project-plan.md](docs/planning/project-plan.md), the decisions are
 [docs/adr/](docs/adr/README.md).
 

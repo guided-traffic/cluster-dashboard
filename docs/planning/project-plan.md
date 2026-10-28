@@ -1,8 +1,9 @@
 # Project plan
 
-How Dash goes from an empty repository to the dashboard that replaces Hajimari in the
-owner's clusters. Phases, not dates: each phase names what it delivers, how that is verified and
-what has to be decided first. A phase that closes moves its facts into their homes — the README
+How Dash goes from an empty repository to a released dashboard that can replace Hajimari; moving
+the owner's clusters to it is not this project's work ([§15](#15-deliberately-not-planned)).
+Phases, not dates: each phase names what it delivers, how that is verified and what has to be
+decided first. A phase that closes moves its facts into their homes — the README
 reference, `docs/developer/`, `docs/security/`, an ADR — and is deleted from this file; the plan is
 consumed, never maintained beside the code (the practice of cowork's ADR 0002 D10 and ADR 0074).
 
@@ -48,7 +49,7 @@ The owner's brief, 2026-10-26:
 | [Hajimari](https://github.com/toboshii/hajimari) | Discovery semantics: annotations, selection, URL, status, configuration options | The source, cloned at `main` (`b07024d`); the newest commit is dated 2023-05-25, so the project has been idle for three and a half years |
 | [Cogpit](https://github.com/guided-traffic/cogpit) | The look (Dark Cockpit), the palette, the shapes; the remote icon fetcher | `docs/developer/design-language.md`, `internal/ui/fyneui/theme.go`, `internal/helm/icon.go`, `internal/engine/clustersettings_icon.go`, the README screenshots |
 | [cowork](https://github.com/guided-traffic/cowork) | Repository shape, CI, release, Renovate, the chart, two containers, the theme preference | its agent instructions; ADRs 0001, 0003, 0046, 0047, 0052, 0053, 0056, 0061, 0062, 0073, 0074; the three workflows; `renovate.json`; the chart; the original `docs/planning/project-plan.md` (this file's form) |
-| The owner's cluster repositories | What the cut-over migrates | `wds18-k8s-apps`, `wds18-flux-apps`, `sutor-k8s-flux-artifacts`, `stutor-k8s-flux-base` (grep) |
+| The owner's cluster repositories | The annotation patterns Dash must read; the end-to-end fixture copies them | `wds18-k8s-apps`, `wds18-flux-apps`, `sutor-k8s-flux-artifacts`, `stutor-k8s-flux-base` (grep) |
 | dex-operator, valkey-operator, stackit-s3-provisioner | The organisation's pattern for annotation keys and API groups: `<product>.gtrfc.com` | Their `+groupName` markers and annotation constants (`dex.gtrfc.com`, `vko.gtrfc.com`, `stackit-bucket.gtrfc.com`) |
 
 What the owner's clusters use today (verified by grep, 2026-10-26):
@@ -63,8 +64,6 @@ What the owner's clusters use today (verified by grep, 2026-10-26):
 - Every icon value is a bare MDI name (`web` 9 times, `home-automation` 4, then one each); all 27
   distinct names exist in `@iconify-json/mdi` 1.2.3.
 - The internal Ingress controller is **haproxy-ingress**, chart 0.15.1.
-- Not found: where the wds18 clusters run their Hajimari. Their manifests carry the annotations, but
-  no Hajimari release was found in the wds18 repositories.
 
 ## 3. Working agreements
 
@@ -743,7 +742,7 @@ dash/
 │   ├── adr/                         # decisions
 │   ├── developer/                   # README, repository-layout, architecture, build-test-lint, testing, ci-and-release, conventions, adding-things, discovery, icons, frontend
 │   ├── security/                    # README and one page per case of §12
-│   └── planning/project-plan.md     # this file, until phase 3 closes
+│   └── planning/project-plan.md     # this file, until its last phase closes
 ├── .github/                         # workflows/{release,build,renovate}.yml, badges/coverage.json, release-template.hbs
 ├── Makefile, renovate.json, .releaserc.json, package.json (semantic-release)
 └── AGENTS.md, README.md, SECURITY.md, ATTRIBUTION.md, LICENSE
@@ -833,29 +832,6 @@ server with RBAC authorisation for the impersonation test.
 
 **Effort:** M — most of it is cowork's pipeline ported; new are kind, envtest and the chart tests.
 
-### Phase 3 — Cut-over and 1.0
-
-**Goal:** Dash replaces Hajimari in the owner's clusters.
-
-**Delivers:**
-
-- The owner's manifests in `wds18-k8s-apps`, `wds18-flux-apps` and `sutor-k8s-flux-artifacts` carry
-  `dash.gtrfc.com/*` beside their `hajimari.io/*`: the prefix replaced, the fifteen opt-outs
-  included, generic icon glyphs left behind where a logo should show — changes made in those
-  repositories, not from here.
-- A release installed beside Hajimari in the stutor cluster (`internal-ingress`); its two Ingresses
-  opted out of Hajimari through `ingress.annotations` (`hajimari.io/enable: "false"`), since
-  Hajimari runs in opt-out mode there. The two app lists compared, every difference fixed or named.
-- The owner swaps the HelmRelease in `stutor-k8s-flux-base`, and the wds18 clusters likewise once
-  their Hajimari is located; then the `hajimari.io/*` annotations leave the manifests.
-- Every `H-<n>` closed or accepted by the owner; `1.0.0` on the owner's word.
-
-**Verified when:** the owner's clusters run Dash only and no manifest carries
-`hajimari.io/*` any more; at the cut-over its app list matched Hajimari's apart from named
-differences; what runs is a published release.
-
-**Effort:** S–M — the manifests of three repositories move first.
-
 ## 15. Deliberately not planned
 
 - **Search** and search providers — the brief.
@@ -863,7 +839,7 @@ differences; what runs is a published release.
   an installation protects it.
 - **Discovery from Gateway API routes.** Kubernetes retired ingress-nginx in March 2026 (cowork's
   ADR 0001, Alternatives), and `HTTPRoute` is where Ingress goes; the owner's clusters use Ingress
-  with haproxy-ingress today. The first candidate after 1.0.
+  with haproxy-ingress today. The first candidate for a next phase.
 - Hajimari's `Application` CRD, start pages, modules and custom themes.
 - **Metrics** (a listener, ServiceMonitor) — a candidate when an installation asks for alerts.
 - **arm64 images** — cowork builds `linux/amd64` only; with build stages on `$BUILDPLATFORM` it is a
@@ -872,6 +848,9 @@ differences; what runs is a published release.
 - **Badge numbers that change with the cluster** — macOS's red count, such as endpoints not ready:
   the status spine and its word say that already; such a source is one more rule field when wanted.
 - Several clusters in one dashboard.
+- **Moving the owner's clusters to Dash** — their manifests, the HelmRelease, the comparison with
+  Hajimari: the owner's work in those repositories, not this project's (the owner, 2026-10-28). The
+  README's move from Hajimari is the guide for it.
 
 ## 16. Open questions
 
@@ -898,8 +877,6 @@ What follows:
 - About thirty manifests in three repositories get the new keys before Dash shows the
   owner's apps correctly; until the fifteen opt-outs are carried over, a dashboard with
   `defaultEnable: true` shows the Ingresses they hide.
-- Phase 3 still runs both dashboards side by side: each manifest carries both sets during the
-  transition, and the `hajimari.io/*` set leaves after the cut-over.
 - The icon order is the annotation, then auto-match, then the default: a Hajimari glyph carried over
   wins over a logo, so the migration decides per app which to keep
   ([§7.4](#74-resolution-every-app-gets-an-icon-most-get-their-own-logo)).
