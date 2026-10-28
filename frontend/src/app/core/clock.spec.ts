@@ -18,9 +18,12 @@ describe('the clock', () => {
     ]);
   });
 
-  it('greets by name, or without one', () => {
-    expect(greeting(at(19), ' Hans ')).toEqual({ time: 'evening', name: 'Hans' });
-    expect(greeting(at(9), '  ')).toEqual({ time: 'morning', name: '' });
+  it('greets the environment, or none', () => {
+    expect(greeting(at(19), ' production ')).toEqual({
+      time: 'evening',
+      environment: 'production',
+    });
+    expect(greeting(at(9), '  ')).toEqual({ time: 'morning', environment: '' });
   });
 
   it('writes the date and the time in the given language', () => {

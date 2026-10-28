@@ -17,7 +17,7 @@ dash/
 │   │   │   └── apigen/           # oapi-codegen output (generated)
 │   │   ├── badges/               # corners, tones, the entry grammar, the engine: definitions, rules, corners
 │   │   ├── config/               # DASH_* variables and the strict YAML file → Config, validated
-│   │   ├── dashboard/            # groups, order, summary: the page's model
+│   │   ├── dashboard/            # groups, order, what ui.* hides: the page's model
 │   │   ├── discovery/            # informers, annotations, selection, URL, status
 │   │   ├── httpserver/           # health, readiness, request id, recovery, request log, lifecycle
 │   │   ├── icons/                # references, packs, resolution, ConfigMap and remote icons, the content check
@@ -36,8 +36,8 @@ dash/
 │   ├── src/app/
 │   │   ├── api/                  # ng-openapi-gen output (generated)
 │   │   ├── core/                 # dashboard.service (polling), theme.service, clock, version.service
-│   │   ├── design/               # tokens.css (grounds, hairlines, accent, status and badge tones, faces), glyphs.ts
-│   │   ├── features/dashboard/   # the page: overview, summary, tiles, bookmarks, horizon
+│   │   ├── design/               # tokens.css (grounds, hairlines, accent, status and badge tones, the light strip, faces), glyphs.ts
+│   │   ├── features/dashboard/   # the page: overview, light strip, tiles, bookmarks, horizon
 │   │   └── shared/               # item-icon, badge, group-head, theme-control
 │   ├── src/testing/              # fixtures of the dashboard answer, for the specs
 │   ├── public/                   # favicon.svg, theme-init.js

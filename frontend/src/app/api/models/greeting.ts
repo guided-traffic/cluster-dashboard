@@ -3,9 +3,13 @@
 
 
 /**
- * The line under the title, the time of day and a name
+ * The page's first line: the time of day and the environment, "Good morning, welcome to production."
  */
 export interface Greeting {
   enabled: boolean;
-  name: string;
+
+  /**
+   * Empty: the greeting names none
+   */
+  environment: string;
 }

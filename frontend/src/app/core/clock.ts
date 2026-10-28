@@ -15,9 +15,10 @@ export function timeOfDay(date: Date): 'morning' | 'afternoon' | 'evening' | 'ni
   return 'night';
 }
 
-/** The overview's greeting in its parts — the page sets the time of day apart: "Good *evening*, You." */
-export function greeting(date: Date, name: string): { time: string; name: string } {
-  return { time: timeOfDay(date), name: name.trim() };
+/** The greeting in its parts — the page sets the time of day apart: "Good *morning*, welcome to
+ *  production." */
+export function greeting(date: Date, environment: string): { time: string; environment: string } {
+  return { time: timeOfDay(date), environment: environment.trim() };
 }
 
 /** The date in the overview's bar, in the browser's language: "Monday, 26 October". */

@@ -9,21 +9,14 @@ import { ThemeService } from '../../core/theme.service';
 import { GroupHead } from '../../shared/group-head/group-head';
 import { Bookmarks } from './bookmarks';
 import { Horizon } from './horizon';
-import { Summary, SummaryToken } from './summary';
+import { LightStrip } from './light-strip';
 import { Tile } from './tile';
-
-/** An app on the page and the anchor the summary's token links to. */
-interface Placed {
-  app: App;
-  anchor: string;
-}
 
 /** The page's content, arranged. */
 interface View {
   dashboard: Dashboard;
-  groups: { name: string; apps: Placed[] }[];
-  all: Placed[];
-  tokens: SummaryToken[];
+  groups: { name: string; apps: App[] }[];
+  all: App[];
   bookmarks: BookmarkGroup[];
   scope: string;
   /** The apps' bar: "13 apps · 3 groups". */
@@ -59,11 +52,7 @@ export function scopeWords(scope: DiscoveryScope): string {
 }
 
 function arrange(d: Dashboard): View {
-  let n = 0;
-  const groups = d.groups.map((g) => ({
-    name: g.name,
-    apps: g.apps.map((app) => ({ app, anchor: `app-${n++}` })),
-  }));
+  const groups = d.groups;
   const all = groups.flatMap((g) => g.apps);
   const bookmarks = d.ui.show_bookmark_groups
     ? d.bookmarks
@@ -75,7 +64,6 @@ function arrange(d: Dashboard): View {
     dashboard: d,
     groups,
     all,
-    tokens: all.map((p) => ({ name: p.app.name, state: p.app.status.state, anchor: p.anchor })),
     bookmarks,
     scope: scopeWords(d.discovery),
     appsMeta: d.ui.show_app_groups
@@ -86,15 +74,15 @@ function arrange(d: Dashboard): View {
 }
 
 /**
- * The dashboard (docs/adr/0012 D2): the overview — the greeting or the title, the summary — over
- * the split of the apps, their groups as hairline grids of tiles, beside the bookmarks; a footer
- * naming what the discovery reads. The horizon where there is nothing to show. The page asks the
- * backend through DashboardService and applies the installation's colour scheme while the person
- * has chosen none.
+ * The dashboard (docs/adr/0012 D2, docs/adr/0013): the overview — the light strip over the
+ * greeting that names the environment, or the title — over the split of the apps, their groups as
+ * hairline grids of tiles, beside the bookmarks; a footer naming what the discovery reads. The
+ * horizon where there is nothing to show. The page asks the backend through DashboardService and
+ * applies the installation's colour scheme while the person has chosen none.
  */
 @Component({
   selector: 'app-dashboard',
-  imports: [Summary, Tile, GroupHead, Bookmarks, Horizon],
+  imports: [LightStrip, Tile, GroupHead, Bookmarks, Horizon],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -118,13 +106,13 @@ export class DashboardPage {
     const s = this.state();
     return s.kind === 'ready' ? arrange(s.dashboard) : undefined;
   });
-  /** The time of day and the name, while ui.greeting is enabled. */
+  /** The time of day and the environment, while ui.greeting is enabled. */
   protected readonly greeting = computed(() => {
     const s = this.state();
     if (s.kind !== 'ready' || !s.dashboard.ui.greeting.enabled) {
       return undefined;
     }
-    return greeting(this.clock.now(), s.dashboard.ui.greeting.name);
+    return greeting(this.clock.now(), s.dashboard.ui.greeting.environment);
   });
   /** The overview's bar: "Monday, 26 October · 19:30". */
   protected readonly when = computed(() => {

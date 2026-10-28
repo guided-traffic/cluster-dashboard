@@ -71,7 +71,7 @@ describe('DashboardPage', () => {
     expect(text(host.querySelector('app-horizon .headline'))).toBe('the backend cannot be reached');
   });
 
-  it('shows the summary, the groups under their heads beside the bookmarks', () => {
+  it('shows the groups under their heads beside the bookmarks, and no counts of states', () => {
     const { host } = render(
       dashboardOf({
         groups: [
@@ -81,7 +81,6 @@ describe('DashboardPage', () => {
           },
           { name: 'media', apps: [appOf({ id: 'ingress/media/jellyfin', name: 'Jellyfin' })] },
         ],
-        summary: { total: 3, healthy: 3, degraded: 0, down: 0, unknown: 0 },
         bookmarks: [
           {
             name: 'docs',
@@ -99,22 +98,16 @@ describe('DashboardPage', () => {
         ],
       }),
     );
-    expect(host.querySelector('app-summary')).not.toBeNull();
-    expect(text(host.querySelector('app-summary .legend'))).toBe(
-      '3 apps in 2 groups. All healthy.',
-    );
+    expect(host.querySelector('.overview dl, .overview .legend')).toBeNull();
     expect([...host.querySelectorAll('.group > app-group-head h3')].map(text)).toEqual([
       'monitoring, 2',
       'media, 1',
     ]);
-    expect([...host.querySelectorAll('app-tile a')].map((a) => a.id)).toEqual([
-      'app-0',
-      'app-1',
-      'app-2',
+    expect([...host.querySelectorAll('app-tile .name')].map(text)).toEqual([
+      'Grafana',
+      'Prometheus',
+      'Jellyfin',
     ]);
-    expect(
-      [...host.querySelectorAll('app-summary .token')].map((a) => a.getAttribute('href')),
-    ).toEqual(['#app-0', '#app-1', '#app-2']);
     expect(text(host.querySelector('#apps .bar .meta'))).toBe('3 apps · 2 groups');
     expect(text(host.querySelector('#bookmarks app-group-head h3'))).toBe('docs, 1');
     expect(text(host.querySelector('#bookmarks .bar .meta'))).toBe('1 link');
@@ -156,37 +149,41 @@ describe('DashboardPage', () => {
     );
   });
 
-  it('greets by the time of day and the name, the time set apart', () => {
+  it('greets by the time of day and welcomes to the environment, the time set apart', () => {
     const now = new Date(2026, 9, 26, 19, 30);
     vi.setSystemTime(now);
     const d = dashboardOf();
-    d.ui = { ...d.ui, greeting: { enabled: true, name: 'Hans' } };
+    d.ui = { ...d.ui, greeting: { enabled: true, environment: 'production' } };
     const { host } = render(d);
-    expect(text(host.querySelector('[data-testid=greeting]'))).toBe('Good evening, Hans.');
+    expect(text(host.querySelector('[data-testid=greeting]'))).toBe(
+      'Good evening, welcome to production.',
+    );
     expect(text(host.querySelector('.display em'))).toBe('evening');
     expect(text(host.querySelector('.overview .bar .meta'))).toBe(
       `${longDate(now)} · ${shortTime(now)}`,
     );
   });
 
-  it('greets without a name when ui.greeting has none', () => {
+  it('greets without an environment when ui.greeting names none', () => {
     vi.setSystemTime(new Date(2026, 9, 26, 9, 0));
     const d = dashboardOf();
-    d.ui = { ...d.ui, greeting: { enabled: true, name: ' ' } };
+    d.ui = { ...d.ui, greeting: { enabled: true, environment: ' ' } };
     const { host } = render(d);
     expect(text(host.querySelector('[data-testid=greeting]'))).toBe('Good morning.');
   });
 
-  it('words the summary without groups while ui.showAppGroups is off', () => {
+  it('draws the light strip over the greeting in the colour ui.lightStrip names', () => {
     const d = dashboardOf();
-    d.ui = { ...d.ui, show_app_groups: false };
+    d.ui = { ...d.ui, light_strip: { color: 'red', animation: 'breathing' } };
     const { host } = render(d);
-    expect(text(host.querySelector('app-summary .legend'))).toBe('1 app. All healthy.');
+    const strip = host.querySelector('.overview app-light-strip')!;
+    expect(strip.nextElementSibling!.classList.contains('display')).toBe(true);
+    expect(strip.querySelector('.lights.breathing')).not.toBeNull();
   });
 
   it('shows the title instead while ui.greeting is off', () => {
     const d = dashboardOf();
-    d.ui = { ...d.ui, title: 'Home lab', greeting: { enabled: false, name: 'Hans' } };
+    d.ui = { ...d.ui, title: 'Home lab', greeting: { enabled: false, environment: 'production' } };
     const { host } = render(d);
     expect(host.querySelector('[data-testid=greeting]')).toBeNull();
     expect(text(host.querySelector('.display'))).toBe('Home lab');
@@ -233,13 +230,11 @@ describe('DashboardPage', () => {
     });
     d.ui = {
       ...d.ui,
-      show_summary: false,
       show_app_groups: false,
       show_app_urls: false,
       show_bookmark_groups: false,
     };
     const { host } = render(d);
-    expect(host.querySelector('app-summary')).toBeNull();
     expect(host.querySelector('.group')).toBeNull();
     expect(host.querySelectorAll('#apps app-group-head').length).toBe(0);
     expect(host.querySelectorAll('#apps .grid app-tile').length).toBe(1);
@@ -254,7 +249,6 @@ describe('DashboardPage', () => {
     const { host } = render(
       dashboardOf({
         groups: [],
-        summary: { total: 0, healthy: 0, degraded: 0, down: 0, unknown: 0 },
         discovery: {
           enabled: true,
           instance_name: 'home',
@@ -293,7 +287,6 @@ describe('DashboardPage', () => {
     expect(text(host.querySelector('[data-testid=scope]'))).toBe(
       'No apps discovered. Watching Ingresses in every namespace.',
     );
-    expect(host.querySelector('app-summary')).toBeNull();
     expect(host.querySelector('#apps .bar .meta')).toBeNull();
     expect(host.querySelector('app-bookmarks')).not.toBeNull();
   });

@@ -4,7 +4,8 @@ The page: Angular 22.2, standalone, zoneless, signals, no component library
 ([ADR 0005](../adr/0005-cogpits-dark-cockpit-on-the-web-without-a-component-library.md) D2). It reads
 one answer — `GET /api/v1/dashboard` — and draws it in the look of
 [ADR 0012](../adr/0012-a-technical-editorial-look-the-apps-beside-the-bookmarks.md): neutral grounds,
-hairlines, square corners, colour only for what is not healthy. Every decision about an item (its
+hairlines, square corners, colour only for what is not healthy — and for the environment's light strip
+([ADR 0013](../adr/0013-the-environment-under-cogpits-light-strip-no-counts-of-states.md)). Every decision about an item (its
 icon, its fallback, its badges, what is hidden) was made by the backend.
 
 ## The tree
@@ -14,10 +15,10 @@ icon, its fallback, its badges, what is hidden) was made by the backend.
 | [src/app/app.ts](../../frontend/src/app/app.ts) | The shell: the top bar — the mark and `ui.title` (the page's `h1`, also the document's title), the backend's version, the theme control — over the dashboard |
 | [src/app/core/dashboard.service.ts](../../frontend/src/app/core/dashboard.service.ts) | Asks for the dashboard on start, every `ui.refresh_seconds`, at once when the page becomes visible again, never while it is hidden; keeps the last answer when a refresh fails |
 | [src/app/core/theme.service.ts](../../frontend/src/app/core/theme.service.ts) | The colour scheme: the stored choice, else `ui.default_theme` once the dashboard has answered, else `system` |
-| [src/app/core/clock.ts](../../frontend/src/app/core/clock.ts) | The greeting's time of day, the date and the time, to the minute |
-| [src/app/features/dashboard/](../../frontend/src/app/features/dashboard/dashboard.ts) | The page: the overview with the summary, the apps beside the bookmarks, the footer; the horizon where there is nothing to show |
+| [src/app/core/clock.ts](../../frontend/src/app/core/clock.ts) | The greeting's time of day and environment, the date and the time, to the minute |
+| [src/app/features/dashboard/](../../frontend/src/app/features/dashboard/dashboard.ts) | The page: the overview with the light strip over the greeting, the apps beside the bookmarks, the footer; the horizon where there is nothing to show |
 | [src/app/shared/](../../frontend/src/app/shared) | `item-icon` (a glyph as a mask, a logo as an image), `badge` (a square at a corner or a chip), `group-head` (a group's name and count), `theme-control` |
-| [src/app/design/tokens.css](../../frontend/src/app/design/tokens.css) | Every colour as a `light-dark()` pair — surfaces, text, hairlines, the accent, status, badge tones — the four faces, the frame and the rhythm |
+| [src/app/design/tokens.css](../../frontend/src/app/design/tokens.css) | Every colour as a `light-dark()` pair — surfaces, text, hairlines, the accent, status, badge tones, the light strip's glass and lights — the four faces, the frame and the rhythm |
 | [src/styles.css](../../frontend/src/styles.css) | The page's ground and the two global classes: `.hud` (a mono label) and `.visually-hidden` |
 | [src/testing/](../../frontend/src/testing/dashboard.ts) | Fixtures of the dashboard answer, for the specs only |
 | `src/app/api/` | The client ng-openapi-gen writes (`make frontend-generate`), never edited, never formatted |
@@ -28,9 +29,8 @@ icon, its fallback, its badges, what is hidden) was made by the backend.
 ┌ top bar ── mark + title (h1) │ … │ version │ ◐ │ ☀ │ ☾ ┐   sticky
 ├ frame, ≤ 1280 px, hairline edges ───────────────────────┤
 │ 01 / OVERVIEW                          date · time       │   sticky bar
-│ Good *evening*, Hans.                                    │   or ui.title
-│ 13 apps in 3 groups. 1 down, 1 degraded.  ■■■■■□         │   ui.showSummary
-│ APPS 13 │ HEALTHY 10 │ DEGRADED 1 │ DOWN 1 │ UNKNOWN 1   │
+│░░░░░░░░░░░░░▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░│   light strip, 4 px
+│ Good *evening*, welcome to production.                   │   or ui.title
 ├──────────────────────────────────┬──────────────────────┤
 │ 02 / APPS        13 apps · 3 gr. │ 03 / BOOKMARKS 8 links│   sticky bars
 │ MONITORING                     3 │ REPOSITORIES        3 │   group heads
@@ -48,12 +48,11 @@ bookmarks the apps take the frame's width.
 
 - **Quiet when healthy.** A healthy tile draws no colour: its ready count `2/2` in faint text.
   Degraded: a 2-pixel amber line along the top edge and `2 of 3 ready` in amber; down: a coral line,
-  the coral tint `--down-tint` and `down`; unknown: no word. Every state has a word; the summary's
-  sentence names what is not healthy, worst first.
+  the coral tint `--down-tint` and `down`; unknown: no word. Every state has a word on its tile; the
+  page counts no states (ADR 0013 D1).
 - **Hairline grids.** Each tile draws its right and bottom line (`box-shadow: inset -1px -1px`); the
   grid runs 1 pixel past its pane on the right and at the bottom, and the pane (`overflow: clip`, which
-  keeps the sticky bars working) cuts the outermost lines, so no edge is doubled. The counts of the
-  summary do the same.
+  keeps the sticky bars working) cuts the outermost lines, so no edge is doubled.
 - **Hover and focus.** Under the pointer a tile lifts to `--raised` and a glyph's frame inverts; a logo's
   frame only darkens its border, because a logo drawn for one scheme can vanish on the other's ground.
   A bookmark row inverts, a logo in it keeping a square of the page's ground. Keyboard focus is a 2-pixel
@@ -74,6 +73,16 @@ bookmarks the apps take the frame's width.
   stay under the top bar (`position: sticky; top: var(--nav-height)`) while their section scrolls.
   **Group heads** ([group-head.ts](../../frontend/src/app/shared/group-head/group-head.ts)) are an `h3`
   of the name and the count.
+- **The light strip** ([light-strip.ts](../../frontend/src/app/features/dashboard/light-strip.ts)),
+  Cogpit's, between the overview's bar and the greeting: `--glass` with Cogpit's grain over it,
+  drawn on a canvas a speck per device pixel and drawn again when the strip resizes (a
+  `ResizeObserver`); the light `--strip-<name>` for a name of `ui.lightStrip.color`, a `#rrggbb` as
+  given, nothing else. The animations are CSS of opacity and transform in `cqw`, a hundredth of the
+  strip's width, so Cogpit's shares of the width are written as they are; the light restarts when its
+  colour or animation changes (keyed `@for`), fades in over 350 ms and stands still at full width
+  under `prefers-reduced-motion`. `aria-hidden`: the greeting says the environment in words. It hooks
+  in with `ngAfterViewInit`, not `afterNextRender` and `viewChild`, which cost about 12 kB of the
+  initial bundle.
 - **The horizon** ([horizon.ts](../../frontend/src/app/features/dashboard/horizon.ts)) only where there
   is no data: no app and no bookmark (naming what the discovery reads, so a selector that matches
   nothing is told from an empty cluster), a backend that is starting or cannot be reached.
@@ -94,7 +103,8 @@ schemes: every text token — the status colours included, since they are words 
 on every surface (`--bg`, `--raised`, `--down-tint`); every shape (the accent, the status colours,
 `--line-strong`, the inks) to 3:1; amber to 4.5:1 on the stale notice's tint; the inverted text to
 4.5:1 and `--accent-invert` to 3:1 on `--invert-bg`; each badge's ink to 4.5:1 on its tone, and the
-tone to 3:1 on every surface; and no violet anywhere. A new colour is a `light-dark()` pair there,
+tone to 3:1 on every surface; each light of the strip to 3:1 on `--glass`, and one `--strip-*` for
+every name the light strip takes; and no violet anywhere. A new colour is a `light-dark()` pair there,
 with its case in the test.
 
 ## Adding a component

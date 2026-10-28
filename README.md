@@ -11,7 +11,7 @@ Helm chart, configured entirely through it, no login.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/dashboard_dark.png">
-  <img alt="The dashboard: a greeting and a summary with a square per app and the counts above; below, the apps in groups as cells of a hairline grid with their logos and badges, one degraded with an amber line and the words 1 of 2 ready, one down in coral; beside them the bookmarks as numbered rows." src="docs/images/dashboard_light.png">
+  <img alt="The dashboard: a greeting welcoming to the environment under an orange light strip above; below, the apps in groups as cells of a hairline grid with their logos and badges, one degraded with an amber line and the words 1 of 2 ready, one down in coral; beside them the bookmarks as numbered rows." src="docs/images/dashboard_light.png">
 </picture>
 
 > **Released: 0.4.0.** The dashboard is complete — discovery, icons, badges, the page. How a cluster
@@ -34,7 +34,8 @@ flowchart LR
 - 🔐 Read-only RBAC that follows the namespace selector: cluster-wide, or a Role per named namespace.
 - 🧭 One origin, two Ingress objects: the UI on `/`, the API on `/api/`, the controller the only hop.
 - 🛡️ Distroless images, non-root, read-only, no shell — proven in CI for each image.
-- 🗂️ The apps beside the bookmarks: hairline grids, quiet while every app is healthy, a line and a word where one is not, a summary with a square per app.
+- 🗂️ The apps beside the bookmarks: hairline grids, quiet while every app is healthy, a line and a word where one is not.
+- 🚥 The environment on top — "Good morning, welcome to production." — under Cogpit's light strip, its colour and animation set in the values.
 - 🌗 Light, dark or the system's scheme, remembered by the browser, applied before the first paint.
 - 📜 A spec-first API: OpenAPI 3.1, validated requests, RFC 9457 problem bodies.
 - ⚙️ Every setting through the chart, refused at install when wrong (`values.schema.json`).
@@ -102,6 +103,15 @@ bookmarks:
       - { name: Kubernetes, url: "https://kubernetes.io/docs", icon: "si:kubernetes" }
 ```
 
+**Tell production from staging** — the greeting names the environment, the light strip over it
+lights in its colour:
+
+```yaml
+ui:
+  greeting: { environment: production }
+  lightStrip: { color: red, animation: breathing }
+```
+
 **Tell external apps from internal ones** — a badge per IngressClass:
 
 ```yaml
@@ -161,7 +171,8 @@ under `hajimari.io/` ([ADR 0010](docs/adr/0010-annotations-are-read-under-dash-g
 | Hajimari | Dash |
 |---|---|
 | `instanceName`, `defaultEnable`, `namespaceSelector` | `discovery.instanceName`, `discovery.defaultEnable`, `discovery.namespaceSelector` |
-| `title`, `name`, `showGreeting` | `ui.title`, `ui.greeting.name`, `ui.greeting.enabled` |
+| `title`, `showGreeting` | `ui.title`, `ui.greeting.enabled` |
+| `name` | none: the greeting names the environment, `ui.greeting.environment` |
 | `showApps`, `showAppGroups`, `showAppUrls`, `showAppInfo`, `showAppStatus` | `ui.showApps`, `ui.showAppGroups`, `ui.showAppUrls`, `ui.showAppInfo`, `ui.showAppStatus` |
 | `showBookmarks`, `showBookmarkGroups`, `alwaysTargetBlank` | `ui.showBookmarks`, `ui.showBookmarkGroups`, `ui.alwaysTargetBlank` |
 | `defaultAppIcon` | `icons.defaultAppIcon` |
@@ -250,11 +261,13 @@ discovery:                 # which Ingresses become apps; annotations under dash
 ui:
   title: Dash              # default; at most 64 characters
   greeting:
-    enabled: true          # default; the overview greets by the time of day and a name; false: the title
-    name: You              # default
+    enabled: true          # default; the overview greets by the time of day and the environment; false: the title
+    environment: ""        # default; example: production — "Good morning, welcome to production."; empty: "Good morning."
+  lightStrip:              # Cogpit's light strip over the greeting, frosted glass lit in a colour
+    color: ""              # default: the glass alone; cyan | blue | magenta | red | orange | yellow | green, or #rrggbb (as given in both schemes)
+    animation: static      # default; static | breathing | scanner | flow — still where the browser asks for reduced motion
   defaultTheme: system     # default; system | light | dark, until a person picks one (kept as dash.theme)
   refreshSeconds: 60       # default; 5 to 3600: how often the page asks for the dashboard again
-  showSummary: true        # default; the overview's sentence, a square per app and the counts
   showApps: true           # default
   showAppGroups: true      # default; false: one grid without group heads
   showAppUrls: true        # default; the address at the foot of each app's tile
@@ -449,7 +462,7 @@ dash: invalid configuration:
 
 | Path | Served by | Answer |
 |---|---|---|
-| `/api/v1/dashboard` | backend | The page's content: `ui` (the settings the page applies), `discovery` (what it reads), `summary` (apps by state), `groups` (apps: `id`, `kind`, `name`, `url`, `info`, `target_blank`, `status`, `icon`, `badges`), `bookmarks`; `503 not_ready` until the discovery has listed. What `ui.showApps`, `ui.showBookmarks`, `ui.showAppInfo` and `ui.showAppStatus` hide is not in it. Schema: `/api/v1/openapi.json` |
+| `/api/v1/dashboard` | backend | The page's content: `ui` (the settings the page applies), `discovery` (what it reads), `groups` (apps: `id`, `kind`, `name`, `url`, `info`, `target_blank`, `status`, `icon`, `badges`), `bookmarks`; `503 not_ready` until the discovery has listed. What `ui.showApps`, `ui.showBookmarks`, `ui.showAppInfo` and `ui.showAppStatus` hide is not in it. Schema: `/api/v1/openapi.json` |
 | `/api/v1/icons/<catalogue>@<version>/<name>.svg` | backend | An icon of a bundled catalogue; only the version the backend carries |
 | `/api/v1/icons/blob/<sha256>.<png\|svg>` | backend | An icon of a ConfigMap or a URL, as checked |
 | `/api/v1/version` | backend | `{"version","commit","build_time"}` |

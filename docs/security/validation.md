@@ -5,7 +5,7 @@ Ingress author writes ends up in every viewer's browser, on the dashboard's orig
 
 | Source | Who | Read from |
 |---|---|---|
-| The chart's values | Whoever installs or upgrades the release | `apps`, `bookmarks`, `icons`, `badges` in `<fullname>-config` |
+| The chart's values | Whoever installs or upgrades the release | `ui`, `apps`, `bookmarks`, `icons`, `badges` in `<fullname>-config` |
 | Ingress annotations | Whoever may annotate an Ingress in a watched namespace | `dash.gtrfc.com/*`, read by the discovery |
 
 ## The configuration (built)
@@ -24,6 +24,7 @@ the same at `helm install` where JSON Schema can express it.
 | `badges.definitions.*.text`, `text:` entries | One to eight characters, no control character, no `,` or `@` | Markup or a long string in a pill; the text is rendered as text in any case |
 | `badges.definitions.*.icon` | A glyph of `mdi`, `material-symbols` or `si` | A remote or ConfigMap image in a badge |
 | `badges.definitions.*.label` | Required, at most 64 characters | A badge without an accessible name |
+| `ui.lightStrip.color` | Empty, one of the strip's seven names, or `#rrggbb`; the page draws a name as its token and a `#rrggbb` as given, and nothing else ([light-strip.ts](../../frontend/src/app/features/dashboard/light-strip.ts) `lightOf`, a second line behind the backend's) | A value that is a style rather than a colour, such as a `url()` the browser would fetch, in every viewer's page |
 | Every problem | Names the key and its line, never the value | A token in a URL copied into the log |
 
 ## The annotations (built: the discovery)

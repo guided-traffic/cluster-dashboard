@@ -1,7 +1,7 @@
 // Package dashboard puts the page together: the apps discovery found and the
-// custom apps of the configuration in groups, in order; the bookmark groups;
-// the summary of their states. What the configuration hides is left out
-// here, not only in the page: the API serves what the page shows.
+// custom apps of the configuration in groups, in order; the bookmark groups.
+// What the configuration hides is left out here, not only in the page: the
+// API serves what the page shows.
 package dashboard
 
 import (
@@ -59,8 +59,6 @@ type Dashboard struct {
 	// Bookmarks are the bookmark groups in the configuration's order. Empty
 	// while ui.showBookmarks is off.
 	Bookmarks []BookmarkGroup
-	// Summary counts the apps by state.
-	Summary Summary
 }
 
 // AppGroup is a group of apps: a discovered app's dash.gtrfc.com/group or
@@ -125,11 +123,6 @@ type Scope struct {
 	LabelSelector string
 }
 
-// Summary counts the apps served, by state.
-type Summary struct {
-	Total, Healthy, Degraded, Down, Unknown int
-}
-
 // Build assembles the page from the discovered apps and the configuration,
 // each item with its icon and its badges.
 func Build(discovered []discovery.App, f config.File, ic Icons, bg Badges) Dashboard {
@@ -139,11 +132,6 @@ func Build(discovered []discovery.App, f config.File, ic Icons, bg Badges) Dashb
 	}
 	if f.UI.ShowBookmarks {
 		d.Bookmarks = bookmarkGroups(f, ic, bg)
-	}
-	for _, g := range d.Apps {
-		for _, a := range g.Apps {
-			d.Summary.add(a.Status.State)
-		}
 	}
 	return d
 }
@@ -174,20 +162,6 @@ func scopeOf(c config.Discovery) Scope {
 		}
 	}
 	return scope
-}
-
-func (s *Summary) add(state discovery.State) {
-	s.Total++
-	switch state {
-	case discovery.Healthy:
-		s.Healthy++
-	case discovery.Degraded:
-		s.Degraded++
-	case discovery.Down:
-		s.Down++
-	default:
-		s.Unknown++
-	}
 }
 
 func appGroups(discovered []discovery.App, f config.File, ic Icons, bg Badges) []AppGroup {

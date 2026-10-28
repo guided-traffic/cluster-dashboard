@@ -61,12 +61,14 @@ type LabelSelectorRequirement struct {
 type UI struct {
 	Title    string   `yaml:"title"`
 	Greeting Greeting `yaml:"greeting"`
+	// LightStrip is the strip of frosted glass over the greeting, lit in a
+	// colour (Cogpit's light strip).
+	LightStrip LightStrip `yaml:"lightStrip"`
 	// DefaultTheme is the colour scheme until the person picks one: system,
 	// light or dark.
 	DefaultTheme string `yaml:"defaultTheme"`
 	// RefreshSeconds is how often the page asks for the dashboard again.
 	RefreshSeconds     int  `yaml:"refreshSeconds"`
-	ShowSummary        bool `yaml:"showSummary"`
 	ShowApps           bool `yaml:"showApps"`
 	ShowAppGroups      bool `yaml:"showAppGroups"`
 	ShowAppURLs        bool `yaml:"showAppUrls"`
@@ -81,10 +83,20 @@ type UI struct {
 	GroupOrder []string `yaml:"groupOrder"`
 }
 
-// Greeting is the line under the title: the time of day and a name.
+// Greeting is the page's first line: the time of day and the environment,
+// "Good morning, welcome to production."
 type Greeting struct {
-	Enabled bool   `yaml:"enabled"`
-	Name    string `yaml:"name"`
+	Enabled     bool   `yaml:"enabled"`
+	Environment string `yaml:"environment"`
+}
+
+// LightStrip is the light strip's colour and how its light moves.
+type LightStrip struct {
+	// Color is empty for none (the glass alone), a name of lightStripColors,
+	// or #rrggbb.
+	Color string `yaml:"color"`
+	// Animation is one of lightStripAnimations.
+	Animation string `yaml:"animation"`
 }
 
 // AppGroup is a group of custom apps: apps no Ingress describes.
@@ -205,6 +217,14 @@ const (
 // The colour schemes ui.defaultTheme takes.
 var themes = []string{"system", "light", "dark"}
 
+// The colours the light strip takes by name, each with a shade per colour
+// scheme in the frontend's tokens: Cogpit's accents without violet, which
+// Dash leaves to Cogpit's agent (docs/adr/0005).
+var lightStripColors = []string{"cyan", "blue", "magenta", "red", "orange", "yellow", "green"}
+
+// How the light strip's light moves.
+var lightStripAnimations = []string{"static", "breathing", "scanner", "flow"}
+
 // The logo catalogues auto-match searches, by the names the configuration
 // uses.
 var autoMatchCatalogs = []string{"selfhst", "dashboard-icons"}
@@ -219,10 +239,10 @@ func DefaultFile() File {
 		},
 		UI: UI{
 			Title:              "Dash",
-			Greeting:           Greeting{Enabled: true, Name: "You"},
+			Greeting:           Greeting{Enabled: true},
+			LightStrip:         LightStrip{Animation: "static"},
 			DefaultTheme:       "system",
 			RefreshSeconds:     60,
-			ShowSummary:        true,
 			ShowApps:           true,
 			ShowAppGroups:      true,
 			ShowAppURLs:        true,

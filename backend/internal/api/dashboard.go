@@ -26,11 +26,13 @@ func (s *server) GetDashboard(ctx context.Context, _ apigen.GetDashboardRequestO
 func toDashboard(d dashboard.Dashboard) apigen.Dashboard {
 	out := apigen.Dashboard{
 		Ui: apigen.DashboardUI{
-			Title:              d.UI.Title,
-			Greeting:           apigen.Greeting{Enabled: d.UI.Greeting.Enabled, Name: d.UI.Greeting.Name},
+			Title:    d.UI.Title,
+			Greeting: apigen.Greeting{Enabled: d.UI.Greeting.Enabled, Environment: d.UI.Greeting.Environment},
+			LightStrip: apigen.LightStrip{
+				Color: d.UI.LightStrip.Color, Animation: apigen.LightStripAnimation(d.UI.LightStrip.Animation),
+			},
 			DefaultTheme:       apigen.DashboardUIDefaultTheme(d.UI.DefaultTheme),
 			RefreshSeconds:     d.UI.RefreshSeconds,
-			ShowSummary:        d.UI.ShowSummary,
 			ShowAppGroups:      d.UI.ShowAppGroups,
 			ShowAppUrls:        d.UI.ShowAppURLs,
 			ShowBookmarkGroups: d.UI.ShowBookmarkGroups,
@@ -43,10 +45,6 @@ func toDashboard(d dashboard.Dashboard) apigen.Dashboard {
 				Names:         orEmpty(d.Scope.Names),
 				LabelSelector: d.Scope.LabelSelector,
 			},
-		},
-		Summary: apigen.Summary{
-			Total: d.Summary.Total, Healthy: d.Summary.Healthy, Degraded: d.Summary.Degraded,
-			Down: d.Summary.Down, Unknown: d.Summary.Unknown,
 		},
 		Groups:    make([]apigen.AppGroup, 0, len(d.Apps)),
 		Bookmarks: make([]apigen.BookmarkGroup, 0, len(d.Bookmarks)),

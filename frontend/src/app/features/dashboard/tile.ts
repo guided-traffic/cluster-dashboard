@@ -42,7 +42,6 @@ export function statusWord(app: App): string | undefined {
   template: `
     <a
       class="tile"
-      [id]="anchor()"
       [href]="app().url"
       [attr.target]="app().target_blank ? '_blank' : null"
       [attr.rel]="app().target_blank ? 'noopener noreferrer' : null"
@@ -81,8 +80,6 @@ export function statusWord(app: App): string | undefined {
 })
 export class Tile {
   readonly app = input.required<App>();
-  /** The id the summary's token links to. */
-  readonly anchor = input<string>();
   readonly showURL = input(true);
 
   protected readonly url = computed(() => shownURL(this.app().url));

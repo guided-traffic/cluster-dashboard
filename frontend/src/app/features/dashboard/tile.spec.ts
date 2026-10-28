@@ -7,7 +7,6 @@ describe('Tile', () => {
   function render(app: App, showURL = true) {
     const fixture = TestBed.createComponent(Tile);
     fixture.componentRef.setInput('app', app);
-    fixture.componentRef.setInput('anchor', 'app-3');
     fixture.componentRef.setInput('showURL', showURL);
     fixture.detectChanges();
     const host = fixture.nativeElement as HTMLElement;
@@ -19,7 +18,6 @@ describe('Tile', () => {
       appOf({ info: 'Dashboards', status: { state: 'healthy', ready: 2, total: 2 } }),
     );
     expect(link.getAttribute('href')).toBe('https://grafana.example.com/');
-    expect(link.id).toBe('app-3');
     expect(link.getAttribute('target')).toBeNull();
     expect(link.getAttribute('rel')).toBeNull();
     expect(host.querySelector('.name')!.textContent).toBe('Grafana');

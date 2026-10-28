@@ -8,10 +8,10 @@ export function dashboardOf(overrides: Partial<Dashboard> = {}): Dashboard {
   return {
     ui: {
       title: 'Dash',
-      greeting: { enabled: true, name: 'You' },
+      greeting: { enabled: true, environment: '' },
+      light_strip: { color: '', animation: 'static' },
       default_theme: 'system',
       refresh_seconds: 30,
-      show_summary: true,
       show_app_groups: true,
       show_app_urls: true,
       show_bookmark_groups: true,
@@ -21,7 +21,6 @@ export function dashboardOf(overrides: Partial<Dashboard> = {}): Dashboard {
       instance_name: '',
       namespaces: { any: true, names: [], label_selector: '' },
     },
-    summary: { total: 1, healthy: 1, degraded: 0, down: 0, unknown: 0 },
     groups: [
       {
         name: 'monitoring',

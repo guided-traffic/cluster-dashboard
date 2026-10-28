@@ -5,7 +5,6 @@ import { AppGroup } from '../models/app-group';
 import { BookmarkGroup } from '../models/bookmark-group';
 import { DashboardUi } from '../models/dashboard-ui';
 import { DiscoveryScope } from '../models/discovery-scope';
-import { Summary } from '../models/summary';
 
 /**
  * The page's content (backend/internal/dashboard)
@@ -22,6 +21,5 @@ export interface Dashboard {
    * The app groups: those ui.groupOrder names first, in its order, then by name. Empty while ui.showApps is off
    */
   groups: Array<AppGroup>;
-  summary: Summary;
   ui: DashboardUi;
 }

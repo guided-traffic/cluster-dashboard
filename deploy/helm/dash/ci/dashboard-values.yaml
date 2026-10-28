@@ -21,10 +21,12 @@ ui:
   title: Home lab
   greeting:
     enabled: true
-    name: Hans
+    environment: home lab
+  lightStrip:
+    color: green
+    animation: flow
   defaultTheme: dark
   refreshSeconds: 30
-  showSummary: true
   showApps: true
   showAppGroups: true
   showAppUrls: false

@@ -86,6 +86,8 @@ func TestGetDashboardAnswersThePage(t *testing.T) {
 	f := config.DefaultFile()
 	f.UI.ShowAppInfo = true
 	f.UI.GroupOrder = []string{"tools"}
+	f.UI.Greeting.Environment = "production"
+	f.UI.LightStrip = config.LightStrip{Color: "#c0ffee", Animation: "scanner"}
 	f.Apps = []config.AppGroup{{Group: "tools", Apps: []config.App{{Name: "Router", URL: "https://192.168.1.1", Icon: "mdi:web", TargetBlank: true}}}}
 	f.Bookmarks = []config.BookmarkGroup{{Group: "docs", Bookmarks: []config.Bookmark{{Name: "Kubernetes", URL: "https://kubernetes.io/docs"}}}}
 	engine, err := badges.New(map[string]badges.Definition{
@@ -106,12 +108,11 @@ func TestGetDashboardAnswersThePage(t *testing.T) {
 	assert.Equal(t, "no-store", rec.Header().Get("Cache-Control"))
 	assert.JSONEq(t, `{
 		"ui": {
-			"title": "Dash", "greeting": {"enabled": true, "name": "You"}, "default_theme": "system",
-			"refresh_seconds": 60, "show_summary": true, "show_app_groups": true, "show_app_urls": true,
-			"show_bookmark_groups": true
+			"title": "Dash", "greeting": {"enabled": true, "environment": "production"},
+			"light_strip": {"color": "#c0ffee", "animation": "scanner"}, "default_theme": "system",
+			"refresh_seconds": 60, "show_app_groups": true, "show_app_urls": true, "show_bookmark_groups": true
 		},
 		"discovery": {"enabled": true, "instance_name": "", "namespaces": {"any": true, "names": [], "label_selector": ""}},
-		"summary": {"total": 2, "healthy": 0, "degraded": 1, "down": 0, "unknown": 1},
 		"groups": [
 			{"name": "tools", "apps": [
 				{"id": "app/0/0", "kind": "app", "name": "Router", "url": "https://192.168.1.1", "target_blank": true,

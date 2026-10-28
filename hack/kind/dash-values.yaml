@@ -24,9 +24,15 @@ ingress:
 # them, and the suite proves they stay off the dashboard.
 discovery:
   defaultEnable: true
-# The suite waits for changes: a poll every five seconds.
+# The suite waits for changes: a poll every five seconds. The greeting welcomes to an environment
+# under an orange scanner, which the suite checks moving and standing still.
 ui:
   refreshSeconds: 5
+  greeting:
+    environment: staging
+  lightStrip:
+    color: orange
+    animation: scanner
 # A custom app whose logo auto-match finds in the image's packs, and a bookmark whose icon is a key
 # of the chart's icon ConfigMap: the suite fetches both icons through the backend's Ingress.
 apps:

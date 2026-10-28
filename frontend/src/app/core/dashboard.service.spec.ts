@@ -40,13 +40,11 @@ describe('DashboardService', () => {
     vi.advanceTimersByTime(29_999);
     http.expectNone('/api/v1/dashboard');
     vi.advanceTimersByTime(1);
-    http
-      .expectOne('/api/v1/dashboard')
-      .flush(dashboardOf({ summary: { total: 0, healthy: 0, degraded: 0, down: 0, unknown: 0 } }));
+    http.expectOne('/api/v1/dashboard').flush(dashboardOf({ groups: [] }));
     expect(service.state()).toMatchObject({
       kind: 'ready',
       stale: false,
-      dashboard: { summary: { total: 0 } },
+      dashboard: { groups: [] },
     });
   });
 

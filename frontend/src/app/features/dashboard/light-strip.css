@@ -1,0 +1,138 @@
+/* The strip: frosted glass 4 pixels high, the frame's width; the light in the glass, the grain
+   over the light. Its measures are Cogpit's (lightstrip_model.go), in shares of the strip's width:
+   cqw is a hundredth of it. */
+:host {
+  position: relative;
+  display: block;
+  height: 4px;
+  overflow: clip;
+  container-type: inline-size;
+  background: var(--glass);
+}
+
+.lights,
+.grain {
+  position: absolute;
+  inset: 0;
+}
+
+.grain {
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+/* The light fades in from the glass, Cogpit's second half of a change through glass. */
+.lights {
+  animation: light-in 350ms ease-in-out both;
+}
+
+.light {
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 100%;
+  background: var(--light);
+}
+
+/* Breathing: down to 48 % and back every 4.6 s, eased as a cosine. */
+.breathing .light {
+  animation: breathe 4.6s cubic-bezier(0.37, 0, 0.63, 1) infinite;
+}
+
+/* The scanner: a light half the strip wide, rising to its middle and falling off. Its first sweep
+   enters from beyond the left edge and runs to the right end; from there it swings between its
+   ends, there and back every 6 s, each sweep eased as a cosine. */
+.scanner .light {
+  width: 50cqw;
+  background: linear-gradient(90deg, transparent, var(--light), transparent);
+  animation:
+    scan-in 3s cubic-bezier(0.37, 0, 0.63, 1),
+    scan 6s cubic-bezier(0.37, 0, 0.63, 1) 3s infinite;
+}
+
+/* The flow: a light 46 % of the strip long rising to its head, a soft front a quarter of that,
+   crossing from beyond the left edge every 5 s. The next sets off the moment the head has gone
+   under at the right, while the last one's tail runs out: a second light a pass behind, shown
+   from the second pass on. */
+.flow .light {
+  width: 57.5cqw;
+  background: linear-gradient(90deg, transparent, var(--light) 80%, transparent);
+  animation: flow 5s linear infinite;
+}
+
+.flow .next {
+  left: 111.5cqw;
+  animation:
+    flow 5s linear infinite,
+    hidden 5s;
+}
+
+@keyframes light-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.48;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes scan-in {
+  from {
+    transform: translateX(-50cqw);
+  }
+  to {
+    transform: translateX(60cqw);
+  }
+}
+
+@keyframes scan {
+  0%,
+  100% {
+    transform: translateX(60cqw);
+  }
+  50% {
+    transform: translateX(-10cqw);
+  }
+}
+
+@keyframes flow {
+  from {
+    transform: translateX(-57.5cqw);
+  }
+  to {
+    transform: translateX(54cqw);
+  }
+}
+
+@keyframes hidden {
+  from,
+  to {
+    opacity: 0;
+  }
+}
+
+/* Reduced motion: the light stands still at full strength over the whole strip. */
+@media (prefers-reduced-motion: reduce) {
+  .lights,
+  .lights .light {
+    animation: none;
+  }
+
+  .lights .light {
+    width: 100%;
+    background: var(--light);
+    transform: none;
+  }
+
+  .lights .next {
+    display: none;
+  }
+}

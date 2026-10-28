@@ -97,7 +97,6 @@ func TestDiscoveredAndCustomAppsShareTheirGroup(t *testing.T) {
 	assert.Equal(t, KindIngress, argo.Kind)
 	assert.Equal(t, icons.Icon{Src: "app::"}, argo.Icon, "a discovered app hands its reference and names to the resolver")
 	assert.Equal(t, "tools", argo.Namespace)
-	assert.Equal(t, Summary{Total: 5, Healthy: 1, Degraded: 1, Down: 1, Unknown: 2}, d.Summary)
 }
 
 func TestGroupOrderComesFirst(t *testing.T) {
@@ -136,14 +135,12 @@ func TestWhatTheConfigurationHidesIsNotServed(t *testing.T) {
 	d = Build(apps, f, stubIcons{}, stubBadges{})
 	assert.Equal(t, "about Jellyfin", d.Apps[0].Apps[0].Info)
 	assert.Equal(t, discovery.Status{State: discovery.Unknown}, d.Apps[0].Apps[0].Status)
-	assert.Equal(t, Summary{Total: 1, Unknown: 1}, d.Summary)
 
 	f.UI.ShowApps = false
 	f.UI.ShowBookmarks = false
 	d = Build(apps, f, stubIcons{}, stubBadges{})
 	assert.Empty(t, d.Apps)
 	assert.Empty(t, d.Bookmarks)
-	assert.Equal(t, Summary{}, d.Summary)
 }
 
 func TestBookmarksKeepTheConfigurationsOrder(t *testing.T) {
@@ -217,5 +214,4 @@ func TestAnEmptyDashboard(t *testing.T) {
 	d := Build(nil, config.DefaultFile(), stubIcons{}, stubBadges{})
 	assert.Empty(t, d.Apps)
 	assert.Empty(t, d.Bookmarks)
-	assert.Equal(t, Summary{}, d.Summary)
 }

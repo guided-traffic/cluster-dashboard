@@ -31,4 +31,5 @@ says so.
 | [0009](0009-remote-icons-are-fetched-by-the-backend-under-cogpits-rules.md) | The remote icon fetch policy | Yes |
 | [0010](0010-annotations-are-read-under-dash-gtrfc-com-only.md) | Annotations under `dash.gtrfc.com/` only | Yes |
 | [0011](0011-badges-on-icons-from-definitions-and-rules.md) | Badges on icons, macOS style, from definitions and rules | Yes |
-| [0012](0012-a-technical-editorial-look-the-apps-beside-the-bookmarks.md) | A technical editorial look; the overview above the apps beside the bookmarks; four self-hosted faces | Yes |
+| [0012](0012-a-technical-editorial-look-the-apps-beside-the-bookmarks.md) | A technical editorial look; the overview above the apps beside the bookmarks; four self-hosted faces (amended by 0013) | Yes |
+| [0013](0013-the-environment-under-cogpits-light-strip-no-counts-of-states.md) | No counts of states; the greeting welcomes to the environment under Cogpit's light strip | Yes |

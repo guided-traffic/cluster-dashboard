@@ -1,4 +1,5 @@
 import tokensCss from './tokens.css' with { loader: 'text' };
+import { lightStripColors } from '../features/dashboard/light-strip';
 
 /** One token: its light and its dark value. */
 interface Pair {
@@ -98,6 +99,20 @@ describe('the design tokens', () => {
       });
     }
   }
+
+  for (const scheme of schemes) {
+    for (const light of lightStripColors) {
+      it(`hold the light strip's ${light} light to 3:1 on its glass in the ${scheme} scheme`, () => {
+        expect(ratio(`strip-${light}`, 'glass', scheme)).toBeGreaterThanOrEqual(3);
+      });
+    }
+  }
+
+  it('have a light for every colour ui.lightStrip.color names', () => {
+    expect([...tokens.keys()].filter((name) => name.startsWith('strip-'))).toEqual(
+      lightStripColors.map((c) => `strip-${c}`),
+    );
+  });
 
   it('have no violet tone: the backend refuses violet as a badge tone (internal/badges)', () => {
     expect([...tokens.keys()].some((name) => name.includes('violet'))).toBe(false);

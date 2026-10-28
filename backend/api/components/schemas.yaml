@@ -37,14 +37,12 @@ Version:
 Dashboard:
   type: object
   description: The page's content (backend/internal/dashboard)
-  required: [ui, discovery, summary, groups, bookmarks]
+  required: [ui, discovery, groups, bookmarks]
   properties:
     ui:
       $ref: '#/DashboardUI'
     discovery:
       $ref: '#/DiscoveryScope'
-    summary:
-      $ref: '#/Summary'
     groups:
       type: array
       description: 'The app groups: those ui.groupOrder names first, in its order, then by name. Empty while ui.showApps is off'
@@ -58,10 +56,10 @@ Dashboard:
   example:
     ui:
       title: Dash
-      greeting: {enabled: true, name: You}
+      greeting: {enabled: true, environment: production}
+      light_strip: {color: red, animation: breathing}
       default_theme: system
       refresh_seconds: 60
-      show_summary: true
       show_app_groups: true
       show_app_urls: true
       show_bookmark_groups: true
@@ -69,7 +67,6 @@ Dashboard:
       enabled: true
       instance_name: ''
       namespaces: {any: true, names: [], label_selector: ''}
-    summary: {total: 2, healthy: 1, degraded: 1, down: 0, unknown: 0}
     groups:
       - name: monitoring
         apps:
@@ -99,17 +96,18 @@ Dashboard:
 DashboardUI:
   type: object
   description: The ui settings the page applies itself
-  required: [title, greeting, default_theme, refresh_seconds, show_summary, show_app_groups, show_app_urls, show_bookmark_groups]
+  required: [title, greeting, light_strip, default_theme, refresh_seconds, show_app_groups, show_app_urls, show_bookmark_groups]
   properties:
     title: {type: string}
     greeting:
       $ref: '#/Greeting'
+    light_strip:
+      $ref: '#/LightStrip'
     default_theme:
       type: string
       enum: [system, light, dark]
       description: The colour scheme until a person picks one
     refresh_seconds: {type: integer, minimum: 5, maximum: 3600}
-    show_summary: {type: boolean}
     show_app_groups: {type: boolean}
     show_app_urls: {type: boolean}
     show_bookmark_groups: {type: boolean}
@@ -124,11 +122,24 @@ DiscoveryScope:
       $ref: '#/NamespaceScope'
 Greeting:
   type: object
-  description: The line under the title, the time of day and a name
-  required: [enabled, name]
+  description: 'The page''s first line: the time of day and the environment, "Good morning, welcome to production."'
+  required: [enabled, environment]
   properties:
     enabled: {type: boolean}
-    name: {type: string}
+    environment: {type: string, description: 'Empty: the greeting names none'}
+LightStrip:
+  type: object
+  description: The strip of frosted glass over the greeting, lit in a colour that tells the environment
+  required: [color, animation]
+  properties:
+    color:
+      type: string
+      description: 'Empty: the glass alone; a name, drawn in a shade of each colour scheme; or #rrggbb, drawn as given'
+      pattern: '^(|cyan|blue|magenta|red|orange|yellow|green|#[0-9a-fA-F]{6})$'
+    animation:
+      type: string
+      enum: [static, breathing, scanner, flow]
+      description: How the light moves; it stands still where the browser asks for reduced motion
 NamespaceScope:
   type: object
   description: 'The namespace selector: every namespace, or the names united with the label selector''s matches'
@@ -139,16 +150,6 @@ NamespaceScope:
       type: array
       items: {type: string}
     label_selector: {type: string, description: 'The label selector in its text form, such as dash=listed; empty: none'}
-Summary:
-  type: object
-  description: The apps served, counted by state
-  required: [total, healthy, degraded, down, unknown]
-  properties:
-    total: {type: integer, minimum: 0}
-    healthy: {type: integer, minimum: 0}
-    degraded: {type: integer, minimum: 0}
-    down: {type: integer, minimum: 0}
-    unknown: {type: integer, minimum: 0}
 AppGroup:
   type: object
   required: [name, apps]

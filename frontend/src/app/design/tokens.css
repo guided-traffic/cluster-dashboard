@@ -7,7 +7,7 @@
  *
  * tokens.spec.ts reads this file and holds every text to 4.5:1 and every shape to 3:1 on every
  * surface, the stale notice's word on its tint, the inverted text and its focus ring, a badge's
- * ink on its tone and its tone on every surface.
+ * ink on its tone and its tone on every surface, and each light of the light strip on its glass.
  */
 :root {
   color-scheme: light dark;
@@ -28,8 +28,8 @@
   --faint: light-dark(#616162, #8b8b8b);
   --invert-fg: light-dark(#f2f1ee, #0b0b0c);
 
-  /* Hairlines: the frame, the grid and the section bars; the strong one where a line is a shape —
-     a healthy app's square in the summary, a crosshair tick. */
+  /* Hairlines: the frame, the grid and the section bars; the strong one where a line is a shape,
+     a crosshair tick. */
   --line: light-dark(#cecdcb, #343436);
   --line-strong: light-dark(#818180, #707071);
 
@@ -54,6 +54,18 @@
   --tone-amber-ink: light-dark(#ffffff, #121316);
   --tone-coral: light-dark(#b3261e, #ff6a61);
   --tone-coral-ink: light-dark(#ffffff, #121316);
+
+  /* The light strip (Cogpit's D-122): its frosted glass — the page's ground mixed toward white in
+     dark, toward a cool grey in light, as Cogpit mixes it — and its lights by the names
+     ui.lightStrip.color takes, Cogpit's accents in their shade of each scheme. Violet is none. */
+  --glass: light-dark(#e7e7e7, #202124);
+  --strip-cyan: light-dark(#0b7c93, #5ad1e3);
+  --strip-blue: light-dark(#0a6fd6, #5ab8ff);
+  --strip-magenta: light-dark(#b8417f, #ee82b8);
+  --strip-red: light-dark(#d23b45, #ff6b74);
+  --strip-orange: light-dark(#c4570e, #ff9f5a);
+  --strip-yellow: light-dark(#9a6a00, #f2c14e);
+  --strip-green: light-dark(#138a52, #3dd68c);
 
   /* Typography, self-hosted from npm, no font CDN: Archivo for the display line and the names,
      Instrument Serif's italic for the one accent word, Inter for text, Geist Mono for labels,

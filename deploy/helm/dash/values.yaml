@@ -106,15 +106,22 @@ discovery:
 # The page.
 ui:
   title: Dash
-  # -- The line under the title: the time of day and a name.
+  # -- The page's first line: the time of day and the environment, "Good morning, welcome to
+  # production."; without an environment "Good morning."; off: the title instead.
   greeting:
     enabled: true
-    name: You
+    environment: ""
+  # -- The light strip over the greeting, Cogpit's: frosted glass, lit in a colour that tells the
+  # environment at a glance. color: "" (the glass alone), cyan, blue, magenta, red, orange, yellow,
+  # green, or #rrggbb (drawn as given in both colour schemes); animation: static, breathing,
+  # scanner or flow, standing still where the browser asks for reduced motion.
+  lightStrip:
+    color: ""
+    animation: static
   # -- The colour scheme until a person picks one, which the browser keeps: system, light or dark.
   defaultTheme: system
   # -- How often the page asks for the dashboard again, 5 to 3600 seconds.
   refreshSeconds: 60
-  showSummary: true
   showApps: true
   showAppGroups: true
   showAppUrls: true

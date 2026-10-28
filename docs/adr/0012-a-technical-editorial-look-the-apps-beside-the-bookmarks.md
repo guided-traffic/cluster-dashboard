@@ -8,6 +8,8 @@ Supersedes [ADR 0005](0005-cogpits-dark-cockpit-on-the-web-without-a-component-l
 and the typeface of D4; its D2, D3, D5 and the glyphs of D4 stand. **Built** 2026-10-28 in
 `frontend/`. Verified by the unit tests (every statement of the frontend, every token pair's
 contrast in both schemes) and by `make e2e` in Chromium and WebKit, at desktop and phone width.
+**Amended** 2026-10-28 by [ADR 0013](0013-the-environment-under-cogpits-light-strip-no-counts-of-states.md):
+the overview of D2 lost its summary, its greeting names the environment under Cogpit's light strip.
 
 ## Context
 
@@ -37,7 +39,9 @@ Under it a frame of at most 1,280 pixels with hairline edges:
 - `01 Overview`: the date and the time in its bar; the greeting (*Good evening, Hans.*, the time of
   day in Instrument Serif's italic), or the title while `ui.greeting` is off; with `ui.showSummary`
   a sentence naming the apps, their groups and what is not healthy, a square per app linking to its
-  tile, and the counts in a row of hairline cells.
+  tile, and the counts in a row of hairline cells. *Superseded by ADR 0013 D1–D3: no summary; the
+  greeting welcomes to the environment (*Good evening, welcome to production.*) under the light
+  strip.*
 - The split: `02 Apps`, the groups as hairline grids of tiles under group heads, beside
   `03 Bookmarks`, rows numbered across their groups with the address under the name and the badges
   as chips. Each section's bar stays under the top bar while its section scrolls. At phone width the
@@ -66,7 +70,7 @@ grid floor in hairlines, without the stage light.
 - ADR 0005 D1, D6 and its typeface are superseded and marked there; the shell, the theme preference
   and its control's radio group are unchanged.
 - The bracket head is now `shared/group-head`; the status pill a word at the tile's far end (`.status`);
-  the summary a sentence and a row of counts.
+  the summary a sentence and a row of counts (removed by ADR 0013).
 - A healthy tile shows its ready count: quiet, but no longer silent.
 - The faces are separate files outside the initial bundle (`make frontend-build`: initial total
   200.35 kB raw, no budget warning). That a browser fetches only the subsets a page uses, by each

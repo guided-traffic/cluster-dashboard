@@ -41,10 +41,10 @@ discovery:
         - {key: legacy, operator: DoesNotExist}
 ui:
   title: Home lab
-  greeting: {enabled: false, name: Hans}
+  greeting: {enabled: false, environment: production}
+  lightStrip: {color: red, animation: breathing}
   defaultTheme: dark
   refreshSeconds: 30
-  showSummary: false
   showApps: true
   showAppGroups: false
   showAppUrls: false
@@ -109,6 +109,8 @@ badges:
 		},
 	}, f.Discovery.NamespaceSelector)
 	assert.Equal(t, "Home lab", f.UI.Title)
+	assert.Equal(t, Greeting{Environment: "production"}, f.UI.Greeting)
+	assert.Equal(t, LightStrip{Color: "red", Animation: "breathing"}, f.UI.LightStrip)
 	assert.Equal(t, 30, f.UI.RefreshSeconds)
 	assert.Equal(t, []string{"home", "text:lan@bottom-left"}, f.Apps[0].Apps[0].Badges)
 	assert.Equal(t, 5*time.Second, f.Icons.Remote.Timeout)
@@ -184,15 +186,25 @@ func TestEveryValidationRule(t *testing.T) {
 			},
 		},
 		"ui": {
-			content: "ui:\n  title: \"  \"\n  greeting: {name: " + strings.Repeat("a", 65) + "}\n  defaultTheme: sepia\n  refreshSeconds: 4\n  groupOrder: [a, \"\", a]\n",
+			content: "ui:\n  title: \"  \"\n  greeting: {environment: " + strings.Repeat("a", 65) + "}\n  defaultTheme: sepia\n  refreshSeconds: 4\n  groupOrder: [a, \"\", a]\n  lightStrip:\n    color: violet\n    animation: blink\n",
 			problems: []string{
 				"line 2: ui.title: must not be empty",
-				"line 3: ui.greeting.name: must be at most 64 characters",
+				"line 3: ui.greeting.environment: must be at most 64 characters",
 				"line 4: ui.defaultTheme: must be system, light or dark",
 				"line 5: ui.refreshSeconds: must be from 5 to 3600",
 				"line 6: ui.groupOrder[1]: must name a group",
 				"line 6: ui.groupOrder[2]: repeats ui.groupOrder[0]",
+				"line 8: ui.lightStrip.color: must be empty, cyan, blue, magenta, red, orange, yellow, green or #rrggbb",
+				"line 9: ui.lightStrip.animation: must be static, breathing, scanner or flow",
 			},
+		},
+		"light strip colour as hex": {
+			content:  "ui:\n  lightStrip: {color: \"#C0FFEE\"}\n",
+			problems: nil,
+		},
+		"light strip colour almost hex": {
+			content:  "ui:\n  lightStrip:\n    color: \"#c0ffeg\"\n",
+			problems: []string{"line 3: ui.lightStrip.color: must be empty, cyan, blue, magenta, red, orange, yellow, green or #rrggbb"},
 		},
 		"refresh too slow": {
 			content:  "ui:\n  refreshSeconds: 3601\n",

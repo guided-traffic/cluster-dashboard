@@ -16,7 +16,7 @@ Kubernetes API ──list/watch──▶ informers (trimmed) ──Ingress added
                      Discovery.Apps(): selected namespaces, status counted now ◀──┘
                                    │
                                    ▼
-                     dashboard.Build(apps, config.File): groups, order, summary, what ui.* hides left out
+                     dashboard.Build(apps, config.File): groups, order, what ui.* hides left out
 ```
 
 - **An Ingress is read when it changes**, not when the page asks: `appOf` runs in the informer's

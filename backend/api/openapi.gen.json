@@ -349,24 +349,20 @@
               "name": "monitoring"
             }
           ],
-          "summary": {
-            "degraded": 1,
-            "down": 0,
-            "healthy": 1,
-            "total": 2,
-            "unknown": 0
-          },
           "ui": {
             "default_theme": "system",
             "greeting": {
               "enabled": true,
-              "name": "You"
+              "environment": "production"
+            },
+            "light_strip": {
+              "animation": "breathing",
+              "color": "red"
             },
             "refresh_seconds": 60,
             "show_app_groups": true,
             "show_app_urls": true,
             "show_bookmark_groups": true,
-            "show_summary": true,
             "title": "Dash"
           }
         },
@@ -388,9 +384,6 @@
             },
             "type": "array"
           },
-          "summary": {
-            "$ref": "#/components/schemas/Summary"
-          },
           "ui": {
             "$ref": "#/components/schemas/DashboardUI"
           }
@@ -398,7 +391,6 @@
         "required": [
           "ui",
           "discovery",
-          "summary",
           "groups",
           "bookmarks"
         ],
@@ -419,6 +411,9 @@
           "greeting": {
             "$ref": "#/components/schemas/Greeting"
           },
+          "light_strip": {
+            "$ref": "#/components/schemas/LightStrip"
+          },
           "refresh_seconds": {
             "maximum": 3600,
             "minimum": 5,
@@ -433,9 +428,6 @@
           "show_bookmark_groups": {
             "type": "boolean"
           },
-          "show_summary": {
-            "type": "boolean"
-          },
           "title": {
             "type": "string"
           }
@@ -443,9 +435,9 @@
         "required": [
           "title",
           "greeting",
+          "light_strip",
           "default_theme",
           "refresh_seconds",
-          "show_summary",
           "show_app_groups",
           "show_app_urls",
           "show_bookmark_groups"
@@ -490,18 +482,19 @@
         "type": "object"
       },
       "Greeting": {
-        "description": "The line under the title, the time of day and a name",
+        "description": "The page's first line: the time of day and the environment, \"Good morning, welcome to production.\"",
         "properties": {
           "enabled": {
             "type": "boolean"
           },
-          "name": {
+          "environment": {
+            "description": "Empty: the greeting names none",
             "type": "string"
           }
         },
         "required": [
           "enabled",
-          "name"
+          "environment"
         ],
         "type": "object"
       },
@@ -524,6 +517,31 @@
         "required": [
           "src",
           "tint"
+        ],
+        "type": "object"
+      },
+      "LightStrip": {
+        "description": "The strip of frosted glass over the greeting, lit in a colour that tells the environment",
+        "properties": {
+          "animation": {
+            "description": "How the light moves; it stands still where the browser asks for reduced motion",
+            "enum": [
+              "static",
+              "breathing",
+              "scanner",
+              "flow"
+            ],
+            "type": "string"
+          },
+          "color": {
+            "description": "Empty: the glass alone; a name, drawn in a shade of each colour scheme; or #rrggbb, drawn as given",
+            "pattern": "^(|cyan|blue|magenta|red|orange|yellow|green|#[0-9a-fA-F]{6})$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "color",
+          "animation"
         ],
         "type": "object"
       },
@@ -605,39 +623,6 @@
         ],
         "type": "string"
       },
-      "Summary": {
-        "description": "The apps served, counted by state",
-        "properties": {
-          "degraded": {
-            "minimum": 0,
-            "type": "integer"
-          },
-          "down": {
-            "minimum": 0,
-            "type": "integer"
-          },
-          "healthy": {
-            "minimum": 0,
-            "type": "integer"
-          },
-          "total": {
-            "minimum": 0,
-            "type": "integer"
-          },
-          "unknown": {
-            "minimum": 0,
-            "type": "integer"
-          }
-        },
-        "required": [
-          "total",
-          "healthy",
-          "degraded",
-          "down",
-          "unknown"
-        ],
-        "type": "object"
-      },
       "Version": {
         "example": {
           "build_time": "1793000000",
@@ -680,7 +665,7 @@
   "paths": {
     "/api/v1/dashboard": {
       "get": {
-        "description": "The app groups — discovered through Ingresses and configured — the bookmark groups, the summary\nof the apps' states and the page's settings. Answered from the discovery's cache: a request\ncosts the Kubernetes API server nothing. The page asks on load, every `ui.refreshSeconds` and\nwhen it becomes visible again. What the configuration hides (`ui.showApps`, `ui.showBookmarks`,\n`ui.showAppInfo`, `ui.showAppStatus`) is left out of the answer, not only out of the page.\n",
+        "description": "The app groups — discovered through Ingresses and configured — the bookmark groups and the\npage's settings. Answered from the discovery's cache: a request\ncosts the Kubernetes API server nothing. The page asks on load, every `ui.refreshSeconds` and\nwhen it becomes visible again. What the configuration hides (`ui.showApps`, `ui.showBookmarks`,\n`ui.showAppInfo`, `ui.showAppStatus`) is left out of the answer, not only out of the page.\n",
         "operationId": "getDashboard",
         "responses": {
           "200": {

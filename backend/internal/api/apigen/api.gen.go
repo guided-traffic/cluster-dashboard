@@ -133,6 +133,30 @@ func (e DashboardUIDefaultTheme) Valid() bool {
 	}
 }
 
+// Defines values for LightStripAnimation.
+const (
+	LightStripAnimationBreathing LightStripAnimation = "breathing"
+	LightStripAnimationFlow      LightStripAnimation = "flow"
+	LightStripAnimationScanner   LightStripAnimation = "scanner"
+	LightStripAnimationStatic    LightStripAnimation = "static"
+)
+
+// Valid indicates whether the value is a known member of the LightStripAnimation enum.
+func (e LightStripAnimation) Valid() bool {
+	switch e {
+	case LightStripAnimationBreathing:
+		return true
+	case LightStripAnimationFlow:
+		return true
+	case LightStripAnimationScanner:
+		return true
+	case LightStripAnimationStatic:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ProblemCode.
 const (
 	ProblemCodeInternal         ProblemCode = "internal"
@@ -260,9 +284,6 @@ type Dashboard struct {
 	// Groups The app groups: those ui.groupOrder names first, in its order, then by name. Empty while ui.showApps is off
 	Groups []AppGroup `json:"groups"`
 
-	// Summary The apps served, counted by state
-	Summary Summary `json:"summary"`
-
 	// Ui The ui settings the page applies itself
 	Ui DashboardUI `json:"ui"`
 }
@@ -272,14 +293,16 @@ type DashboardUI struct {
 	// DefaultTheme The colour scheme until a person picks one
 	DefaultTheme DashboardUIDefaultTheme `json:"default_theme"`
 
-	// Greeting The line under the title, the time of day and a name
-	Greeting           Greeting `json:"greeting"`
-	RefreshSeconds     int      `json:"refresh_seconds"`
-	ShowAppGroups      bool     `json:"show_app_groups"`
-	ShowAppUrls        bool     `json:"show_app_urls"`
-	ShowBookmarkGroups bool     `json:"show_bookmark_groups"`
-	ShowSummary        bool     `json:"show_summary"`
-	Title              string   `json:"title"`
+	// Greeting The page's first line: the time of day and the environment, "Good morning, welcome to production."
+	Greeting Greeting `json:"greeting"`
+
+	// LightStrip The strip of frosted glass over the greeting, lit in a colour that tells the environment
+	LightStrip         LightStrip `json:"light_strip"`
+	RefreshSeconds     int        `json:"refresh_seconds"`
+	ShowAppGroups      bool       `json:"show_app_groups"`
+	ShowAppUrls        bool       `json:"show_app_urls"`
+	ShowBookmarkGroups bool       `json:"show_bookmark_groups"`
+	Title              string     `json:"title"`
 }
 
 // DashboardUIDefaultTheme The colour scheme until a person picks one
@@ -304,10 +327,12 @@ type FieldError struct {
 	Pointer string `json:"pointer"`
 }
 
-// Greeting The line under the title, the time of day and a name
+// Greeting The page's first line: the time of day and the environment, "Good morning, welcome to production."
 type Greeting struct {
-	Enabled bool   `json:"enabled"`
-	Name    string `json:"name"`
+	Enabled bool `json:"enabled"`
+
+	// Environment Empty: the greeting names none
+	Environment string `json:"environment"`
 }
 
 // Icon A resolved icon: every app and bookmark has one, the fallbacks decided by the backend. A glyph
@@ -322,6 +347,18 @@ type Icon struct {
 	// Tint A monochrome glyph, drawn in the colour of the page
 	Tint bool `json:"tint"`
 }
+
+// LightStrip The strip of frosted glass over the greeting, lit in a colour that tells the environment
+type LightStrip struct {
+	// Animation How the light moves; it stands still where the browser asks for reduced motion
+	Animation LightStripAnimation `json:"animation"`
+
+	// Color Empty: the glass alone; a name, drawn in a shade of each colour scheme; or #rrggbb, drawn as given
+	Color string `json:"color"`
+}
+
+// LightStripAnimation How the light moves; it stands still where the browser asks for reduced motion
+type LightStripAnimation string
 
 // NamespaceScope The namespace selector: every namespace, or the names united with the label selector's matches
 type NamespaceScope struct {
@@ -355,15 +392,6 @@ type Problem struct {
 
 // ProblemCode The stable code of a problem
 type ProblemCode string
-
-// Summary The apps served, counted by state
-type Summary struct {
-	Degraded int `json:"degraded"`
-	Down     int `json:"down"`
-	Healthy  int `json:"healthy"`
-	Total    int `json:"total"`
-	Unknown  int `json:"unknown"`
-}
 
 // Version defines model for Version.
 type Version struct {

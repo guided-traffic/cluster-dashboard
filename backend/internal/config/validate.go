@@ -131,7 +131,13 @@ func (v *validator) labelKey(p, key string) {
 
 func (v *validator) ui(u *UI) {
 	v.text("ui.title", u.Title, true)
-	v.text("ui.greeting.name", u.Greeting.Name, false)
+	v.text("ui.greeting.environment", u.Greeting.Environment, false)
+	if c := u.LightStrip.Color; c != "" && !slices.Contains(lightStripColors, c) && !isHexColor(c) {
+		v.add("ui.lightStrip.color", "must be empty, "+strings.Join(lightStripColors, ", ")+" or #rrggbb")
+	}
+	if !slices.Contains(lightStripAnimations, u.LightStrip.Animation) {
+		v.add("ui.lightStrip.animation", "must be static, breathing, scanner or flow")
+	}
 	if !slices.Contains(themes, u.DefaultTheme) {
 		v.add("ui.defaultTheme", "must be system, light or dark")
 	}
@@ -139,6 +145,19 @@ func (v *validator) ui(u *UI) {
 		v.add("ui.refreshSeconds", fmt.Sprintf("must be from %d to %d", minRefreshSeconds, maxRefreshSeconds))
 	}
 	v.unique("ui.groupOrder", u.GroupOrder, "a group")
+}
+
+// isHexColor reports whether c is a colour as #rrggbb, in either case.
+func isHexColor(c string) bool {
+	if len(c) != 7 || c[0] != '#' {
+		return false
+	}
+	for _, r := range c[1:] {
+		if !strings.ContainsRune("0123456789abcdefABCDEF", r) {
+			return false
+		}
+	}
+	return true
 }
 
 // text checks a name or a title: at most maxTextLength characters, and not

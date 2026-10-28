@@ -26,5 +26,7 @@ collect them for referring to the apps, and so does Dash. This is not a legal re
 
 Material of the organisation's own projects — the pipeline, Makefile and chart patterns of cowork,
 the envtest fetch script of Cogpit (`hack/envtest/fetch.sh`), the horizon's geometry after Cogpit's
-`glow.go` (`frontend/src/app/features/dashboard/horizon.ts`) — is Guided Traffic's and under this
+`glow.go` (`frontend/src/app/features/dashboard/horizon.ts`), the light strip's measures, shades
+and grain after Cogpit's `lightstrip_model.go` and `theme.go`
+(`frontend/src/app/features/dashboard/light-strip.ts`) — is Guided Traffic's and under this
 repository's Apache License 2.0.

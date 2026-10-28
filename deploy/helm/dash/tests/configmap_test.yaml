@@ -46,8 +46,11 @@ tests:
               defaultTheme: system
               greeting:
                 enabled: true
-                name: You
+                environment: ""
               groupOrder: []
+              lightStrip:
+                animation: static
+                color: ""
               refreshSeconds: 60
               showAppGroups: true
               showAppInfo: false
@@ -56,7 +59,6 @@ tests:
               showApps: true
               showBookmarkGroups: true
               showBookmarks: true
-              showSummary: true
               title: Dash
 
   - it: carries the values into the file
@@ -90,11 +92,18 @@ tests:
   - it: quotes a value YAML would read as another type
     set:
       ui.title: "true"
-      ui.greeting.name: "0123"
+      ui.greeting.environment: "0123"
     asserts:
       - matchRegex:
           path: data["config.yaml"]
           pattern: "(?m)^  title: \"true\"$"
       - matchRegex:
           path: data["config.yaml"]
-          pattern: "(?m)^    name: \"0123\"$"
+          pattern: "(?m)^    environment: \"0123\"$"
+
+  - it: refuses a light strip colour the page has no shade for
+    set:
+      ui.lightStrip.color: violet
+    asserts:
+      - failedTemplate:
+          errorPattern: "ui.lightStrip.color.*does not match pattern"

@@ -37,20 +37,14 @@
               </h2>
               <p class="hud meta">{{ when() }}</p>
             </div>
+            <app-light-strip [settings]="v.dashboard.ui.light_strip" />
             @if (greeting(); as g) {
               <p class="display" data-testid="greeting">
                 Good <em>{{ g.time }}</em
-                >{{ g.name ? ', ' + g.name : '' }}.
+                >{{ g.environment ? ', welcome to ' + g.environment : '' }}.
               </p>
             } @else {
               <p class="display">{{ v.dashboard.ui.title }}</p>
-            }
-            @if (v.all.length > 0 && v.dashboard.ui.show_summary) {
-              <app-summary
-                [summary]="v.dashboard.summary"
-                [tokens]="v.tokens"
-                [groups]="v.dashboard.ui.show_app_groups ? v.groups.length : undefined"
-              />
             }
           </div>
         </section>
@@ -76,24 +70,16 @@
                       <section class="group">
                         <app-group-head [label]="group.name" [count]="group.apps.length" />
                         <div class="grid">
-                          @for (p of group.apps; track p.app.id) {
-                            <app-tile
-                              [app]="p.app"
-                              [anchor]="p.anchor"
-                              [showURL]="v.dashboard.ui.show_app_urls"
-                            />
+                          @for (app of group.apps; track app.id) {
+                            <app-tile [app]="app" [showURL]="v.dashboard.ui.show_app_urls" />
                           }
                         </div>
                       </section>
                     }
                   } @else {
                     <div class="grid">
-                      @for (p of v.all; track p.app.id) {
-                        <app-tile
-                          [app]="p.app"
-                          [anchor]="p.anchor"
-                          [showURL]="v.dashboard.ui.show_app_urls"
-                        />
+                      @for (app of v.all; track app.id) {
+                        <app-tile [app]="app" [showURL]="v.dashboard.ui.show_app_urls" />
                       }
                     </div>
                   }

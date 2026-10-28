@@ -189,11 +189,18 @@
         "greeting": {
           "type": "object",
           "additionalProperties": false,
-          "properties": { "enabled": { "type": "boolean" }, "name": { "type": "string", "maxLength": 64 } }
+          "properties": { "enabled": { "type": "boolean" }, "environment": { "type": "string", "maxLength": 64 } }
+        },
+        "lightStrip": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "color": { "type": "string", "pattern": "^(|cyan|blue|magenta|red|orange|yellow|green|#[0-9a-fA-F]{6})$" },
+            "animation": { "type": "string", "enum": ["static", "breathing", "scanner", "flow"] }
+          }
         },
         "defaultTheme": { "type": "string", "enum": ["system", "light", "dark"] },
         "refreshSeconds": { "type": "integer", "minimum": 5, "maximum": 3600 },
-        "showSummary": { "type": "boolean" },
         "showApps": { "type": "boolean" },
         "showAppGroups": { "type": "boolean" },
         "showAppUrls": { "type": "boolean" },
