@@ -5,13 +5,13 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/guided-traffic/dash)](https://goreportcard.com/report/github.com/guided-traffic/dash)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-**A start page for a Kubernetes cluster that finds its apps through their Ingresses**, in the look of
-[Cogpit](https://github.com/guided-traffic/cogpit): calm when every app is healthy, lit where one is
-not. Installed by one Helm chart, configured entirely through it, no login.
+**A start page for a Kubernetes cluster that finds its apps through their Ingresses**: the apps beside
+your bookmarks on a quiet page of hairlines, colour only where an app is not healthy. Installed by one
+Helm chart, configured entirely through it, no login.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/dashboard_dark.png">
-  <img alt="The dashboard: apps in groups as tiles with their logos and badges, one degraded with an amber spine and the words 1 of 2 ready, one down in coral, a summary of a token per app above them, bookmarks below." src="docs/images/dashboard_light.png">
+  <img alt="The dashboard: a greeting and a summary with a square per app and the counts above; below, the apps in groups as cells of a hairline grid with their logos and badges, one degraded with an amber line and the words 1 of 2 ready, one down in coral; beside them the bookmarks as numbered rows." src="docs/images/dashboard_light.png">
 </picture>
 
 > **Released: 0.4.0.** The dashboard is complete — discovery, icons, badges, the page. How a cluster
@@ -34,7 +34,7 @@ flowchart LR
 - 🔐 Read-only RBAC that follows the namespace selector: cluster-wide, or a Role per named namespace.
 - 🧭 One origin, two Ingress objects: the UI on `/`, the API on `/api/`, the controller the only hop.
 - 🛡️ Distroless images, non-root, read-only, no shell — proven in CI for each image.
-- 🛩️ Cogpit's Dark Cockpit: quiet while every app is healthy, a spine and a word where one is not, a summary token per app.
+- 🗂️ The apps beside the bookmarks: hairline grids, quiet while every app is healthy, a line and a word where one is not, a summary with a square per app.
 - 🌗 Light, dark or the system's scheme, remembered by the browser, applied before the first paint.
 - 📜 A spec-first API: OpenAPI 3.1, validated requests, RFC 9457 problem bodies.
 - ⚙️ Every setting through the chart, refused at install when wrong (`values.schema.json`).
@@ -166,7 +166,7 @@ under `hajimari.io/` ([ADR 0010](docs/adr/0010-annotations-are-read-under-dash-g
 | `showBookmarks`, `showBookmarkGroups`, `alwaysTargetBlank` | `ui.showBookmarks`, `ui.showBookmarkGroups`, `ui.alwaysTargetBlank` |
 | `defaultAppIcon` | `icons.defaultAppIcon` |
 | `customApps`, `globalBookmarks` | `apps`, `bookmarks` |
-| `lightTheme`, `darkTheme`, `customThemes` | `ui.defaultTheme` (the look is Cogpit's) |
+| `lightTheme`, `darkTheme`, `customThemes` | `ui.defaultTheme` (the look is Dash's own, [ADR 0012](docs/adr/0012-a-technical-editorial-look-the-apps-beside-the-bookmarks.md)) |
 | `showSearch`, `searchProviders`, start pages, `modules`, the `Application` CRD | none |
 
 </details>
@@ -250,14 +250,14 @@ discovery:                 # which Ingresses become apps; annotations under dash
 ui:
   title: Dash              # default; at most 64 characters
   greeting:
-    enabled: true          # default; the time of day and a name under the title
+    enabled: true          # default; the overview greets by the time of day and a name; false: the title
     name: You              # default
   defaultTheme: system     # default; system | light | dark, until a person picks one (kept as dash.theme)
   refreshSeconds: 60       # default; 5 to 3600: how often the page asks for the dashboard again
-  showSummary: true        # default; the health header, a token per app
+  showSummary: true        # default; the overview's sentence, a square per app and the counts
   showApps: true           # default
   showAppGroups: true      # default; false: one grid without group heads
-  showAppUrls: true        # default; the URL under each app's name
+  showAppUrls: true        # default; the address at the foot of each app's tile
   showAppInfo: false       # default; each app's description
   showAppStatus: true      # default; degraded and down apps light up
   showBookmarks: true      # default
@@ -302,7 +302,7 @@ icons:
     timeout: 20s           # default; 1s to 2m per download
     maxEntries: 512        # default; 1 to 10000 icons kept
 
-badges:                    # pills on icons in the style of macOS dock badges
+badges:                    # badges on icons, placed as macOS places dock badges
   definitions: {}          # default. Example:
   #   world: { icon: "material-symbols:public", label: reachable worldwide, tone: cyan }
   #   home:  { icon: "material-symbols:home", label: local network only }   # tone default: neutral
@@ -398,7 +398,7 @@ existing ConfigMap arrives with the backend's next start.
 
 ### Badges
 
-Pills on an icon in the style of macOS dock badges: a glyph or a text of at most eight characters,
+Badges on an icon, placed as macOS places dock badges: a glyph or a text of at most eight characters,
 filled with a tone, one per corner. **Definitions** name them (`badges.definitions`); **rules** put a
 definition on every item they match (`badges.rules`, in order); an item names **its own** — the
 annotation `dash.gtrfc.com/badges: "beta@bottom-left,text:new"`, or `badges:` of a custom app or a

@@ -107,20 +107,21 @@ async function screenshots(page: Page, outputDir: string): Promise<void> {
 test('a Deployment scaled to zero turns its tile down, and back', async ({ page }, testInfo) => {
   await page.goto('/');
   const tile = page.getByRole('link', { name: /^Jellyfin/ });
+  const ready = /^\d+\/\d+$/;
   await expect(tile).toBeVisible();
-  await expect(tile.locator('.pill')).toHaveCount(0);
+  await expect(tile.locator('.status')).toHaveText(ready);
   kubectl(['-n', 'e2e-apps', 'scale', 'deploy/jellyfin', '--replicas=0']);
   try {
-    await expect(tile.locator('.pill')).toHaveText('down', { timeout: 60_000 });
+    await expect(tile.locator('.status')).toHaveText('down', { timeout: 60_000 });
     await expect(page.locator('app-summary .legend')).toContainText('1 down');
-    await expect(page.getByRole('link', { name: /^Alertmanager/ }).locator('.pill')).toHaveText(
+    await expect(page.getByRole('link', { name: /^Alertmanager/ }).locator('.status')).toHaveText(
       '1 of 2 ready',
     );
     await screenshots(page, testInfo.project.outputDir);
   } finally {
     kubectl(['-n', 'e2e-apps', 'scale', 'deploy/jellyfin', '--replicas=1']);
   }
-  await expect(tile.locator('.pill')).toHaveCount(0, { timeout: 60_000 });
+  await expect(tile.locator('.status')).toHaveText(ready, { timeout: 60_000 });
 });
 
 test('a new Ingress appears on the next poll, and leaves when it is deleted', async ({ page }) => {

@@ -1,13 +1,8 @@
 :host {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 20px 24px;
+  display: block;
 }
 
 ul {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -15,34 +10,82 @@ ul {
 
 a {
   display: flex;
-  gap: 10px;
+  gap: 14px;
   align-items: center;
-  min-height: 32px;
-  padding: 4px 8px;
-  border-radius: var(--radius-segment);
-  color: var(--text);
-  text-decoration: none;
+  min-height: 56px;
+  padding: 10px var(--pad);
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
   transition:
-    color var(--motion),
-    background var(--motion);
+    background-color var(--motion),
+    color var(--motion);
 }
 
+/* Under the pointer the row inverts; a logo keeps a square of the page's ground. */
 a:hover {
-  color: var(--link);
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  background: var(--invert-bg);
+  color: var(--invert-fg);
 }
 
-a:hover .icon {
-  color: var(--link);
+a:hover app-item-icon:has(img) {
+  background: var(--bg);
+  box-shadow: 0 0 0 3px var(--bg);
 }
 
-.icon {
-  color: var(--muted);
+a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+a:hover:focus-visible {
+  outline-color: var(--accent-invert);
+}
+
+.index {
+  flex: none;
+  width: 20px;
+  color: var(--faint);
+}
+
+.text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .name {
   overflow: hidden;
+  font-weight: 500;
+  line-height: 1.3;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.url {
+  overflow: hidden;
+  color: var(--faint);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+a:hover :is(.index, .url) {
+  color: inherit;
+}
+
+.arrow {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+  opacity: 0;
+  transition: opacity var(--motion);
+}
+
+a:is(:hover, :focus-visible) .arrow {
+  opacity: 1;
 }

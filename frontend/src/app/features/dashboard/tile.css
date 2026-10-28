@@ -3,44 +3,68 @@
   min-width: 0;
 }
 
-/* A plate one luminance step above the stage; the badge's ring takes the tile's colour. */
+/* A cell of the grid: its own hairlines on the right and at the bottom; the badge's ring takes the
+   cell's colour. The text comes first in the markup and the grid places it. */
 .tile {
-  --tile-bg: var(--plate);
+  --tile-bg: var(--bg);
   --badge-ring: var(--tile-bg);
   position: relative;
-  display: flex;
-  gap: 14px;
-  align-items: flex-start;
+  display: grid;
+  grid-template:
+    'icon status' auto
+    'name name' auto
+    'info info' auto
+    'url url' 1fr / auto minmax(0, 1fr);
   height: 100%;
-  padding: 14px 14px 14px 16px;
-  border-radius: var(--radius-plate);
+  min-height: 208px;
+  padding: 28px;
   background: var(--tile-bg);
-  color: var(--text);
-  text-decoration: none;
-  outline: none;
-  transition:
-    box-shadow var(--motion),
-    background var(--motion);
+  box-shadow: inset -1px -1px 0 var(--line);
+  color: var(--ink);
+  transition: background-color var(--motion);
 }
 
-/* Cogpit's glow frame: a crisp edge in the full light, then a halo that falls off over about seven
-   points, drawn without blur. Never two glows in one region: the frame is the tile's only light. */
-.tile:hover,
+.tile:hover {
+  --tile-bg: var(--raised);
+}
+
 .tile:focus-visible {
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--glow) 90%, transparent),
-    0 0 0 2.5px color-mix(in srgb, var(--glow) 36%, transparent),
-    0 0 0 5px color-mix(in srgb, var(--glow) 16%, transparent),
-    0 0 0 8.5px color-mix(in srgb, var(--glow) 6%, transparent);
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }
 
-/* The badges' layer: the icon's box, where the tile's padding puts the icon. */
+/* The icon's frame: a glyph's inverts under the pointer, a logo keeps its ground. */
+.icon {
+  grid-area: icon;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  transition:
+    background-color var(--motion),
+    border-color var(--motion),
+    color var(--motion);
+}
+
+.tile:is(:hover, :focus-visible) .icon {
+  border-color: var(--ink);
+}
+
+.tile:is(:hover, :focus-visible) .icon:not(:has(img)) {
+  border-color: var(--invert-bg);
+  background: var(--invert-bg);
+  color: var(--invert-fg);
+}
+
+/* The badges' layer: the icon's frame, where the padding puts it. */
 .badges {
   position: absolute;
-  top: 14px;
-  left: 16px;
-  width: 40px;
-  height: 40px;
+  top: 28px;
+  left: 28px;
+  width: 48px;
+  height: 48px;
   pointer-events: none;
 }
 
@@ -48,97 +72,114 @@
   pointer-events: auto;
 }
 
-.icon {
-  position: relative;
+.status {
+  grid-area: status;
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+  align-self: start;
+  justify-self: end;
+  margin-left: 16px;
+  color: var(--faint);
+  white-space: nowrap;
+}
+
+.status::before {
+  content: '';
   flex: none;
-  color: var(--muted);
-  transition: color var(--motion);
-}
-
-/* The glyph lights up with its tile. */
-.tile:hover .icon,
-.tile:focus-visible .icon {
-  color: var(--text);
-}
-
-.text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
+  width: 6px;
+  height: 6px;
+  background: currentColor;
 }
 
 .name {
-  overflow: hidden;
-  font-size: 15px;
-  font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  grid-area: name;
+  margin-top: 22px;
+  color: var(--strong);
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
 }
 
-.url,
 .info {
-  overflow: hidden;
+  grid-area: info;
+  margin-top: 8px;
   color: var(--muted);
-  font-size: 13px;
-  text-overflow: ellipsis;
+  font-size: 15px;
+  line-height: 1.55;
 }
 
 .url {
+  grid-area: url;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  align-self: end;
+  min-width: 0;
+  padding-top: 22px;
+  color: var(--faint);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  transition: color var(--motion);
+}
+
+.tile:is(:hover, :focus-visible) .url {
+  color: var(--ink);
+}
+
+.host {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* A status spine: a 3-point rounded bar at the left edge, only for what is not healthy. */
+.url svg {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  fill: currentColor;
+}
+
+/* Degraded and down: a 2-pixel line along the top edge, the word in the status colour; down also
+   tints the cell. */
 .tile.degraded::before,
 .tile.down::before {
   content: '';
   position: absolute;
-  top: 10px;
-  bottom: 10px;
+  top: 0;
+  right: 1px;
   left: 0;
-  width: 3px;
-  border-radius: 2px;
-  background: var(--spine);
+  height: 2px;
+  background: var(--status);
 }
 
 .tile.degraded {
-  --spine: var(--amber);
+  --status: var(--amber);
 }
 
-.tile.down {
-  --spine: var(--coral);
-  --tile-bg: light-dark(
-    color-mix(in srgb, var(--coral) 3.5%, var(--plate)),
-    color-mix(in srgb, var(--coral) 6%, var(--plate))
-  );
+.tile.down,
+.tile.down:hover {
+  --status: var(--coral);
+  --tile-bg: var(--down-tint);
 }
 
-/* The status in words: the status colour's tint, a dot, the word that holds 4.5:1 on it. */
-.pill {
-  display: inline-flex;
-  gap: 6px;
-  align-items: center;
-  align-self: flex-start;
-  margin-top: 6px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
+.tile:is(.degraded, .down) .status {
+  color: var(--status);
 }
 
-.degraded .pill {
-  background: var(--amber-tint);
-  color: var(--amber-word);
-}
+@media (max-width: 720px) {
+  .tile {
+    min-height: 0;
+    padding: 20px;
+  }
 
-.down .pill {
-  background: var(--coral-tint);
-  color: var(--coral-word);
-}
-
-.pill .dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
+  .badges {
+    top: 20px;
+    left: 20px;
+  }
 }

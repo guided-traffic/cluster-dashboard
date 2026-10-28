@@ -1,0 +1,26 @@
+:host {
+  display: block;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0;
+  padding: 12px var(--pad);
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+}
+
+.label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.count {
+  flex: none;
+  color: var(--faint);
+}

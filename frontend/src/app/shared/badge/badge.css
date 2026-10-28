@@ -1,4 +1,4 @@
-/* The pill: 18 px high, at least as wide as high — a circle for one character or a glyph. */
+/* The badge: 18 px high, at least as wide as high — a square for one character or a glyph. */
 :host {
   --badge-fill: var(--tone-neutral);
   --badge-ink: var(--tone-neutral-ink);
@@ -9,13 +9,13 @@
   min-width: 18px;
   height: 18px;
   padding: 0 5px;
-  border-radius: 9px;
   background: var(--badge-fill);
   color: var(--badge-ink);
-  font-size: 11px;
-  font-weight: 650;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
   line-height: 1;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.04em;
   white-space: nowrap;
 }
 
@@ -23,11 +23,11 @@
   padding: 0;
 }
 
-/* At a corner of the icon, a third outside, cut from it by a ring in the surface's colour as
-   macOS's ring does. The surface is the tile's: --badge-ring. */
+/* At a corner of the icon's frame, a third outside, cut from it by a ring in the surface's colour
+   as macOS's ring does. The surface is the tile's: --badge-ring. */
 :host(.corner) {
   position: absolute;
-  box-shadow: 0 0 0 2px var(--badge-ring, var(--plate));
+  box-shadow: 0 0 0 2px var(--badge-ring, var(--bg));
 }
 
 :host(.corner-top-right) {
@@ -51,9 +51,9 @@
 }
 
 :host(.chip) {
+  flex: none;
   height: 16px;
   min-width: 16px;
-  font-size: 10px;
 }
 
 .glyph {

@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 // The page of hack/kind/dash-values.yaml: a custom app Headlamp whose logo auto-match finds, with the
 // globe of a rule; a bookmark with a ConfigMap icon and a text chip.
 
-test('the page shows the tiles, their icons and badges, the summary and the bookmarks', async ({
+test('the page shows the tiles, their icons and badges, the summary and the bookmarks beside them', async ({
   page,
 }) => {
   await page.goto('/');
@@ -17,8 +17,11 @@ test('the page shows the tiles, their icons and badges, the summary and the book
     .toBe(true);
   await expect(tile.getByRole('img', { name: 'reachable worldwide' })).toBeVisible();
 
-  await expect(page.getByRole('heading', { level: 2, name: /^apps/ })).toBeVisible();
-  await expect(page.locator('app-summary .legend')).toHaveText(/all healthy|unknown/);
+  await expect(page.getByRole('heading', { level: 2, name: 'Apps', exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { level: 2, name: 'Bookmarks', exact: true }),
+  ).toBeVisible();
+  await expect(page.locator('app-summary .legend')).toHaveText(/all healthy|unknown/i);
 
   const bookmark = page.getByRole('link', { name: /ConfigMap icon/ });
   await expect(bookmark).toHaveAttribute('href', 'https://example.com');

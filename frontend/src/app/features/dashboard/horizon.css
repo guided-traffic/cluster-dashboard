@@ -2,10 +2,8 @@
   position: relative;
   display: grid;
   place-items: center;
-  min-height: 360px;
+  min-height: 420px;
   overflow: hidden;
-  border-radius: var(--radius-plate);
-  background: radial-gradient(ellipse 60% 70% at 50% 0%, var(--stage-light), transparent 70%);
 }
 
 .floor {
@@ -16,14 +14,14 @@
 }
 
 line {
-  stroke: var(--edge);
+  stroke: var(--line);
   stroke-width: 1;
   vector-effect: non-scaling-stroke;
 }
 
 .content {
   position: relative;
-  max-width: 34rem;
-  padding: 0 var(--gutter) 120px;
+  max-width: 36rem;
+  padding: 0 var(--pad) 140px;
   text-align: center;
 }

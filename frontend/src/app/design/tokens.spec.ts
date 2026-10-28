@@ -32,68 +32,74 @@ function contrast(a: string, b: string): number {
 
 const tokens = readTokens(tokensCss);
 const schemes = ['light', 'dark'] as const;
-const surfaces = ['stage', 'chrome', 'plate', 'plate-lifted', 'header'];
-/** Read as text: 4.5:1 on every surface (WCAG 1.4.3). */
-const texts = ['text', 'muted', 'link'];
-/** Seen as shapes — a focus ring, an underline, a status spine, a glyph: 3:1 (WCAG 1.4.11). */
-const shapes = ['glow', 'cyan', 'mint', 'amber', 'orange', 'coral', 'text', 'muted'];
+/** Where text and shapes stand: the page, a tile under the pointer, a down tile. */
+const surfaces = ['bg', 'raised', 'down-tint'];
+/** Read as text — the status colours too, as words and counts: 4.5:1 on every surface (WCAG 1.4.3). */
+const texts = ['ink', 'strong', 'muted', 'faint', 'amber', 'coral'];
+/** Seen as shapes — the focus ring, a status line, a healthy app's square, a glyph: 3:1 (WCAG 1.4.11). */
+const shapes = ['accent', 'amber', 'coral', 'line-strong', 'ink', 'muted'];
+
+const ratio = (a: string, b: string, scheme: (typeof schemes)[number]) =>
+  contrast(tokens.get(a)![scheme], tokens.get(b)![scheme]);
 
 describe('the design tokens', () => {
   it('are read from tokens.css, each a light and a dark value', () => {
     expect([...tokens.keys()]).toEqual(
-      expect.arrayContaining([...surfaces, ...texts, ...shapes, 'hairline', 'edge', 'outline']),
+      expect.arrayContaining([
+        ...surfaces,
+        ...texts,
+        ...shapes,
+        'line',
+        'stale-tint',
+        'invert-bg',
+        'invert-fg',
+        'accent-invert',
+      ]),
     );
   });
 
-  it('keep the values of Cogpit’s dark palette named in the plan', () => {
-    expect(tokens.get('stage')?.dark).toBe('#0d121a');
-    expect(tokens.get('chrome')?.dark).toBe('#0a0e14');
-    expect(tokens.get('text')?.dark).toBe('#d5dde8');
-    expect(tokens.get('glow')?.dark).toBe('#4aa8ff');
-    expect(tokens.get('cyan')?.dark).toBe('#5ad1e3');
-    expect(tokens.get('coral')?.dark).toBe('#ff6b74');
+  it('keep the grounds of the look (docs/adr/0012 D1)', () => {
+    expect(tokens.get('bg')).toEqual({ light: '#f2f1ee', dark: '#121316' });
+    expect(tokens.get('ink')).toEqual({ light: '#101014', dark: '#f2f1ee' });
   });
 
   for (const scheme of schemes) {
     for (const surface of surfaces) {
       for (const text of texts) {
         it(`hold ${text} on ${surface} to 4.5:1 in the ${scheme} scheme`, () => {
-          const ratio = contrast(tokens.get(text)![scheme], tokens.get(surface)![scheme]);
-          expect(ratio).toBeGreaterThanOrEqual(4.5);
+          expect(ratio(text, surface, scheme)).toBeGreaterThanOrEqual(4.5);
         });
       }
       for (const shape of shapes) {
         it(`hold ${shape} on ${surface} to 3:1 in the ${scheme} scheme`, () => {
-          const ratio = contrast(tokens.get(shape)![scheme], tokens.get(surface)![scheme]);
-          expect(ratio).toBeGreaterThanOrEqual(3);
+          expect(ratio(shape, surface, scheme)).toBeGreaterThanOrEqual(3);
         });
       }
     }
+
+    it(`hold the stale notice's word on its tint to 4.5:1 in the ${scheme} scheme`, () => {
+      expect(ratio('amber', 'stale-tint', scheme)).toBeGreaterThanOrEqual(4.5);
+    });
+
+    it(`hold the inverted text to 4.5:1 and its focus ring to 3:1 in the ${scheme} scheme`, () => {
+      expect(ratio('invert-fg', 'invert-bg', scheme)).toBeGreaterThanOrEqual(4.5);
+      expect(ratio('accent-invert', 'invert-bg', scheme)).toBeGreaterThanOrEqual(3);
+    });
   }
 
   const tones = ['neutral', 'blue', 'cyan', 'mint', 'amber', 'coral'];
   for (const scheme of schemes) {
-    for (const status of ['amber', 'coral']) {
-      it(`hold the ${status} status word on its tint to 4.5:1 in the ${scheme} scheme`, () => {
-        const ratio = contrast(
-          tokens.get(`${status}-word`)![scheme],
-          tokens.get(`${status}-tint`)![scheme],
-        );
-        expect(ratio).toBeGreaterThanOrEqual(4.5);
-      });
-    }
     for (const tone of tones) {
       it(`hold the ${tone} badge's ink to 4.5:1 and its fill to 3:1 on every surface in the ${scheme} scheme`, () => {
-        const fill = tokens.get(`tone-${tone}`)![scheme];
-        expect(contrast(tokens.get(`tone-${tone}-ink`)![scheme], fill)).toBeGreaterThanOrEqual(4.5);
+        expect(ratio(`tone-${tone}-ink`, `tone-${tone}`, scheme)).toBeGreaterThanOrEqual(4.5);
         for (const surface of surfaces) {
-          expect(contrast(fill, tokens.get(surface)![scheme])).toBeGreaterThanOrEqual(3);
+          expect(ratio(`tone-${tone}`, surface, scheme)).toBeGreaterThanOrEqual(3);
         }
       });
     }
   }
 
-  it('have no violet tone: violet is the agent’s light in Cogpit', () => {
+  it('have no violet tone: the backend refuses violet as a badge tone (internal/badges)', () => {
     expect([...tokens.keys()].some((name) => name.includes('violet'))).toBe(false);
   });
 

@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 
-/** The floor's share of the height, and the grid's rows and rays (Cogpit's horizon, glow.go). */
+/** The floor's share of the height, and the grid's rows and rays (after Cogpit's glow.go). */
 const width = 1000;
 const height = 360;
 const floor = 0.42;
@@ -33,8 +33,8 @@ export function horizonLines(): { x1: number; y1: number; x2: number; y2: number
 }
 
 /**
- * Cogpit's horizon: the stage light from above and a perspective grid floor that fades towards
- * the horizon. Only where there is no data — the empty dashboard, a backend that does not answer —
+ * The horizon (docs/adr/0012 D6): a perspective grid floor of hairlines that fades towards the
+ * horizon. Only where there is no data — the empty dashboard, a backend that does not answer —
  * never behind tiles. What the page says there is its content.
  */
 @Component({

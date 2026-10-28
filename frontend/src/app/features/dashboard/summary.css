@@ -1,25 +1,44 @@
 :host {
   display: block;
-  margin-bottom: 28px;
+}
+
+.text {
+  padding: 20px var(--pad) 0;
+}
+
+.legend {
+  max-width: 640px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+.part.degraded {
+  color: var(--amber);
+}
+
+.part.down {
+  color: var(--coral);
 }
 
 .tokens {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
+  margin-top: 28px;
 }
 
-/* A rounded square per app: healthy at about a third of its light, the rest in full colour. */
+/* A square per app: healthy in the strong hairline, the rest in their colour, unknown hollow. */
 .token {
   width: 12px;
   height: 12px;
-  border-radius: 3px;
-  background: color-mix(in srgb, var(--mint) 35%, transparent);
-  transition: transform var(--motion);
+  background: var(--line-strong);
+  transition: background-color var(--motion);
 }
 
 .token:hover {
-  transform: scale(1.25);
+  background: var(--ink);
 }
 
 .token.degraded {
@@ -32,23 +51,63 @@
 
 .token.unknown {
   background: transparent;
-  box-shadow: inset 0 0 0 1.5px var(--outline);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
 }
 
-.legend {
-  margin: 8px 0 0;
+/* The counts: hairline cells, each drawing its right and bottom line; the frame clips the last. */
+.counts-frame {
+  margin-top: 44px;
+  overflow: clip;
+  border-top: 1px solid var(--line);
+}
+
+.counts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  margin: 0 -1px -1px 0;
+}
+
+.count {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 22px var(--pad) 24px;
+  box-shadow: inset -1px -1px 0 var(--line);
+}
+
+dt {
   color: var(--muted);
-  font-size: 13px;
 }
 
-.sep {
-  margin: 0 0.4em;
+dd {
+  margin: 0;
+  color: var(--strong);
+  font-family: var(--font-display);
+  font-size: 44px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  letter-spacing: -0.03em;
 }
 
-.part.degraded {
-  color: var(--amber-word);
+.count.degraded dd {
+  color: var(--amber);
 }
 
-.part.down {
-  color: var(--coral-word);
+.count.down dd {
+  color: var(--coral);
+}
+
+.count.zero dd {
+  color: var(--faint);
+}
+
+@media (max-width: 720px) {
+  .counts {
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  }
+
+  dd {
+    font-size: 34px;
+  }
 }

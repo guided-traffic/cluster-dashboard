@@ -4,50 +4,76 @@
   min-height: 100vh;
 }
 
-/* The chrome recedes: darker than the stage. */
+/* The top bar: cells divided by hairlines, the page's ground under a blur while it scrolls. */
 .top-bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: space-between;
-  gap: var(--gutter);
-  min-height: 56px;
-  padding: 0 var(--gutter);
-  border-bottom: 1px solid var(--hairline);
-  background: var(--chrome);
+  height: var(--nav-height);
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg) 94%, transparent);
+  backdrop-filter: blur(8px);
 }
 
 .brand {
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  column-gap: 10px;
+  align-items: center;
+  gap: 10px;
   min-width: 0;
-  padding: 8px 0;
+  padding: 0 20px;
+  border-right: 1px solid var(--line);
+  color: var(--strong);
 }
 
-.greeting {
-  flex-basis: 100%;
-  color: var(--muted);
-  font-size: 13px;
+/* The mark: a dash in a frame. */
+.mark {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+
+.mark path {
+  stroke-width: 2.5;
 }
 
 .title {
   margin: 0;
-  font-size: 17px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-}
-
-.version {
   overflow: hidden;
-  color: var(--muted);
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* Glow is never the only signal: the word says it. */
+.end {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+}
+
+.version-cell {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  padding: 0 18px;
+}
+
+.version {
+  overflow: hidden;
+  color: var(--faint);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Colour is never the only signal: the words say it. */
 .version.unknown {
   color: var(--amber);
 }
@@ -55,7 +81,4 @@
 .stage {
   flex: 1;
   width: 100%;
-  max-width: 1440px;
-  margin: 0 auto;
-  padding: 24px var(--gutter) 48px;
 }

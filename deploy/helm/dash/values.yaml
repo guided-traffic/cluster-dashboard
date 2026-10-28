@@ -166,7 +166,7 @@ icons:
     timeout: 20s
     maxEntries: 512
 
-# Pills on icons in the style of macOS dock badges (docs/adr/0011).
+# Badges on icons, placed as macOS places dock badges (docs/adr/0011).
 badges:
   # -- Named badges: an icon (a glyph of mdi, material-symbols or si) or a text of at most eight
   # characters, a label, a tone (neutral, blue, cyan, mint, amber, coral), e.g.

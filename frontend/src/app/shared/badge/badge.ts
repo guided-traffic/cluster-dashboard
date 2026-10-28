@@ -2,9 +2,9 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
 import { Badge as BadgeModel } from '../../api/models/badge';
 
 /**
- * A badge in the style of macOS dock badges, in Cogpit's colours (docs/adr/0011): a pill filled
- * with its tone, its glyph or text in the tone's ink. On an icon it sits at its corner with a third
- * of it outside, cut from the icon by a ring in the surface's colour; as a chip it follows a
+ * A badge placed as macOS places dock badges (docs/adr/0011), square as the page is (docs/adr/0012):
+ * filled with its tone, its glyph or text in the tone's ink. On an icon it sits at its corner with a
+ * third of it outside, cut from the icon by a ring in the surface's colour; as a chip it follows a
  * bookmark's name. Its label is the tooltip and what a screen reader says: a glyph alone says
  * nothing.
  */

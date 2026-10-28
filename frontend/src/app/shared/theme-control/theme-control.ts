@@ -9,10 +9,10 @@ interface ThemeOption {
 }
 
 /**
- * Cogpit's segmented control for the colour scheme (docs/adr/0005): one plate, three segments as
- * Material Symbols glyphs, the chosen one a step lighter with a glow-blue underline. It is a group
- * of native radio buttons under a legend, so a screen reader names the group and each segment,
- * and the arrow keys move the choice as they do in any radio group.
+ * The control for the colour scheme (docs/adr/0005 D3, the look docs/adr/0012): three square cells
+ * of the top bar as Material Symbols glyphs, the chosen one inverted. It is a group of native radio
+ * buttons under a legend, so a screen reader names the group and each segment, and the arrow keys
+ * move the choice as they do in any radio group.
  */
 @Component({
   selector: 'app-theme-control',

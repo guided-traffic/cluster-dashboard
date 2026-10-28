@@ -66,37 +66,24 @@ describe('App', () => {
     expect(version().getAttribute('aria-label')).toBeNull();
   });
 
-  it('takes the title and the greeting from the dashboard', async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date(2026, 9, 26, 19, 30));
+  it('takes the title from the dashboard, for the page and the document', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
     http
       .expectOne('/api/v1/version')
       .flush({ version: '0.1.0', commit: 'abc1234', build_time: '0' });
     const d = dashboardOf();
-    d.ui = { ...d.ui, title: 'Home lab', greeting: { enabled: true, name: 'Hans' } };
+    d.ui = { ...d.ui, title: 'Home lab' };
     http.expectOne('/api/v1/dashboard').flush(d);
     fixture.detectChanges();
     const root = fixture.nativeElement as HTMLElement;
     expect(root.querySelector('h1')!.textContent!.trim()).toBe('Home lab');
     expect(document.title).toBe('Home lab');
-    expect(root.querySelector('[data-testid=greeting]')!.textContent!.trim()).toMatch(
-      /^Good evening, Hans · /,
-    );
-    vi.useRealTimers();
   });
 
-  it('greets nobody while ui.greeting is off', () => {
-    const fixture = TestBed.createComponent(App);
-    fixture.detectChanges();
+  it('draws the mark hidden from screen readers', () => {
+    const { root } = render();
     http.expectOne('/api/v1/version');
-    const d = dashboardOf();
-    d.ui = { ...d.ui, greeting: { enabled: false, name: 'Hans' } };
-    http.expectOne('/api/v1/dashboard').flush(d);
-    fixture.detectChanges();
-    expect(
-      (fixture.nativeElement as HTMLElement).querySelector('[data-testid=greeting]'),
-    ).toBeNull();
+    expect(root.querySelector('.mark')!.getAttribute('aria-hidden')).toBe('true');
   });
 });

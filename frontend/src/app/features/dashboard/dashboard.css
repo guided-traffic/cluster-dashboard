@@ -2,43 +2,219 @@
   display: block;
 }
 
-/* Groups 20 points apart. */
-.group + .group,
-.bookmarks {
-  margin-top: 20px;
+/* The frame: the page's column, its hairline edges running from the top bar to the footer. */
+.frame {
+  position: relative;
+  max-width: var(--frame);
+  margin: 0 auto;
+  border-inline: 1px solid var(--line);
 }
 
-.bookmarks {
-  margin-top: 36px;
+/* A section's bar: its number and name, what it holds at the far end; it stays under the top bar
+   while its section scrolls. */
+.bar {
+  position: sticky;
+  top: var(--nav-height);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px var(--pad);
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg) 80%, transparent);
+  backdrop-filter: blur(12px);
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 12px;
-}
-
-.headline {
-  margin: 0 0 6px;
-  color: var(--text);
-  font-size: 17px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-}
-
-.detail,
-.quiet {
+.bar h2 {
+  flex: none;
   margin: 0;
   color: var(--muted);
-  font-size: 14px;
+}
+
+.number {
+  color: var(--faint);
+}
+
+.slash {
+  margin: 0 8px;
+}
+
+.meta {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--faint);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The display line: the greeting, its time of day in the serif's italic; or the title. */
+.display {
+  max-width: 1000px;
+  margin: 0;
+  padding: 56px var(--pad) 0;
+  color: var(--strong);
+  font-family: var(--font-display);
+  font-size: clamp(40px, 4.6vw, 64px);
+  font-weight: 500;
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+  overflow-wrap: anywhere;
+}
+
+.display em {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+.display:last-child {
+  padding-bottom: 44px;
+}
+
+/* The split: the apps beside the bookmarks, a hairline between; stacked at phone width. */
+.split {
+  border-top: 1px solid var(--line);
+}
+
+.panes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1px;
+  background: var(--line);
+}
+
+.pane {
+  min-width: 0;
+  overflow: clip;
+  background: var(--bg);
+}
+
+.pane.apps {
+  flex: 999 1 560px;
+}
+
+.pane.bookmarks {
+  flex: 1 1 320px;
+}
+
+/* Each tile draws its right and bottom hairline; the pane clips the outermost. */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  margin: 0 -1px -1px 0;
+}
+
+.group + .group app-group-head {
+  border-top: 1px solid var(--line);
+}
+
+/* Crosshair ticks where the split's line meets the frame; only where the page is wider than it. */
+.tick {
+  position: absolute;
+  top: -6px;
+  z-index: 3;
+  width: 11px;
+  height: 11px;
+  pointer-events: none;
+}
+
+.tick.start {
+  left: -6px;
+}
+
+.tick.end {
+  right: -6px;
+}
+
+.tick::before,
+.tick::after {
+  content: '';
+  position: absolute;
+  background: var(--line-strong);
+}
+
+.tick::before {
+  top: 0;
+  bottom: 0;
+  left: 5px;
+  width: 1px;
+}
+
+.tick::after {
+  top: 5px;
+  right: 0;
+  left: 0;
+  height: 1px;
 }
 
 .quiet {
-  margin-bottom: 20px;
+  margin: 0;
+  padding: 20px var(--pad);
+  color: var(--muted);
 }
 
 .stale {
-  margin: 0 0 16px;
-  color: var(--amber-word);
-  font-size: 13px;
+  margin: 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--stale-tint);
+  color: var(--amber);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+
+.stale-text {
+  display: block;
+  padding: 10px var(--pad);
+}
+
+.foot {
+  border-top: 1px solid var(--line);
+}
+
+.foot .frame {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 24px;
+  padding: 16px var(--pad);
+}
+
+.foot p {
+  margin: 0;
+  color: var(--faint);
+}
+
+.headline {
+  margin: 0 0 10px;
+  color: var(--strong);
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.detail {
+  margin: 0;
+  color: var(--muted);
+}
+
+@media (max-width: 1299px) {
+  .tick {
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .display {
+    padding-top: 36px;
+  }
+
+  .display:last-child {
+    padding-bottom: 32px;
+  }
 }

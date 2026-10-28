@@ -1,18 +1,23 @@
 <header class="top-bar">
   <div class="brand">
+    <svg class="mark" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+      <rect x="0.75" y="0.75" width="18.5" height="18.5" />
+      <path d="M5.5 10h9" />
+    </svg>
     <h1 class="title">{{ title() }}</h1>
-    <span
-      class="version"
-      data-testid="backend-version"
-      [class.unknown]="backend().state === 'unknown'"
-      [attr.aria-label]="backend().state === 'known' ? 'backend version ' + versionText() : null"
-      >{{ versionText() }}</span
-    >
-    @if (greetingLine(); as line) {
-      <span class="greeting" data-testid="greeting">{{ line }}</span>
-    }
   </div>
-  <app-theme-control />
+  <div class="end">
+    <span class="version-cell">
+      <span
+        class="version hud"
+        data-testid="backend-version"
+        [class.unknown]="backend().state === 'unknown'"
+        [attr.aria-label]="backend().state === 'known' ? 'backend version ' + versionText() : null"
+        >{{ versionText() }}</span
+      >
+    </span>
+    <app-theme-control />
+  </div>
 </header>
 <main class="stage">
   <app-dashboard />

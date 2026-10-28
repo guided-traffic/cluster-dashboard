@@ -36,7 +36,7 @@ For contributors and agents. Read [AGENTS.md](../../AGENTS.md) for the rules in 
 | [discovery.md](discovery.md) | Ingresses to apps: informers, selection, URL, status, RBAC per mode; the dashboard model; adding an annotation key |
 | [icons.md](icons.md) | The packs and their pins, resolution and auto-match, ConfigMap and remote icons, serving; adding a catalogue |
 | [badges.md](badges.md) | Definitions, rules, corners, the effective IngressClass; adding a match field |
-| [frontend.md](frontend.md) | The page: the shell, polling, tiles, icons, badges, brackets, the horizon; tokens and contrast; adding a component |
+| [frontend.md](frontend.md) | The page: the shell, polling, the layout and its split, tiles, icons, badges, group heads, the horizon; tokens and contrast; adding a component |
 | [adding-things.md](adding-things.md) | Every extension checklist: configuration keys, annotation keys, catalogues, match fields, components, API operations, problem codes |
 
 Decisions: [docs/adr/](../adr/README.md). Security architecture: [docs/security/](../security/README.md).

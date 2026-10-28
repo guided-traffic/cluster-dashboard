@@ -1,72 +1,131 @@
 @switch (state().kind) {
   @case ('failed') {
-    <app-horizon>
-      @if (starting()) {
-        <p class="headline">the backend is starting</p>
-      } @else {
-        <p class="headline">the backend cannot be reached</p>
-      }
-      <p class="detail">The page asks again every {{ retrySeconds }} seconds.</p>
-    </app-horizon>
+    <div class="frame">
+      <app-horizon>
+        @if (starting()) {
+          <p class="headline">the backend is starting</p>
+        } @else {
+          <p class="headline">the backend cannot be reached</p>
+        }
+        <p class="detail">The page asks again every {{ retrySeconds }} seconds.</p>
+      </app-horizon>
+    </div>
   }
   @case ('ready') {
     @if (view(); as v) {
       @if (stale()) {
         <p class="stale" role="status">
-          The backend did not answer the last refresh: this is its last answer.
+          <span class="frame stale-text"
+            >The backend did not answer the last refresh: this is its last answer.</span
+          >
         </p>
       }
       @if (v.all.length === 0 && v.bookmarks.length === 0) {
-        <app-horizon>
-          <p class="headline">no apps discovered</p>
-          <p class="detail" data-testid="scope">{{ v.scope }}</p>
-        </app-horizon>
+        <div class="frame">
+          <app-horizon>
+            <p class="headline">no apps discovered</p>
+            <p class="detail" data-testid="scope">{{ v.scope }}</p>
+          </app-horizon>
+        </div>
       } @else {
-        @if (v.all.length > 0) {
-          @if (v.dashboard.ui.show_summary) {
-            <app-summary [summary]="v.dashboard.summary" [tokens]="v.tokens" />
-          }
-          @if (v.dashboard.ui.show_app_groups) {
-            @for (group of v.groups; track group.name) {
-              <section class="group">
-                <app-bracket [label]="group.name" [count]="group.apps.length" />
-                <div class="grid">
-                  @for (p of group.apps; track p.app.id) {
-                    <app-tile
-                      [app]="p.app"
-                      [anchor]="p.anchor"
-                      [showURL]="v.dashboard.ui.show_app_urls"
-                    />
+        <section class="overview" aria-labelledby="overview-title">
+          <div class="frame">
+            <div class="bar">
+              <h2 class="hud" id="overview-title">
+                <span class="number" aria-hidden="true">01<span class="slash">/</span></span
+                >Overview
+              </h2>
+              <p class="hud meta">{{ when() }}</p>
+            </div>
+            @if (greeting(); as g) {
+              <p class="display" data-testid="greeting">
+                Good <em>{{ g.time }}</em
+                >{{ g.name ? ', ' + g.name : '' }}.
+              </p>
+            } @else {
+              <p class="display">{{ v.dashboard.ui.title }}</p>
+            }
+            @if (v.all.length > 0 && v.dashboard.ui.show_summary) {
+              <app-summary
+                [summary]="v.dashboard.summary"
+                [tokens]="v.tokens"
+                [groups]="v.dashboard.ui.show_app_groups ? v.groups.length : undefined"
+              />
+            }
+          </div>
+        </section>
+
+        <div class="split">
+          <div class="frame">
+            <span class="tick start" aria-hidden="true"></span>
+            <span class="tick end" aria-hidden="true"></span>
+            <div class="panes">
+              <section class="pane apps" id="apps" aria-labelledby="apps-title">
+                <div class="bar">
+                  <h2 class="hud" id="apps-title">
+                    <span class="number" aria-hidden="true">02<span class="slash">/</span></span
+                    >Apps
+                  </h2>
+                  @if (v.all.length > 0) {
+                    <p class="hud meta">{{ v.appsMeta }}</p>
                   }
                 </div>
-              </section>
-            }
-          } @else {
-            <section class="group">
-              <h2 class="visually-hidden">Apps</h2>
-              <div class="grid">
-                @for (p of v.all; track p.app.id) {
-                  <app-tile
-                    [app]="p.app"
-                    [anchor]="p.anchor"
-                    [showURL]="v.dashboard.ui.show_app_urls"
-                  />
+                @if (v.all.length > 0) {
+                  @if (v.dashboard.ui.show_app_groups) {
+                    @for (group of v.groups; track group.name) {
+                      <section class="group">
+                        <app-group-head [label]="group.name" [count]="group.apps.length" />
+                        <div class="grid">
+                          @for (p of group.apps; track p.app.id) {
+                            <app-tile
+                              [app]="p.app"
+                              [anchor]="p.anchor"
+                              [showURL]="v.dashboard.ui.show_app_urls"
+                            />
+                          }
+                        </div>
+                      </section>
+                    }
+                  } @else {
+                    <div class="grid">
+                      @for (p of v.all; track p.app.id) {
+                        <app-tile
+                          [app]="p.app"
+                          [anchor]="p.anchor"
+                          [showURL]="v.dashboard.ui.show_app_urls"
+                        />
+                      }
+                    </div>
+                  }
+                } @else {
+                  <p class="quiet" data-testid="scope">No apps discovered. {{ v.scope }}</p>
                 }
-              </div>
-            </section>
-          }
-        } @else {
-          <p class="quiet" data-testid="scope">No apps discovered. {{ v.scope }}</p>
-        }
-        @if (v.bookmarks.length > 0) {
-          <section class="bookmarks">
-            <h2 class="visually-hidden">Bookmarks</h2>
-            <app-bookmarks
-              [groups]="v.bookmarks"
-              [showGroups]="v.dashboard.ui.show_bookmark_groups"
-            />
-          </section>
-        }
+              </section>
+              @if (v.bookmarks.length > 0) {
+                <section class="pane bookmarks" id="bookmarks" aria-labelledby="bookmarks-title">
+                  <div class="bar">
+                    <h2 class="hud" id="bookmarks-title">
+                      <span class="number" aria-hidden="true">03<span class="slash">/</span></span
+                      >Bookmarks
+                    </h2>
+                    <p class="hud meta">{{ v.bookmarksMeta }}</p>
+                  </div>
+                  <app-bookmarks
+                    [groups]="v.bookmarks"
+                    [showGroups]="v.dashboard.ui.show_bookmark_groups"
+                  />
+                </section>
+              }
+            </div>
+          </div>
+        </div>
+
+        <footer class="foot">
+          <div class="frame">
+            <p class="hud">{{ v.scope }}</p>
+            <p class="hud">Refresh every {{ v.dashboard.ui.refresh_seconds }} s</p>
+          </div>
+        </footer>
       }
     }
   }

@@ -36,9 +36,9 @@ dash/
 │   ├── src/app/
 │   │   ├── api/                  # ng-openapi-gen output (generated)
 │   │   ├── core/                 # dashboard.service (polling), theme.service, clock, version.service
-│   │   ├── design/               # tokens.css (Cogpit's palettes, status and badge tones), glyphs.ts
-│   │   ├── features/dashboard/   # the page: summary, tiles, bookmarks, horizon
-│   │   └── shared/               # item-icon, badge, bracket, theme-control
+│   │   ├── design/               # tokens.css (grounds, hairlines, accent, status and badge tones, faces), glyphs.ts
+│   │   ├── features/dashboard/   # the page: overview, summary, tiles, bookmarks, horizon
+│   │   └── shared/               # item-icon, badge, group-head, theme-control
 │   ├── src/testing/              # fixtures of the dashboard answer, for the specs
 │   ├── public/                   # favicon.svg, theme-init.js
 │   ├── e2e/                      # Playwright: smoke, dashboard (API and icons), page, a11y; cluster + golden.json

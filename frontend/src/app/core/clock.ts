@@ -15,17 +15,21 @@ export function timeOfDay(date: Date): 'morning' | 'afternoon' | 'evening' | 'ni
   return 'night';
 }
 
-/** The greeting under the title: "Good evening, You". */
-export function greeting(date: Date, name: string): string {
-  const words = `Good ${timeOfDay(date)}`;
-  return name.trim() === '' ? words : `${words}, ${name.trim()}`;
+/** The overview's greeting in its parts — the page sets the time of day apart: "Good *evening*, You." */
+export function greeting(date: Date, name: string): { time: string; name: string } {
+  return { time: timeOfDay(date), name: name.trim() };
 }
 
-/** The date under the title, in the browser's language: "Monday, 26 October". */
+/** The date in the overview's bar, in the browser's language: "Monday, 26 October". */
 export function longDate(date: Date, locale?: string): string {
   return new Intl.DateTimeFormat(locale, { weekday: 'long', day: 'numeric', month: 'long' }).format(
     date,
   );
+}
+
+/** The time beside the date, to the minute, in the browser's language: "19:30". */
+export function shortTime(date: Date, locale?: string): string {
+  return new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' }).format(date);
 }
 
 /** The time the page shows, to the minute: the greeting and the date follow it. */

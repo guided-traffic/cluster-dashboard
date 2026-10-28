@@ -14,16 +14,19 @@ describe('Tile', () => {
     return { host, link: host.querySelector('a')! };
   }
 
-  it('links the app, quiet while it is healthy', () => {
-    const { host, link } = render(appOf({ info: 'Dashboards' }));
+  it('links the app, quiet while it is healthy: the ready count, no colour', () => {
+    const { host, link } = render(
+      appOf({ info: 'Dashboards', status: { state: 'healthy', ready: 2, total: 2 } }),
+    );
     expect(link.getAttribute('href')).toBe('https://grafana.example.com/');
     expect(link.id).toBe('app-3');
     expect(link.getAttribute('target')).toBeNull();
     expect(link.getAttribute('rel')).toBeNull();
     expect(host.querySelector('.name')!.textContent).toBe('Grafana');
     expect(host.querySelector('.url')!.textContent).toBe('grafana.example.com');
+    expect(host.querySelector('.url svg')!.getAttribute('aria-hidden')).toBe('true');
     expect(host.querySelector('.info')!.textContent).toBe('Dashboards');
-    expect(host.querySelector('.pill')).toBeNull();
+    expect(host.querySelector('.status')!.textContent!.trim()).toBe('2/2');
     expect(link.classList.contains('degraded') || link.classList.contains('down')).toBe(false);
     expect(host.querySelector('app-item-icon')).not.toBeNull();
   });
@@ -37,12 +40,12 @@ describe('Tile', () => {
   it('says a degraded and a down app in words, not only in colour', () => {
     let { host, link } = render(appOf({ status: { state: 'degraded', ready: 2, total: 3 } }));
     expect(link.classList.contains('degraded')).toBe(true);
-    expect(host.querySelector('.pill')!.textContent!.trim()).toBe('2 of 3 ready');
+    expect(host.querySelector('.status')!.textContent!.trim()).toBe('2 of 3 ready');
     ({ host, link } = render(appOf({ status: { state: 'down', ready: 0, total: 1 } })));
     expect(link.classList.contains('down')).toBe(true);
-    expect(host.querySelector('.pill')!.textContent!.trim()).toBe('down');
+    expect(host.querySelector('.status')!.textContent!.trim()).toBe('down');
     ({ host } = render(appOf({ status: { state: 'unknown', ready: 0, total: 0 } })));
-    expect(host.querySelector('.pill')).toBeNull();
+    expect(host.querySelector('.status')).toBeNull();
   });
 
   it('hides the address while ui.showAppUrls is off', () => {
@@ -70,12 +73,16 @@ describe('Tile', () => {
     // The badges come after the text: the link's name begins with the app's.
     expect(host.querySelector('a')!.lastElementChild!.classList.contains('badges')).toBe(true);
     expect(host.querySelector('a')!.textContent!.trim().startsWith('Grafana')).toBe(true);
+    expect(host.querySelector('app-item-icon')!.getAttribute('style')).toContain(
+      '--icon-size: 28px',
+    );
   });
 
   it('shows an address as host and path', () => {
     expect(shownURL('https://grafana.example.com/')).toBe('grafana.example.com');
     expect(shownURL('http://10.0.0.7:3000/d/home')).toBe('10.0.0.7:3000/d/home');
     expect(shownURL('not a url')).toBe('not a url');
-    expect(statusWord(appOf())).toBeUndefined();
+    expect(statusWord(appOf())).toBe('1/1');
+    expect(statusWord(appOf({ status: { state: 'unknown', ready: 0, total: 0 } }))).toBeUndefined();
   });
 });

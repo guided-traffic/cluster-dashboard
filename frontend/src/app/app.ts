@@ -2,7 +2,6 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject } from '@a
 import { toSignal } from '@angular/core/rxjs-interop';
 import { Title } from '@angular/platform-browser';
 import { catchError, map, of } from 'rxjs';
-import { Clock, greeting, longDate } from './core/clock';
 import { DashboardService } from './core/dashboard.service';
 import { VersionService } from './core/version.service';
 import { DashboardPage } from './features/dashboard/dashboard';
@@ -12,8 +11,8 @@ type BackendVersion =
   { state: 'loading' } | { state: 'known'; version: string } | { state: 'unknown' };
 
 /**
- * The shell: the top bar — chrome, darker than the stage — with the title, the greeting and the
- * date in muted text, the backend's version and the theme control; under it the dashboard.
+ * The shell (docs/adr/0012 D2): the top bar — the mark and the title, the backend's version and the
+ * theme control, cells divided by hairlines — over the dashboard.
  */
 @Component({
   selector: 'app-root',
@@ -25,7 +24,6 @@ type BackendVersion =
 export class App {
   private readonly versions = inject(VersionService);
   private readonly dashboard = inject(DashboardService);
-  private readonly clock = inject(Clock);
 
   protected readonly backend = toSignal(
     this.versions.get().pipe(
@@ -47,22 +45,10 @@ export class App {
     }
   });
 
-  private readonly ui = computed(() => {
-    const s = this.dashboard.state();
-    return s.kind === 'ready' ? s.dashboard.ui : undefined;
-  });
-
   /** ui.title once the dashboard has answered; Dash until then. */
-  protected readonly title = computed(() => this.ui()?.title ?? 'Dash');
-
-  /** "Good evening, You · Monday 26 October", while ui.greeting is enabled. */
-  protected readonly greetingLine = computed(() => {
-    const ui = this.ui();
-    if (!ui?.greeting.enabled) {
-      return '';
-    }
-    const now = this.clock.now();
-    return `${greeting(now, ui.greeting.name)} · ${longDate(now)}`;
+  protected readonly title = computed(() => {
+    const s = this.dashboard.state();
+    return s.kind === 'ready' ? s.dashboard.ui.title : 'Dash';
   });
 
   constructor() {

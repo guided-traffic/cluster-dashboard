@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { Clock, greeting, longDate, timeOfDay } from './clock';
+import { Clock, greeting, longDate, shortTime, timeOfDay } from './clock';
 
 const at = (hour: number) => new Date(2026, 9, 26, hour, 30);
 
@@ -19,13 +19,15 @@ describe('the clock', () => {
   });
 
   it('greets by name, or without one', () => {
-    expect(greeting(at(19), 'Hans')).toBe('Good evening, Hans');
-    expect(greeting(at(9), '  ')).toBe('Good morning');
+    expect(greeting(at(19), ' Hans ')).toEqual({ time: 'evening', name: 'Hans' });
+    expect(greeting(at(9), '  ')).toEqual({ time: 'morning', name: '' });
   });
 
-  it('writes the date in the given language', () => {
+  it('writes the date and the time in the given language', () => {
     expect(longDate(at(9), 'en-GB')).toBe('Monday 26 October');
     expect(longDate(at(9), 'de-DE')).toBe('Montag, 26. Oktober');
+    expect(shortTime(at(19), 'en-GB')).toBe('19:30');
+    expect(shortTime(at(9), 'de-DE')).toBe('09:30');
   });
 
   it('moves on every minute', () => {

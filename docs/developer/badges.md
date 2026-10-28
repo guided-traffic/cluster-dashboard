@@ -1,6 +1,6 @@
 # Badges
 
-Pills on an item's icon in the style of macOS dock badges. The decision is
+Badges on an item's icon, placed as macOS places dock badges. The decision is
 [ADR 0011](../adr/0011-badges-on-icons-from-definitions-and-rules.md); the user-facing reference is the
 README's.
 

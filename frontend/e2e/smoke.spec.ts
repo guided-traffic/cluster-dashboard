@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { connect, type PeerCertificate } from 'node:tls';
 
-/** The stage colour of each scheme (src/app/design/tokens.css, from Cogpit's palettes). */
-const stage = { dark: 'rgb(13, 18, 26)', light: 'rgb(251, 252, 253)' } as const;
+/** The page's ground in each scheme (--bg of src/app/design/tokens.css, docs/adr/0012 D1). */
+const stage = { dark: 'rgb(18, 19, 22)', light: 'rgb(242, 241, 238)' } as const;
 
 /** The certificate the controller serves for localhost. */
 function servedCertificate(url: string): Promise<PeerCertificate> {

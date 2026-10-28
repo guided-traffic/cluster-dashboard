@@ -1,76 +1,73 @@
 /*
- * The design tokens (docs/adr/0005): Cogpit's Dark Cockpit palettes — its
- * internal/ui/fyneui/theme.go and docs/developer/design-language.md — each token one
- * light-dark() pair. Which half applies is the color-scheme of <html>: `light dark` follows
- * prefers-color-scheme live, which is the preference "system"; `light` or `dark` fixes one.
+ * The design tokens (docs/adr/0012): a technical editorial page — neutral grounds, hairlines
+ * instead of plates, one accent for focus, the status colours only for what is not healthy. Each
+ * colour is one light-dark() pair. Which half applies is the color-scheme of <html>: `light dark`
+ * follows prefers-color-scheme live, which is the preference "system"; `light` or `dark` fixes one.
  * public/theme-init.js and the theme service set the preference as data-theme on <html>.
  *
- * tokens.spec.ts reads this file and holds every text pair to 4.5:1 and every shape to 3:1: the
- * text tokens on every surface, a status word on its tint, a badge's ink on its tone and its tone
- * on every surface.
+ * tokens.spec.ts reads this file and holds every text to 4.5:1 and every shape to 3:1 on every
+ * surface, the stale notice's word on its tint, the inverted text and its focus ring, a badge's
+ * ink on its tone and its tone on every surface.
  */
 :root {
   color-scheme: light dark;
 
-  /* Surfaces: a stage, chrome darker than it, plates one luminance step above it; hairlines
-     only where luminance is not enough. */
-  --stage: light-dark(#fbfcfd, #0d121a);
-  --chrome: light-dark(#eef1f5, #0a0e14);
-  --plate: light-dark(#f7f8fa, #10161f);
-  --plate-lifted: light-dark(#ffffff, #121925);
-  --header: light-dark(#eef1f6, #141b26);
-  --hairline: light-dark(#e1e6ed, #1b2330);
-  --edge: light-dark(#cdd4df, #263042);
-  --outline: light-dark(#a1acbc, #3e4f6a);
-  --selection: light-dark(#d6e6ff, #183252);
-  --stage-light: light-dark(#e4edfb, #15233b);
+  /* Surfaces: the page, a tile under the pointer one step lighter, a down tile's coral tint, the
+     stale notice's amber tint, and the inverted ground of a chosen or hovered control. */
+  --bg: light-dark(#f2f1ee, #121316);
+  --raised: light-dark(#faf9f7, #18191d);
+  --down-tint: light-dark(#eee5e2, #251a1c);
+  --stale-tint: light-dark(#eae4db, #25201a);
+  --invert-bg: light-dark(#101014, #f2f1ee);
 
-  /* Text. */
-  --text: light-dark(#1a2230, #d5dde8);
-  --muted: light-dark(#5f6a7c, #8592a5);
-  --link: light-dark(#0a62c2, #7cc4ff);
+  /* Text: ink, the headings a step stronger, muted for descriptions, faint for labels and
+     addresses; the ink on the inverted ground. */
+  --ink: light-dark(#101014, #f2f1ee);
+  --strong: light-dark(#000000, #ffffff);
+  --muted: light-dark(#464648, #aaaaa9);
+  --faint: light-dark(#616162, #8b8b8b);
+  --invert-fg: light-dark(#f2f1ee, #0b0b0c);
 
-  /* The lights, one meaning each: glow blue is you — focus, hover, links, the chosen theme;
-     cyan is the cluster. Violet stays the agent's and is not used here. */
-  --glow: light-dark(#0a6fd6, #4aa8ff);
-  --cyan: light-dark(#0b7c93, #5ad1e3);
+  /* Hairlines: the frame, the grid and the section bars; the strong one where a line is a shape —
+     a healthy app's square in the summary, a crosshair tick. */
+  --line: light-dark(#cecdcb, #343436);
+  --line-strong: light-dark(#818180, #707071);
 
-  /* Status, for deviations only: a healthy app draws no colour. */
-  --mint: light-dark(#138a52, #3dd68c);
-  --amber: light-dark(#9a6a00, #f2c14e);
-  --orange: light-dark(#c4570e, #ff9f5a);
-  --coral: light-dark(#d23b45, #ff6b74);
+  /* The lights, one meaning each: the accent is the keyboard's focus (its other half on the
+     inverted ground); amber is degraded, coral is down. A healthy app draws no colour. */
+  --accent: light-dark(#1659c4, #4b93ff);
+  --accent-invert: light-dark(#74aaff, #1659c4);
+  --amber: light-dark(#8a5100, #ffb347);
+  --coral: light-dark(#b3261e, #ff6a61);
 
-  /* A degraded or down tile's pill: the status colour at 14 % (18 % in light) of the plate, the
-     word moved in lightness until it holds 4.5:1 on that tint, as Cogpit's status words do. */
-  --amber-tint: light-dark(#e6decd, #302e26);
-  --amber-word: light-dark(#745000, #f2c14e);
-  --coral-tint: light-dark(#f0d6d9, #31222b);
-  --coral-word: light-dark(#9e2c34, #ff6b74);
-
-  /* Badge tones (docs/adr/0011): the pill's fill and the ink of its glyph or text. Violet stays
-     the agent's in Cogpit and is no tone. In light the lights are deepened for 4.5:1 white text. */
-  --tone-neutral: light-dark(#5f6a7c, #8592a5);
-  --tone-neutral-ink: light-dark(#ffffff, #0d121a);
-  --tone-blue: light-dark(#0a6fd6, #4aa8ff);
-  --tone-blue-ink: light-dark(#ffffff, #0d121a);
+  /* Badge tones (docs/adr/0011): the badge's fill and the ink of its glyph or text. Violet is no
+     tone. In light the tones are deep enough for white ink. */
+  --tone-neutral: light-dark(#3a3a40, #d6d4cf);
+  --tone-neutral-ink: light-dark(#ffffff, #121316);
+  --tone-blue: light-dark(#1659c4, #7fb0ff);
+  --tone-blue-ink: light-dark(#ffffff, #121316);
   --tone-cyan: light-dark(#0b7c93, #5ad1e3);
-  --tone-cyan-ink: light-dark(#ffffff, #0d121a);
-  --tone-mint: light-dark(#117c4a, #3dd68c);
-  --tone-mint-ink: light-dark(#ffffff, #0d121a);
-  --tone-amber: light-dark(#9a6a00, #f2c14e);
-  --tone-amber-ink: light-dark(#ffffff, #0d121a);
-  --tone-coral: light-dark(#d23b45, #ff6b74);
-  --tone-coral-ink: light-dark(#ffffff, #0d121a);
+  --tone-cyan-ink: light-dark(#ffffff, #121316);
+  --tone-mint: light-dark(#0f7a55, #3fd6a0);
+  --tone-mint-ink: light-dark(#ffffff, #121316);
+  --tone-amber: light-dark(#8a5100, #ffb347);
+  --tone-amber-ink: light-dark(#ffffff, #121316);
+  --tone-coral: light-dark(#b3261e, #ff6a61);
+  --tone-coral-ink: light-dark(#ffffff, #121316);
 
-  /* Typography: Inter, self-hosted from npm, no font CDN. */
-  --font-sans: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  /* Typography, self-hosted from npm, no font CDN: Archivo for the display line and the names,
+     Instrument Serif's italic for the one accent word, Inter for text, Geist Mono for labels,
+     addresses and counts. */
+  --font-display: 'Archivo Variable', system-ui, sans-serif;
+  --font-serif: 'Instrument Serif', Georgia, serif;
+  --font-body: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'Geist Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  /* Shapes and motion: slow and purposeful, none when the person asks for none. */
-  --radius-plate: 10px;
-  --radius-segment: 7px;
-  --gutter: 16px;
-  --motion: 160ms cubic-bezier(0.2, 0, 0, 1);
+  /* The frame, the bars and the rhythm: square corners everywhere; 16 pixels at phone width. */
+  --frame: 1280px;
+  --nav-height: 48px;
+  --pad: 28px;
+  --motion: 120ms linear;
 }
 
 :root[data-theme='light'] {
@@ -79,6 +76,12 @@
 
 :root[data-theme='dark'] {
   color-scheme: dark;
+}
+
+@media (max-width: 720px) {
+  :root {
+    --pad: 16px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

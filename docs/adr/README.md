@@ -24,10 +24,11 @@ says so.
 | [0002](0002-documentation-homes-and-the-plan-consumed.md) | Where a statement lives; the project plan is consumed | Yes |
 | [0003](0003-test-and-ci-policy.md) | `make` as the entry point, the test tiers, required gates | Yes |
 | [0004](0004-configuration-is-three-variables-and-one-validated-file.md) | Five variables and one strict YAML file, the values' keys | Yes |
-| [0005](0005-cogpits-dark-cockpit-on-the-web-without-a-component-library.md) | Cogpit's design language, no component library, the theme preference | Yes |
+| [0005](0005-cogpits-dark-cockpit-on-the-web-without-a-component-library.md) | Cogpit's design language (partly superseded by 0012), no component library, the theme preference | Yes |
 | [0006](0006-one-version-of-every-tool.md) | Toolchains track the newest release; every tool pinned once | Yes |
 | [0007](0007-discovery-with-hajimaris-semantics.md) | Ingress discovery with Hajimari's semantics, watched not polled; RBAC by selector | Yes |
 | [0008](0008-icons-come-from-bundled-packs-configmaps-and-urls.md) | Icon sources, packs, auto-match, resolution | Yes |
 | [0009](0009-remote-icons-are-fetched-by-the-backend-under-cogpits-rules.md) | The remote icon fetch policy | Yes |
 | [0010](0010-annotations-are-read-under-dash-gtrfc-com-only.md) | Annotations under `dash.gtrfc.com/` only | Yes |
 | [0011](0011-badges-on-icons-from-definitions-and-rules.md) | Badges on icons, macOS style, from definitions and rules | Yes |
+| [0012](0012-a-technical-editorial-look-the-apps-beside-the-bookmarks.md) | A technical editorial look; the overview above the apps beside the bookmarks; four self-hosted faces | Yes |

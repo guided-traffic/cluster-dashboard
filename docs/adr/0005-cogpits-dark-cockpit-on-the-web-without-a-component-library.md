@@ -6,7 +6,9 @@ Accepted 2026-10-26 (the owner: "the look is Cogpit's"). **Built**: the shell �
 schemes, the theme service, the segmented control, `public/theme-init.js` — and, in phase 2 step 6, the
 page: tiles, groups, badges, summary, bookmarks, the horizon; amended the same day with D5 and D6.
 Verified by the unit tests (100 % of the frontend's statements, every token pair's contrast) and in
-Chromium and WebKit by `make e2e`, at desktop and phone width.
+Chromium and WebKit by `make e2e`, at desktop and phone width. **Partly superseded** 2026-10-28 by
+[ADR 0012](0012-a-technical-editorial-look-the-apps-beside-the-bookmarks.md): D1, D6 and the typeface
+of D4; D2, D3, D5 and the glyphs of D4 stand.
 
 ## Context
 
@@ -17,7 +19,7 @@ login.
 
 ## Decision
 
-**D1 — The tokens are Cogpit's palettes**, as CSS custom properties with `light-dark()` pairs
+**D1 — The tokens are Cogpit's palettes** *(superseded by ADR 0012 D1)*, as CSS custom properties with `light-dark()` pairs
 (`frontend/src/app/design/tokens.css`). Glow blue means you, cyan the cluster; violet stays the agent's
 and is not used; status colours only for deviations.
 
@@ -31,14 +33,16 @@ as `system`. `public/theme-init.js`, loaded from the origin in `<head>`, applies
 before the first paint, because the CSP refuses inline scripts.
 
 **D4 — The UI's own glyphs are Material Symbols, inlined** in the bundle, so the shell draws while the
-backend is down. The font is Inter, self-hosted from npm; nothing loads from a CDN.
+backend is down. The font is Inter, self-hosted from npm; nothing loads from a CDN. *(The typeface is
+superseded by ADR 0012 D5: four faces, still self-hosted.)*
 
 **D5 — The installation's default scheme applies once the dashboard answers.** `ui.defaultTheme`
 reaches the page with the dashboard; until then, and whenever the person has chosen a scheme, the
 stored choice or `system` holds. The frontend takes no configuration of its own, so the first paint
 of a browser without a choice follows the system.
 
-**D6 — Status and badge colours are tokens with their contrast tested.** A status pill's word is
+**D6 — Status and badge colours are tokens with their contrast tested** *(superseded by ADR 0012
+D1 and D3: the status word stands on the tile's ground, no pill)*. A status pill's word is
 moved in lightness until it holds 4.5:1 on its tint, as Cogpit's status words are; a badge's ink holds
 4.5:1 on its tone and the tone 3:1 on every surface, the light scheme's lights deepened where needed
 (mint).
