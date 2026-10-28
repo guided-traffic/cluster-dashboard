@@ -80,7 +80,7 @@ KIND_VERSION ?= v0.33.0
 KIND_NODE_IMAGE ?= kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5
 # The end-to-end cluster's Ingress controller — the one the owner's clusters run — and cert-manager.
 # renovate: datasource=helm depName=haproxy-ingress registryUrl=https://haproxy-ingress.github.io/charts
-HAPROXY_INGRESS_CHART_VERSION ?= 0.16.2
+HAPROXY_INGRESS_CHART_VERSION ?= 0.16.3
 HAPROXY_INGRESS_CHART_REPO := https://haproxy-ingress.github.io/charts
 # renovate: datasource=helm depName=cert-manager registryUrl=https://charts.jetstack.io
 CERT_MANAGER_CHART_VERSION ?= v1.21.3

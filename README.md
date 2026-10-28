@@ -339,7 +339,7 @@ badges:                    # badges on icons, placed as macOS places dock badges
 object's own set protects only that half. Both pods run as 65532 on a read-only root file system with
 every capability dropped; the frontend mounts no ServiceAccount token. With `cert-manager`, put the
 issuer annotation under `ingress.frontend.annotations` only: both objects name the same TLS secret,
-and one Certificate is made for it (verified with cert-manager v1.21.3 and haproxy-ingress 0.16.2).
+and one Certificate is made for it (verified with cert-manager v1.21.3 and haproxy-ingress 0.16.3).
 
 `apps[].apps[].url` and `bookmarks[].bookmarks[].url` take `http` and `https` only — a `javascript:`
 link would run on the dashboard's origin — and refuse a user or password, which every viewer would
