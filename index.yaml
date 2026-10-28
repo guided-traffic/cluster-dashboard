@@ -2,8 +2,30 @@ apiVersion: v1
 entries:
   dash:
   - apiVersion: v2
+    appVersion: 0.4.1
+    created: "2026-10-28T07:40:56.316486045Z"
+    description: Dash, a start page for a Kubernetes cluster that finds its apps through
+      their Ingresses
+    digest: dcc2b27856a3a9cb6d1cf545fc88d23b5ae5f075c1860e697a15041b66a1f497
+    home: https://github.com/guided-traffic/dash
+    keywords:
+    - dashboard
+    - start-page
+    - ingress
+    - discovery
+    maintainers:
+    - name: Guided Traffic
+      url: https://github.com/guided-traffic
+    name: dash
+    sources:
+    - https://github.com/guided-traffic/dash
+    type: application
+    urls:
+    - https://guided-traffic.github.io/dash/dash-0.4.1.tgz
+    version: 0.4.1
+  - apiVersion: v2
     appVersion: 0.4.0
-    created: "2026-10-28T07:29:15.996415084Z"
+    created: "2026-10-28T07:40:56.314192047Z"
     description: Dash, a start page for a Kubernetes cluster that finds its apps through
       their Ingresses
     digest: 0fb67ae9c629b4cdcab262165058aeacb17428b1fcb95eb1e679737a0b45bf10
@@ -25,7 +47,7 @@ entries:
     version: 0.4.0
   - apiVersion: v2
     appVersion: 0.3.0
-    created: "2026-10-28T07:29:15.995052116Z"
+    created: "2026-10-28T07:40:56.312193286Z"
     description: Dash, a start page for a Kubernetes cluster that finds its apps through
       their Ingresses
     digest: b084a58ac9cd6b6173e248488d55c5fca3afebe1fc5922074d8637aa5641a4e3
@@ -47,7 +69,7 @@ entries:
     version: 0.3.0
   - apiVersion: v2
     appVersion: 0.2.0
-    created: "2026-10-28T07:29:15.993887772Z"
+    created: "2026-10-28T07:40:56.308831723Z"
     description: Dash, a start page for a Kubernetes cluster that finds its apps through
       their Ingresses
     digest: 84d192405fb51fa0a870bd75311d6b83e1a62a0bc5d5ca0948c5fbceb2ad2b5c
@@ -69,7 +91,7 @@ entries:
     version: 0.2.0
   - apiVersion: v2
     appVersion: 0.1.0
-    created: "2026-10-28T07:29:15.992089463Z"
+    created: "2026-10-28T07:40:56.30791338Z"
     description: Dash, a start page for a Kubernetes cluster that finds its apps through
       their Ingresses
     digest: bd2cc4c62f6315ce0a168d905900e67c2fa8137c170adeba9b2968e1367a6a40
@@ -89,4 +111,4 @@ entries:
     urls:
     - https://guided-traffic.github.io/dash/dash-0.1.0.tgz
     version: 0.1.0
-generated: "2026-10-28T07:29:15.990041203Z"
+generated: "2026-10-28T07:40:56.307091631Z"
