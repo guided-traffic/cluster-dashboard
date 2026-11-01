@@ -62,7 +62,7 @@ GOSEC_VERSION ?= v2.30.0
 # renovate: datasource=go depName=golang.org/x/vuln/cmd/govulncheck
 GOVULNCHECK_VERSION ?= v1.9.0
 # renovate: datasource=go depName=github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen
-OAPI_CODEGEN_VERSION ?= v2.8.1
+OAPI_CODEGEN_VERSION ?= v2.8.2
 # renovate: datasource=go depName=github.com/yannh/kubeconform/cmd/kubeconform
 KUBECONFORM_VERSION ?= v0.8.0
 # Helm 4, built from its module with its version stamped in as its release build does; never the
